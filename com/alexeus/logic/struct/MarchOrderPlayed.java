@@ -14,14 +14,17 @@ public class MarchOrderPlayed {
     private int areaFrom;
     // Карта с областями, в которые направляются юниты, и юнитами, которые направляются в области. Может быть пустой.
     private HashMap<Integer, ArrayList<Unit>> destinationsOfMarch;
+    // Оставляем ли жетон власти на покидаемой области
+    private boolean isLeaveToken;
 
     public MarchOrderPlayed() {
         destinationsOfMarch = new HashMap<>();
     }
 
-    public MarchOrderPlayed(int from, HashMap<Integer, ArrayList<Unit>> destinationsOfMarch) {
+    public MarchOrderPlayed(int from, HashMap<Integer, ArrayList<Unit>> destinationsOfMarch, boolean isLeaveToken) {
         setAreaFrom(from);
         setDestinationsOfMarch(destinationsOfMarch);
+        setLeaveToken(isLeaveToken);
     }
 
     public int getAreaFrom() {
@@ -46,6 +49,14 @@ public class MarchOrderPlayed {
 
     public void setDestinationsOfMarch(HashMap<Integer, ArrayList<Unit>> destinationsOfMarch) {
         this.destinationsOfMarch = destinationsOfMarch;
+    }
+
+    public boolean isLeaveToken() {
+        return isLeaveToken;
+    }
+
+    public void setLeaveToken(boolean leaveToken) {
+        isLeaveToken = leaveToken;
     }
 
     public String toString() {

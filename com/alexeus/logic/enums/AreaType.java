@@ -7,5 +7,9 @@ package com.alexeus.logic.enums;
 public enum AreaType {
     sea,
     land,
-    port
+    port;
+
+    public boolean isNaval() {
+        return this == sea || this == port;
+    }
 }

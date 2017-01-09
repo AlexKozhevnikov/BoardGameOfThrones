@@ -50,4 +50,8 @@ public class Unit {
     public boolean isWounded() {
         return isWounded;
     }
+
+    public int getStrength() {
+        return this.getUnitType().getStrength();
+    }
 }

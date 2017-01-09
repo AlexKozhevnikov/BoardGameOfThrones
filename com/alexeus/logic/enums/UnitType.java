@@ -12,6 +12,19 @@ public enum UnitType {
     siegeEngine,
     ship;
 
+    public int getStrength() {
+        switch(this) {
+            case pawn:
+            case ship:
+                return 1;
+            case knight:
+                return 2;
+            case siegeEngine:
+                return 4;
+        }
+        return 0;
+    }
+
     @Override
     public String toString() {
         switch(this) {

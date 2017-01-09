@@ -162,4 +162,25 @@ public enum Order {
     public boolean isStar() {
         return this == raidS || this == marchS || this == consolidatePowerS || this == supportS || this == defenceS;
     }
+
+    /**
+     * Возвращает модификатор приказа. Имеет смысл только для похода, подмоги и обороны.
+     * @return модификатор приказа
+     */
+    public int getModifier() {
+        switch(this) {
+            case marchB:
+                return -1;
+            case march:
+            case support:
+                return 0;
+            case defence:
+            case marchS:
+            case supportS:
+                return 1;
+            case defenceS:
+                return 2;
+        }
+        return 0;
+    }
 }

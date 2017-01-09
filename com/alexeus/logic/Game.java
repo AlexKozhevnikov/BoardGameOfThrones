@@ -477,8 +477,10 @@ public class Game {
                     System.out.print(Constants.HOUSE[player]);
                     int from = raid.getAreaFrom();
                     int to = raid.getAreaTo();
+
+                    // Банальные проверки на валидность областей и наличие набега
                     if (from < 0 || from >= GameOfThronesMap.NUM_AREA || to >= GameOfThronesMap.NUM_AREA) {
-                        System.out.println(Constants.WRONG_AREAS_ERROR);
+                        System.out.println(Constants.WRONG_AREAS_RAID_ERROR);
                         continue;
                     }
                     if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.raid ||
@@ -575,7 +577,85 @@ public class Game {
                     System.out.print(Constants.HOUSE[player]);
                     int from = march.getAreaFrom();
                     HashMap<Integer, ArrayList<Unit>> destinationsOfMarch = march.getDestinationsOfMarch();
-                    System.out.println();
+
+                    // Банальные проверки на валидность областей и наличие похода
+                    boolean wrongAreasFlag = false;
+                    for (int areaDestination: destinationsOfMarch.keySet()) {
+                        if (areaDestination < 0 || areaDestination >= GameOfThronesMap.NUM_AREA) {
+                            wrongAreasFlag = true;
+                        }
+                    }
+                    if (wrongAreasFlag || from < 0 || from >= GameOfThronesMap.NUM_AREA) {
+                        System.out.println(Constants.WRONG_AREAS_MARCH_ERROR);
+                        continue;
+                    }
+                    if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.march ||
+                            armyInArea[from].getOwner() != player) {
+                        System.out.println(Constants.NO_MARCH_ERROR);
+                        continue;
+                    }
+
+                    if (destinationsOfMarch.size() == 0) {
+                        // Случай "холостого" снятия приказа похода
+                        System.out.println(Constants.DELETES_MARCH_FROM + map.getAreaNameRus(from));
+                        orderInArea[from] = null;
+                        areasWithMarches.get(player).remove(from);
+                        break;
+                    } else {
+                        // Случай результативного похода
+                        int areaWhereBattleBegins = -1;
+                        HashSet<Integer> accessibleAreas = null;
+                        if (!map.getAreaType(from).isNaval()) {
+                            /*
+                             * Составляем множество областей, в которые может пойти игрок из данной области с учётом
+                             * правила переброски морем
+                             */
+                            accessibleAreas = getAccessibleAreas(from);
+                        }
+                        for (Map.Entry<Integer, ArrayList<Unit>> entry: destinationsOfMarch.entrySet()) {
+                            // Проверяем, что в данную область назначения действительно можно пойти
+                            if (map.getAreaType(from).isNaval() && (!map.getAreaType(entry.getKey()).isNaval() ||
+                                    map.getAdjacencyType(from, entry.getKey()) == AdjacencyType.noAdjacency)) {
+                                System.out.println(Constants.CANT_MARCH_THERE_ERROR);
+                                continue;
+                            }
+                            if (map.getAreaType(from).isNaval() && map.getAreaType(entry.getKey()) == AreaType.port) {
+                                int castleWithThisPort = map.getAdjacentAreas(entry.getKey()).get(1);
+                                // Если замок, которому принадлежит порт, в который хочет зайти игрок, ему не принадлежит, то фейл
+                                if (getAreaOwner(castleWithThisPort) != player) {
+                                    System.out.println(Constants.CANT_MARCH_THERE_ERROR);
+                                    continue;
+                                }
+                            }
+                            if (!map.getAreaType(from).isNaval() && !accessibleAreas.contains(entry.getKey())) {
+                                System.out.println(Constants.CANT_MARCH_THERE_ERROR);
+                                continue;
+                            }
+                            // Считаем, начнётся ли битва в области назначения (пробивание нейтрального гарнизона тоже считается)
+                            int destinationArmyOwner = armyInArea[entry.getKey()].getOwner();
+                            if (destinationArmyOwner >= 0 && destinationArmyOwner != player ||
+                                    destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
+                                if (areaWhereBattleBegins < 0) {
+                                    if (destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
+                                        if (calculatePowerOfPlayer(player, entry.getKey(), entry.getValue(),
+                                                orderInArea[from].getModifier()) < garrisonInArea[entry.getKey()]) {
+                                            System.out.println(Constants.CANT_BEAT_NEUTRAL_GARRISON_ERROR);
+                                            continue;
+                                        }
+                                    }
+                                    areaWhereBattleBegins = entry.getKey();
+                                } else {
+                                    System.out.println(Constants.CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR);
+                                    continue;
+                                }
+                            }
+
+                            // Проверка соблюдения ограничения по снабжению
+                            // TODO Написать часть, связанную со снабжением
+                            // <...>
+                        }
+                    }
+
                 }
                 // Если игрок не уложился в количество попыток, то удаляем один его приказ похода
                 if (attempt >= Constants.MAX_TRIES_TO_GO) {
@@ -589,6 +669,82 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
+    }
+
+    /**
+     * Метод формирует и возвращает множество областей, в которые может пойти игрок из данной области с учётом
+     * правила переброски морем
+     * @param areaFrom область похода
+     * @return множество с доступными для похода областями
+     */
+    public HashSet<Integer> getAccessibleAreas(int areaFrom) {
+        // Для морских территорий этот метод бессмысленен
+        if (map.getAreaType(areaFrom).isNaval()) {
+            return null;
+        } else {
+            HashSet<Integer> accessibleAreas = new HashSet<>();
+            HashSet<Integer> seas = new HashSet<>();
+            for (int area: map.getAdjacentAreas(areaFrom)) {
+                if (map.getAreaType(area) == AreaType.sea) {
+                    seas.add(area);
+                } else if (map.getAreaType(area) == AreaType.land) {
+                    accessibleAreas.add(area);
+                }
+            }
+            for (Integer sea : seas) {
+                for (int area : map.getAdjacentAreas(sea)) {
+                    if (map.getAreaType(area) == AreaType.sea && !seas.contains(area)) {
+                        seas.add(area);
+                    } else if (map.getAreaType(area) == AreaType.land) {
+                        accessibleAreas.add(area);
+                    }
+                }
+            }
+
+            System.out.print("Доступные для похода из " + map.getAreaNameRus(areaFrom) + " области: ");
+            boolean firstFlag = true;
+            for (int area: accessibleAreas) {
+                if (firstFlag) {
+                    firstFlag = false;
+                } else {
+                    System.out.print(", ");
+                }
+                System.out.print(map.getAreaNameRus(area));
+            }
+            return accessibleAreas;
+        }
+    }
+
+    /**
+     * Метод возвращает боевую силу игрока при его походе на определённую область определённой группой юнитов.
+     * Считается поддержка игрока, но не считаются поддержки и защиты других игроков.
+     * Нужен при пробивании нейтральных гарнизонов.
+     * @param player        игрок
+     * @param area          область, в которую собирается неумолимо надвигаться несокрушимая армада
+     * @param units         юниты
+     * @param marchModifier модификатор похода
+     * @return итоговая боевая сила игрока
+     */
+    public int calculatePowerOfPlayer(int player, int area, ArrayList<Unit> units, int marchModifier) {
+        int strength = marchModifier;
+        // Прибавляем силу атакующих юнитов
+        for (Unit unit: units) {
+            if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) == 0) {
+                strength += unit.getStrength();
+            }
+        }
+        // Прибавляем силу поддеривающих юнитов
+        for (int adjacentArea: map.getAdjacentAreas(area)) {
+            if (getTroopsOwner(adjacentArea) == player && orderInArea[adjacentArea].orderType() == OrderType.support) {
+                strength += orderInArea[adjacentArea].getModifier();
+                for (Unit unit: armyInArea[adjacentArea].getUnits()) {
+                    if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) == 0) {
+                        strength += unit.getStrength();
+                    }
+                }
+            }
+        }
+        return strength;
     }
 
     /**

@@ -57,7 +57,7 @@ public class Constants {
     public static final String RAIDS_TO = " на ";
     public static final String DELETES_RAID_FROM = " удаляет набег из ";
     public static final String NO_RAID_ERROR = "В данной области нет вашего набега!";
-    public static final String WRONG_AREAS_ERROR = "Неверные области для набега!";
+    public static final String WRONG_AREAS_RAID_ERROR = "Неверные области для набега!";
     public static final String NO_ADJACENT_ERROR = "Области источника и назначения набега не соседствуют!";
     public static final String DONT_RAID_YOURSELF_ERROR = "Нельзя совершить набег на самого себя!";
     public static final String NO_ONE_TO_RAID_THERE_ERROR = "В целевой области набега нет приказов!";
@@ -65,6 +65,12 @@ public class Constants {
     public static final String CANT_RAID_THIS_ORDER_ERROR = "Этот приказ невозможно удалить данным набегом!";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
+    public static final String NO_MARCH_ERROR = "В данной области нет вашего похода!";
+    public static final String WRONG_AREAS_MARCH_ERROR = "Неверные области для похода!";
+    public static final String DELETES_MARCH_FROM = " удаляет поход из ";
+    public static final String CANT_MARCH_THERE_ERROR = "Поход в данную область невозможен!";
+    public static final String CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR = "Нельзя начинать две битвы одним походом!";
+    public static final String CANT_BEAT_NEUTRAL_GARRISON_ERROR = "Невозможно пробить нейтральный гарнизон!";
 
     public static final String PAWN = "пехотинец";
     public static final String PAWNS = "пехотинца";
