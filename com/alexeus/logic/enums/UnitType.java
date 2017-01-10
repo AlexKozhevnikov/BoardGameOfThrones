@@ -37,6 +37,6 @@ public enum UnitType {
             case ship:
                 return "Корабль";
         }
-        return Constants.UNKNOWN_UFO;
+        return Constants.UNKNOWN_UFO_ERROR;
     }
 }

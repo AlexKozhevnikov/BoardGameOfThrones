@@ -39,6 +39,6 @@ public enum WildlingCard {
             case aKingBeyondTheWall:
                 return "Король за стеной";
         }
-        return Constants.UNKNOWN_EVENT;
+        return Constants.UNKNOWN_EVENT_ERROR;
     }
 }

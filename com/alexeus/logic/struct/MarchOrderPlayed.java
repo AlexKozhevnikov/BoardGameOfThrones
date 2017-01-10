@@ -1,6 +1,5 @@
 package com.alexeus.logic.struct;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,7 +12,7 @@ public class MarchOrderPlayed {
     // Код области, поход в которой разыгрывается
     private int areaFrom;
     // Карта с областями, в которые направляются юниты, и юнитами, которые направляются в области. Может быть пустой.
-    private HashMap<Integer, ArrayList<Unit>> destinationsOfMarch;
+    private HashMap<Integer, Army> destinationsOfMarch;
     // Оставляем ли жетон власти на покидаемой области
     private boolean isLeaveToken;
 
@@ -21,7 +20,7 @@ public class MarchOrderPlayed {
         destinationsOfMarch = new HashMap<>();
     }
 
-    public MarchOrderPlayed(int from, HashMap<Integer, ArrayList<Unit>> destinationsOfMarch, boolean isLeaveToken) {
+    public MarchOrderPlayed(int from, HashMap<Integer, Army> destinationsOfMarch, boolean isLeaveToken) {
         setAreaFrom(from);
         setDestinationsOfMarch(destinationsOfMarch);
         setLeaveToken(isLeaveToken);
@@ -35,7 +34,7 @@ public class MarchOrderPlayed {
         this.areaFrom = areaFrom;
     }
 
-    public HashMap<Integer, ArrayList<Unit>> getDestinationsOfMarch() {
+    public HashMap<Integer, Army> getDestinationsOfMarch() {
         return destinationsOfMarch;
     }
 
@@ -43,11 +42,11 @@ public class MarchOrderPlayed {
         destinationsOfMarch.clear();
     }
 
-    public void addDestination(int area, ArrayList<Unit> units) {
+    public void addDestination(int area, Army units) {
         destinationsOfMarch.put(area, units);
     }
 
-    public void setDestinationsOfMarch(HashMap<Integer, ArrayList<Unit>> destinationsOfMarch) {
+    public void setDestinationsOfMarch(HashMap<Integer, Army> destinationsOfMarch) {
         this.destinationsOfMarch = destinationsOfMarch;
     }
 
@@ -62,7 +61,7 @@ public class MarchOrderPlayed {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Поход: (").append(areaFrom);
-        for (Map.Entry<Integer, ArrayList<Unit>> entry: destinationsOfMarch.entrySet()) {
+        for (Map.Entry<Integer, Army> entry: destinationsOfMarch.entrySet()) {
             sb.append(", ").append(entry.getValue()).append(" -> ").append(entry.getKey());
         }
         sb.append(")");

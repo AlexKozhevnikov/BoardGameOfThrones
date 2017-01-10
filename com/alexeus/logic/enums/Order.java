@@ -47,7 +47,7 @@ public enum Order {
             case defenceS:
                 return "Оборона +2*";
         }
-        return Constants.UNKNOWN_ORDER;
+        return Constants.UNKNOWN_ORDER_ERROR;
     }
 
     // Возвращает сокращённое обозначение приказа
@@ -76,7 +76,7 @@ public enum Order {
             case defenceS:
                 return "D*";
         }
-        return Constants.UNKNOWN_ORDER;
+        return Constants.UNKNOWN_ORDER_ERROR;
     }
 
     public OrderType orderType() {

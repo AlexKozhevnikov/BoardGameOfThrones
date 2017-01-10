@@ -15,6 +15,7 @@ import java.beans.PropertyChangeSupport;
 import java.util.*;
 
 import static com.alexeus.logic.Constants.HOUSE;
+import static com.alexeus.logic.Constants.HOUSE_GENITIVE;
 import static com.alexeus.logic.Constants.NUM_PLAYER;
 
 /**
@@ -53,12 +54,30 @@ public class Game {
     // состояние игры
     private GamePhase gamePhase;
 
+    /*
+     * Массив приказов, которые сейчас лежат в данных областях карты
+     */
     private Order[] orderInArea = new Order[GameOfThronesMap.NUM_AREA];
 
+    /*
+     * Массив из армий, находящихся в каждой из областей карты. Пустые при инициализации.
+     */
     private Army[] armyInArea = new Army[GameOfThronesMap.NUM_AREA];
 
+    /*
+     * Здесь хранится армия, атаковавшая другого игрока, и поэтому временно находящаяся на территории врага
+     */
+    private Army attackingArmy;
+
+    /*
+     * Массив из гарнизонов в областях. Нейтральный лорд, если при этом в области нет армий игроков
+     */
     private int[] garrisonInArea = new int[GameOfThronesMap.NUM_AREA];
 
+    /*
+     * Массив из жетонов власти, лежащих на областях.
+     * Если на области нет жетона власти, то соответстующая переменная равна -1.
+     */
     private int[] powerTokenOnArea = new int[GameOfThronesMap.NUM_AREA];
 
     // Текущее снабжение каждого дома
@@ -169,7 +188,7 @@ public class Game {
             areasWithCPs.add(new HashSet<>());
         }
         // Ставим начальные войска/гарнизоны и обновляем информацию во вспомогательных множествах
-        setDefaultMap();
+        setInitialPosition();
         renewHousesTroopsArea();
         adjustSupply();
         adjustVictoryPoints();
@@ -199,7 +218,7 @@ public class Game {
     }
 
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
-    private void setDefaultMap() {
+    private void setInitialPosition() {
         // Баратеон
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
@@ -265,7 +284,6 @@ public class Game {
         for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
             int troopsOwner = armyInArea[area].getOwner();
             if(troopsOwner >= 0) {
-                assert armyInArea[area].getNumUnits() > 0;
                 areasWithTroopsOfPlayer.get(troopsOwner).add(area);
             }
         }
@@ -474,73 +492,39 @@ public class Game {
                 numNoRaidsPlayers = 0;
                 for (attempt = 0; attempt < Constants.MAX_TRIES_TO_GO; attempt++) {
                     RaidOrderPlayed raid = playerInterface[player].playRaid();
-                    System.out.print(Constants.HOUSE[player]);
-                    int from = raid.getAreaFrom();
-                    int to = raid.getAreaTo();
-
-                    // Банальные проверки на валидность областей и наличие набега
-                    if (from < 0 || from >= GameOfThronesMap.NUM_AREA || to >= GameOfThronesMap.NUM_AREA) {
-                        System.out.println(Constants.WRONG_AREAS_RAID_ERROR);
-                        continue;
-                    }
-                    if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.raid ||
-                            armyInArea[from].getOwner() != player) {
-                        System.out.println(Constants.NO_RAID_ERROR);
-                        continue;
-                    }
-
-                    // Случай результативного набега
-                    if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
-                        System.out.println(Constants.RAIDS_FROM + map.getAreaNameRus(from) +
-                                Constants.RAIDS_TO + map.getAreaNameRus(to));
-                        if (map.getAdjacencyType(from, to) == AdjacencyType.noAdjacency) {
-                            System.out.println(Constants.NO_ADJACENT_ERROR);
-                            continue;
+                    // Проверяем вариант розыгрыша набега, полученный от игрока, на валидность
+                    if (validateRaid(raid, player)) {
+                        System.out.print(Constants.HOUSE[player]);
+                        int from = raid.getAreaFrom();
+                        int to = raid.getAreaTo();
+                        if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
+                            // Разыгрываем результативный набег, снимаем два приказа и обновляем попутные переменные
+                            int raidedPlayer = armyInArea[to].getOwner();
+                            //noinspection ConstantConditions
+                            switch (orderInArea[to].orderType()) {
+                                case raid:
+                                    areasWithRaids.get(raidedPlayer).remove(to);
+                                    break;
+                                case consolidatePower:
+                                    areasWithCPs.get(raidedPlayer).remove(to);
+                                    if (nPowerTokensHouse[player] < maxPowerTokensHouse[player]) {
+                                        nPowerTokensHouse[player]++;
+                                    }
+                                    if (nPowerTokensHouse[raidedPlayer] > 0) {
+                                        nPowerTokensHouse[raidedPlayer]--;
+                                    }
+                                    break;
+                            }
+                            orderInArea[to] = null;
+                            orderInArea[from] = null;
+                            areasWithRaids.get(player).remove(from);
+                        } else {
+                            // Разыгрываем "холостой" набег, снимаем приказ и обновляем попутные переменные
+                            System.out.println(Constants.DELETES_RAID_FROM + map.getAreaNameRus(from));
+                            orderInArea[from] = null;
+                            areasWithRaids.get(player).remove(from);
+                            break;
                         }
-                        if (armyInArea[to].getOwner() == player) {
-                            System.out.println(Constants.DONT_RAID_YOURSELF_ERROR);
-                            continue;
-                        }
-                        if (armyInArea[to].getOwner() < 0 || orderInArea[to] == null) {
-                            System.out.println(Constants.NO_ONE_TO_RAID_THERE_ERROR);
-                            continue;
-                        }
-                        if (map.getAdjacencyType(from, to) == AdjacencyType.landToSea) {
-                            System.out.println(Constants.NO_RAID_FROM_LAND_TO_SEA_ERROR);
-                            continue;
-                        }
-                        if (orderInArea[to].orderType() == OrderType.march ||
-                                orderInArea[to].orderType() == OrderType.defence && orderInArea[from] == Order.raid) {
-                            System.out.println(Constants.CANT_RAID_THIS_ORDER_ERROR);
-                            continue;
-                        }
-
-                        // После всех проверок таки УСПЕХ! Теперь снимаем два приказа и обновляем попутные переменные
-                        int raidedPlayer = armyInArea[to].getOwner();
-                        //noinspection ConstantConditions
-                        switch (orderInArea[to].orderType()) {
-                            case raid:
-                                areasWithRaids.get(raidedPlayer).remove(to);
-                                break;
-                            case consolidatePower:
-                                areasWithCPs.get(raidedPlayer).remove(to);
-                                if (nPowerTokensHouse[player] < maxPowerTokensHouse[player]) {
-                                    nPowerTokensHouse[player]++;
-                                }
-                                if (nPowerTokensHouse[raidedPlayer] > 0) {
-                                    nPowerTokensHouse[raidedPlayer]--;
-                                }
-                                break;
-                        }
-                        orderInArea[to] = null;
-                        orderInArea[from] = null;
-                        areasWithRaids.get(player).remove(from);
-                        break;
-                    } else {
-                        // Случай удаления приказа набега "вхолостую"
-                        System.out.println(Constants.DELETES_RAID_FROM + map.getAreaNameRus(from));
-                        orderInArea[from] = null;
-                        areasWithRaids.get(player).remove(from);
                         break;
                     }
                 }
@@ -559,6 +543,56 @@ public class Game {
     }
 
     /**
+     * Метод для валидации варианта разыгрыша набега, полученного от игрока
+     * @param raid   вариант розыгрыша набега
+     * @param player номер игрока
+     * @return true, если набег можно разыграть таким образом
+     */
+    private boolean validateRaid(RaidOrderPlayed raid, int player) {
+        int from = raid.getAreaFrom();
+        int to = raid.getAreaTo();
+
+        // Банальные проверки на валидность областей и наличие набега, происходят для всех вариантов набегов без исключения
+        if (from < 0 || from >= GameOfThronesMap.NUM_AREA || to >= GameOfThronesMap.NUM_AREA) {
+            System.out.println(Constants.WRONG_AREAS_RAID_ERROR);
+            return false;
+        }
+        if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.raid ||
+                armyInArea[from].getOwner() != player) {
+            System.out.println(Constants.NO_RAID_ERROR);
+            return false;
+        }
+
+        // Случай результативного набега
+        if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
+            System.out.println(Constants.RAIDS_FROM + map.getAreaNameRus(from) +
+                    Constants.RAIDS_TO + map.getAreaNameRus(to));
+            if (map.getAdjacencyType(from, to) == AdjacencyType.noAdjacency) {
+                System.out.println(Constants.NO_ADJACENT_RAID_ERROR);
+                return false;
+            }
+            if (armyInArea[to].getOwner() == player) {
+                System.out.println(Constants.DONT_RAID_YOURSELF_ERROR);
+                return false;
+            }
+            if (armyInArea[to].getOwner() < 0 || orderInArea[to] == null) {
+                System.out.println(Constants.NO_ONE_TO_RAID_THERE_ERROR);
+                return false;
+            }
+            if (map.getAdjacencyType(from, to) == AdjacencyType.landToSea) {
+                System.out.println(Constants.NO_RAID_FROM_LAND_TO_SEA_ERROR);
+                return false;
+            }
+            if (orderInArea[to].orderType() == OrderType.march ||
+                    orderInArea[to].orderType() == OrderType.defence && orderInArea[from] == Order.raid) {
+                System.out.println(Constants.CANT_RAID_THIS_ORDER_ERROR);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Метод разыгрывает походы
      */
     private void playMarches() {
@@ -574,88 +608,67 @@ public class Game {
                 numNoMarchesPlayers = 0;
                 for (attempt = 0; attempt < Constants.MAX_TRIES_TO_GO; attempt++) {
                     MarchOrderPlayed march = playerInterface[player].playMarch();
-                    System.out.print(Constants.HOUSE[player]);
-                    int from = march.getAreaFrom();
-                    HashMap<Integer, ArrayList<Unit>> destinationsOfMarch = march.getDestinationsOfMarch();
-
-                    // Банальные проверки на валидность областей и наличие похода
-                    boolean wrongAreasFlag = false;
-                    for (int areaDestination: destinationsOfMarch.keySet()) {
-                        if (areaDestination < 0 || areaDestination >= GameOfThronesMap.NUM_AREA) {
-                            wrongAreasFlag = true;
-                        }
-                    }
-                    if (wrongAreasFlag || from < 0 || from >= GameOfThronesMap.NUM_AREA) {
-                        System.out.println(Constants.WRONG_AREAS_MARCH_ERROR);
-                        continue;
-                    }
-                    if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.march ||
-                            armyInArea[from].getOwner() != player) {
-                        System.out.println(Constants.NO_MARCH_ERROR);
-                        continue;
-                    }
-
-                    if (destinationsOfMarch.size() == 0) {
-                        // Случай "холостого" снятия приказа похода
-                        System.out.println(Constants.DELETES_MARCH_FROM + map.getAreaNameRus(from));
-                        orderInArea[from] = null;
-                        areasWithMarches.get(player).remove(from);
-                        break;
-                    } else {
-                        // Случай результативного похода
-                        int areaWhereBattleBegins = -1;
-                        HashSet<Integer> accessibleAreas = null;
-                        if (!map.getAreaType(from).isNaval()) {
-                            /*
-                             * Составляем множество областей, в которые может пойти игрок из данной области с учётом
-                             * правила переброски морем
-                             */
-                            accessibleAreas = getAccessibleAreas(from);
-                        }
-                        for (Map.Entry<Integer, ArrayList<Unit>> entry: destinationsOfMarch.entrySet()) {
-                            // Проверяем, что в данную область назначения действительно можно пойти
-                            if (map.getAreaType(from).isNaval() && (!map.getAreaType(entry.getKey()).isNaval() ||
-                                    map.getAdjacencyType(from, entry.getKey()) == AdjacencyType.noAdjacency)) {
-                                System.out.println(Constants.CANT_MARCH_THERE_ERROR);
-                                continue;
-                            }
-                            if (map.getAreaType(from).isNaval() && map.getAreaType(entry.getKey()) == AreaType.port) {
-                                int castleWithThisPort = map.getAdjacentAreas(entry.getKey()).get(1);
-                                // Если замок, которому принадлежит порт, в который хочет зайти игрок, ему не принадлежит, то фейл
-                                if (getAreaOwner(castleWithThisPort) != player) {
-                                    System.out.println(Constants.CANT_MARCH_THERE_ERROR);
-                                    continue;
-                                }
-                            }
-                            if (!map.getAreaType(from).isNaval() && !accessibleAreas.contains(entry.getKey())) {
-                                System.out.println(Constants.CANT_MARCH_THERE_ERROR);
-                                continue;
-                            }
-                            // Считаем, начнётся ли битва в области назначения (пробивание нейтрального гарнизона тоже считается)
-                            int destinationArmyOwner = armyInArea[entry.getKey()].getOwner();
-                            if (destinationArmyOwner >= 0 && destinationArmyOwner != player ||
-                                    destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
-                                if (areaWhereBattleBegins < 0) {
-                                    if (destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
-                                        if (calculatePowerOfPlayer(player, entry.getKey(), entry.getValue(),
-                                                orderInArea[from].getModifier()) < garrisonInArea[entry.getKey()]) {
-                                            System.out.println(Constants.CANT_BEAT_NEUTRAL_GARRISON_ERROR);
-                                            continue;
-                                        }
-                                    }
+                    // Проверяем вариант розыгрыша похода, полученный от игрока, на валидность
+                    if (validateMarch(march, player)) {
+                        System.out.print(Constants.HOUSE[player]);
+                        int from = march.getAreaFrom();
+                        HashMap<Integer, Army> destinationsOfMarch = march.getDestinationsOfMarch();
+                        if (destinationsOfMarch.size() == 0) {
+                            // Случай "холостого" снятия приказа похода
+                            System.out.println(Constants.DELETES_MARCH_FROM + map.getAreaNameRus(from));
+                            orderInArea[from] = null;
+                            areasWithMarches.get(player).remove(from);
+                        } else {
+                            // Случай результативного похода: перемещаем юниты, если нужно, начинаем бой,
+                            // и обновляем попутные переменные
+                            System.out.println(Constants.PLAYS_MARCH_FROM + map.getAreaNameRus(from));
+                            int areaWhereBattleBegins = -1;
+                            for (Map.Entry<Integer, Army> entry: destinationsOfMarch.entrySet()) {
+                                int destinationArmyOwner = armyInArea[entry.getKey()].getOwner();
+                                if (destinationArmyOwner >= 0 && destinationArmyOwner != player)
+                                {
+                                    // Если в области завязывается бой, то запоминаем её и проходим последней
                                     areaWhereBattleBegins = entry.getKey();
+                                    attackingArmy = entry.getValue();
                                 } else {
-                                    System.out.println(Constants.CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR);
-                                    continue;
+                                    // Иначе перемещаем войска и пробиваем гарнизоны
+                                    System.out.print(entry.getValue().toString() +
+                                            (entry.getValue().getSize() == 1 ? Constants.MOVES_TO : Constants.MOVE_TO) +
+                                            map.getAreaNameRus(entry.getKey()));
+                                    armyInArea[entry.getKey()].addSubArmy(entry.getValue());
+                                    // Если в области имелся нейтральный гарнизон, то пробиваем его
+                                    if (destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
+                                        System.out.println(Constants.GARRISON_IS_DEFEATED + HOUSE_GENITIVE[player] + " - " +
+                                                calculatePowerOfPlayer(player, entry.getKey(), entry.getValue(),
+                                                orderInArea[entry.getKey()].getModifier()) + Constants.GARRISON_STRENGTH_IS +
+                                                garrisonInArea[entry.getKey()]);
+                                        garrisonInArea[entry.getKey()] = 0;
+                                    } else {
+                                        System.out.println();
+                                    }
+                                }
+                                armyInArea[from].deleteSubArmy(entry.getValue());
+                            }
+                            if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] < 0) {
+                                if (march.isLeaveToken()) {
+                                    powerTokenOnArea[from] = player;
+                                    nPowerTokensHouse[player]--;
+                                    maxPowerTokensHouse[player]--;
+                                } else {
+                                    if (map.getNumCastle(from) > 0) {
+                                        victoryPoints[player]--;
+                                    }
                                 }
                             }
-
-                            // Проверка соблюдения ограничения по снабжению
-                            // TODO Написать часть, связанную со снабжением
-                            // <...>
+                            renewHousesTroopsArea();
+                            if (areaWhereBattleBegins >= 0) {
+                                System.out.print(attackingArmy.toString() +
+                                        (attackingArmy.getSize() == 1 ? Constants.MOVES_TO : Constants.MOVE_TO) +
+                                        map.getAreaNameRus(areaWhereBattleBegins) + Constants.AND_FIGHTS);
+                                playFight(areaWhereBattleBegins);
+                            }
                         }
                     }
-
                 }
                 // Если игрок не уложился в количество попыток, то удаляем один его приказ похода
                 if (attempt >= Constants.MAX_TRIES_TO_GO) {
@@ -669,6 +682,147 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
+    }
+
+    /**
+     * Метод для валидации варианта розыгрыша похода, полученного от игрока
+     * @param march  вариант розыгрыша похода
+     * @param player номер игрока
+     * @return true, если так разыграть поход можно
+     */
+    private boolean validateMarch(MarchOrderPlayed march, int player) {
+        int from = march.getAreaFrom();
+        HashMap<Integer, Army> destinationsOfMarch = march.getDestinationsOfMarch();
+
+        // Банальные проверки на валидность областей и наличие похода, происходят для всех вариантов походов без исключения
+        boolean wrongAreasFlag = false;
+        for (int areaDestination: destinationsOfMarch.keySet()) {
+            if (areaDestination < 0 || areaDestination >= GameOfThronesMap.NUM_AREA) {
+                wrongAreasFlag = true;
+            }
+        }
+        if (wrongAreasFlag || from < 0 || from >= GameOfThronesMap.NUM_AREA) {
+            System.out.println(Constants.WRONG_AREAS_MARCH_ERROR);
+            return false;
+        }
+        if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.march ||
+                armyInArea[from].getOwner() != player) {
+            System.out.println(Constants.NO_MARCH_ERROR);
+            return false;
+        }
+
+        if (destinationsOfMarch.size() > 0) {
+            // Дополнительные проверки в случае результативного похода
+            int areaWhereBattleBegins = -1;
+            HashSet<Integer> accessibleAreas = null;
+            int nPawns = 0, nKnights = 0, nShips = 0, nSiegeEngines = 0;
+            if (!map.getAreaType(from).isNaval()) {
+                /*
+                 * Составляем множество областей, в которые может пойти игрок из данной области с учётом
+                 * правила переброски морем
+                 */
+                accessibleAreas = getAccessibleAreas(from);
+            }
+            for (Map.Entry<Integer, Army> entry : destinationsOfMarch.entrySet()) {
+                // Проверяем, что в данную область назначения действительно можно пойти
+                if (map.getAreaType(from).isNaval() && !map.getAreaType(entry.getKey()).isNaval()) {
+                    System.out.println(Constants.CANT_MARCH_FROM_SEA_TO_LAND_ERROR);
+                    return false;
+                }
+                if (map.getAreaType(from).isNaval() && map.getAdjacencyType(from, entry.getKey()) == AdjacencyType.noAdjacency) {
+                    System.out.println(Constants.CANT_MARCH_THERE_ERROR);
+                    return false;
+                }
+                if (map.getAreaType(from).isNaval() && map.getAreaType(entry.getKey()) == AreaType.port) {
+                    int castleWithThisPort = map.getAdjacentAreas(entry.getKey()).get(1);
+                    // Если замок, которому принадлежит порт, в который хочет зайти игрок, ему не принадлежит, то фейл
+                    if (getAreaOwner(castleWithThisPort) != player) {
+                        System.out.println(Constants.CANT_MARCH_IN_NOT_YOUR_PORT_ERROR);
+                        return false;
+                    }
+                }
+                if (!map.getAreaType(from).isNaval() && map.getAreaType(entry.getKey()).isNaval()) {
+                    System.out.println(Constants.CANT_MARCH_FROM_LAND_TO_SEA_ERROR);
+                    return false;
+                }
+                if (!map.getAreaType(from).isNaval() && !accessibleAreas.contains(entry.getKey())) {
+                    System.out.println(Constants.NO_WAY_MARCH_ERROR);
+                    return false;
+                }
+                // Проверяем, что марширующая армия не пуста
+                if (entry.getValue().isEmpty()) {
+                    System.out.println(Constants.EMPTY_ARMY_MARCH_ERROR);
+                    return false;
+                }
+
+                // Считаем, начнётся ли битва в области назначения (пробивание нейтрального гарнизона тоже считается)
+                int destinationArmyOwner = armyInArea[entry.getKey()].getOwner();
+                if (destinationArmyOwner >= 0 && destinationArmyOwner != player ||
+                        destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
+                    if (areaWhereBattleBegins < 0) {
+                        if (destinationArmyOwner < 0 && garrisonInArea[entry.getKey()] > 0) {
+                            if (calculatePowerOfPlayer(player, entry.getKey(), entry.getValue(),
+                                    orderInArea[from].getModifier()) < garrisonInArea[entry.getKey()]) {
+                                System.out.println(Constants.CANT_BEAT_NEUTRAL_GARRISON_ERROR);
+                                return false;
+                            }
+                        }
+                        areaWhereBattleBegins = entry.getKey();
+                    } else {
+                        System.out.println(Constants.CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR);
+                        return false;
+                    }
+                }
+
+                // Проверки данной области назначения пройдены. Теперь учитываем юниты, перемещающиеся в эту область
+                for (Unit unit : entry.getValue().getUnits()) {
+                    switch (unit.getUnitType()) {
+                        case pawn:
+                            nPawns++;
+                            break;
+                        case knight:
+                            nKnights++;
+                            break;
+                        case ship:
+                            nShips++;
+                            break;
+                        case siegeEngine:
+                            nSiegeEngines++;
+                            break;
+                    }
+                }
+            }
+
+            // Проверка наличия необходимых юнитов в области отправления
+            for (Unit unit : armyInArea[from].getUnits()) {
+                switch (unit.getUnitType()) {
+                    case pawn:
+                        if (nPawns > 0) nPawns--;
+                        break;
+                    case knight:
+                        if (nKnights > 0) nKnights--;
+                        break;
+                    case ship:
+                        if (nShips > 0) nShips--;
+                        break;
+                    case siegeEngine:
+                        if (nSiegeEngines > 0) nSiegeEngines--;
+                        break;
+                }
+            }
+            if (nPawns > 0 || nKnights > 0 || nShips > 0 || nSiegeEngines > 0) {
+                System.out.println(Constants.LACK_OF_UNITS_ERROR);
+                return false;
+            }
+            // Проверка соблюдения ограничения по снабжению
+            // TODO Написать часть, связанную со снабжением
+
+            if (march.isLeaveToken() && nPowerTokensHouse[player] == 0) {
+                System.out.println(Constants.NO_POWER_TOKENS_TO_LEAVE_ERROR);
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -716,20 +870,29 @@ public class Game {
     }
 
     /**
-     * Метод возвращает боевую силу игрока при его походе на определённую область определённой группой юнитов.
+     * Метод разыгрывает одно сражение за определённую область. На данный момент атакующая армия должна быть сохранена
+     * в attackingArmy, а нападающий игрок может быть определён посредоством attackingArmy.getOwner();
+     * @param areaOfBattle область, в которой происходит сражение
+     */
+    private void playFight(int areaOfBattle) {
+
+    }
+
+    /**
+     * Метод возвращает боевую силу игрока при его походе на определённую область определённой армией.
      * Считается поддержка игрока, но не считаются поддержки и защиты других игроков.
      * Нужен при пробивании нейтральных гарнизонов.
      * @param player        игрок
      * @param area          область, в которую собирается неумолимо надвигаться несокрушимая армада
-     * @param units         юниты
+     * @param army          армия из марширующих юнитов
      * @param marchModifier модификатор похода
      * @return итоговая боевая сила игрока
      */
-    public int calculatePowerOfPlayer(int player, int area, ArrayList<Unit> units, int marchModifier) {
+    public int calculatePowerOfPlayer(int player, int area, Army army, int marchModifier) {
         int strength = marchModifier;
         // Прибавляем силу атакующих юнитов
-        for (Unit unit: units) {
-            if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) == 0) {
+        for (Unit unit: army.getUnits()) {
+            if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) > 0) {
                 strength += unit.getStrength();
             }
         }
@@ -738,7 +901,7 @@ public class Game {
             if (getTroopsOwner(adjacentArea) == player && orderInArea[adjacentArea].orderType() == OrderType.support) {
                 strength += orderInArea[adjacentArea].getModifier();
                 for (Unit unit: armyInArea[adjacentArea].getUnits()) {
-                    if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) == 0) {
+                    if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) > 0) {
                         strength += unit.getStrength();
                     }
                 }

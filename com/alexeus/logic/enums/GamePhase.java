@@ -33,6 +33,6 @@ public enum GamePhase {
             case end:
                 return Constants.END_OF_GAME;
         }
-        return Constants.UNKNOWN_UFO;
+        return Constants.UNKNOWN_UFO_ERROR;
     }
 }

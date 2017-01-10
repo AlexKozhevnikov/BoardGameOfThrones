@@ -27,7 +27,7 @@ public enum Deck1Cards {
             case winterIsComing:
                 return "Зима близко";
         }
-        return Constants.UNKNOWN_EVENT;
+        return Constants.UNKNOWN_EVENT_ERROR;
     }
 
     public boolean isWild() {

@@ -33,7 +33,7 @@ public enum Deck3Cards {
             case stormOfSwords:
                 return "Буря мечей";
         }
-        return Constants.UNKNOWN_EVENT;
+        return Constants.UNKNOWN_EVENT_ERROR;
     }
 
     public boolean isWild() {

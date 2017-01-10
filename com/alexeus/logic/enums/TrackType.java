@@ -21,6 +21,6 @@ public enum TrackType {
             case raven:
                 return "Посыльный порон";
         }
-        return Constants.UNKNOWN_UFO;
+        return Constants.UNKNOWN_UFO_ERROR;
     }
 }
