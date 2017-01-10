@@ -54,7 +54,11 @@ public enum HouseCard {
     randyllTarly,
     alesterFlorent,
     margaeryTyrell,
-    queenOfThorns;
+    queenOfThorns,
+    // "пустая карта", нужная в том случае, когда Тирион отменил последнюю активную карту игрока
+    none;
+
+    private boolean isActive = true;
 
     public String getRusName() {
         switch (this) {
@@ -96,6 +100,8 @@ public enum HouseCard {
                 return "Маргери Тирелл";
             case melisandre:
                 return "Мелисандра";
+            case none:
+                return "Никто";
             case nymeriaSand:
                 return "Нимерия Сэнд";
             case obaraSand:
@@ -200,6 +206,8 @@ public enum HouseCard {
             case margaeryTyrell:
             case queenOfThorns:
                 return 5;
+            case none:
+                return -1;
         }
         System.out.println(Constants.UNKNOWN_HOUSE_CARD_ERROR);
         return -1;
@@ -257,6 +265,7 @@ public enum HouseCard {
             case doranMartell:
             case aeronDamphair:
             case queenOfThorns:
+            case none:
                 return 0;
         }
         System.out.println(Constants.UNKNOWN_HOUSE_CARD_ERROR);
@@ -300,6 +309,7 @@ public enum HouseCard {
             case serRoderickCassel:
                 return 2;
             case brienneOfTarth:
+            case theRedViper:
             case areoHotah:
             case dagmarCleftjaw:
             case alesterFlorent:
@@ -308,5 +318,53 @@ public enum HouseCard {
             default:
                 return 0;
         }
+    }
+
+    /**
+     * Метод определяет инициативу карты
+     * @return инициатива карты
+     */
+    public CardInitiative getCardInitiative() {
+        switch (this) {
+            case tyrionLannister:
+                return CardInitiative.cancel;
+            case doranMartell:
+            case aeronDamphair:
+            case maceTyrell:
+            case queenOfThorns:
+                return CardInitiative.immediately;
+            case stannisBaratheon:
+            case serDevosSeaworth:
+            case salladhorSaan:
+            case serKevanLannister:
+            case catylynStark:
+            case nymeriaSand:
+            case ashaGreyjoy:
+            case theonGreyjoy:
+            case victarionGreyjoy:
+            case balonGreyjoy:
+                return CardInitiative.strength;
+            case theBlackfish:
+            case serLorasTyrell:
+            case arianneMartell:
+                return CardInitiative.passive;
+            case renlyBaratheon:
+            case tywinLannister:
+            case cerseiLannister:
+            case robbStark:
+            case rooseBolton:
+                return CardInitiative.afterFight;
+            case patchface:
+                return CardInitiative.patchface;
+        }
+        return CardInitiative.none;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 }

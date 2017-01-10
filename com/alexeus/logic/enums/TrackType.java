@@ -19,7 +19,19 @@ public enum TrackType {
             case valyrianSword:
                 return "Валирийский меч";
             case raven:
-                return "Посыльный порон";
+                return "Посыльный ворон";
+        }
+        return Constants.UNKNOWN_UFO_ERROR;
+    }
+
+    public String onTheTrack() {
+        switch (this) {
+            case ironThrone:
+                return " по треку трона";
+            case valyrianSword:
+                return " по треку вотчин";
+            case raven:
+                return " по треку ворона";
         }
         return Constants.UNKNOWN_UFO_ERROR;
     }

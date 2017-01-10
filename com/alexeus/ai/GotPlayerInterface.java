@@ -1,10 +1,9 @@
 package com.alexeus.ai;
 
-import com.alexeus.logic.enums.DisbandReason;
-import com.alexeus.logic.enums.Order;
+import com.alexeus.logic.enums.*;
+import com.alexeus.logic.struct.BattleInfo;
 import com.alexeus.logic.struct.MarchOrderPlayed;
 import com.alexeus.logic.struct.RaidOrderPlayed;
-import com.alexeus.logic.enums.WildlingCard;
 
 import java.util.HashMap;
 
@@ -51,6 +50,69 @@ public interface GotPlayerInterface {
      */
     public MarchOrderPlayed playMarch();
 
+    /**
+     * Поддержать одну из воюющих сторон
+     * @param battleInfo информация о сражении
+     * @return сторона, которую поддерживает игрок
+     */
+    public SideOfBattle sideToSupport(final BattleInfo battleInfo);
+
+    // *************************** КАРТЫ ДОМА ********************************
+    /**
+     * Выбрать в бою нужную карту своего дома
+     * @param battleInfo информация о сражении
+     * @return номер карты, которую выбрал игрок в своей колоде
+     */
+    public int playHouseCard(final BattleInfo battleInfo);
+
+    /**
+     * В какой области использовать свойство карты "Ренли Баратеон", если есть такая возможность
+     * @return номер области карты, в которой апгрейдить пехотинца до рыцаря, или -1, если отказываемся
+     */
+    public int areaToUseRenly();
+
+    /**
+     * Выбор карты дома противника для сброса после боя, в котором был сыгран Пестряк
+     * @return номер карты, которую выбрал игрок в колоде противника
+     */
+    public int chooseCardPatchface();
+
+    /**
+     * Использовать ли свойство карты "Тирион Ланнистер" во время боя
+     * @return true, если использовать
+     */
+    public boolean useTyrion(final BattleInfo battleInfo, final HouseCard opponentCard);
+
+    /**
+     * Выбор области, из которой удалить приказ Серсеей после боя
+     * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
+     */
+    public int chooseAreaCercei();
+
+    /**
+     * По какому из треков скидывать оппонента Дораном.
+     * @return трек, по которому Доран сбрасывает оппонента
+     */
+    public TrackType chooseInfluenceTrackDoran(final BattleInfo battleInfo);
+
+    /**
+     * Использовать ли свойство карты "Эйерон Грейджой" в бою
+     * @return true, если мы хотим заплатить 2 жетона и выбрать другую карту (оставив бомжа в сбросе)
+     */
+    public boolean useAeron(final BattleInfo battleInfo);
+
+    /**
+     * Выбрать область, из которой удалить приказ Королевой Шипов после боя.
+     * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
+     */
+    public int chooseAreaQueenOfThorns();
+
+    /**
+     * Использовать ли валирийский меч в битве
+     * @return true, если игрок хочет использовать валирийский меч в этой битве
+     */
+    public boolean useSword();
+
     /*
      * Разыграть свой приказ сбора власти со звездой
      */
@@ -62,11 +124,6 @@ public interface GotPlayerInterface {
     public String muster();
 
     /*
-     * Использовать ли валирийский меч в битве
-     */
-    public boolean useSword();
-
-    /*
      * Какое событие выбрать (1, 2, 3).
      * Аргумент deckNumber принимает следующие значения:
      * 1 - Трон из клинков
@@ -74,51 +131,6 @@ public interface GotPlayerInterface {
      * 3 - Преданы мечу
      */
     public int eventToChoose(int deckNumber);
-
-    // карты дома
-    /*
-     * Выбирает в бою нужную карту своего дома
-     */
-    public int playHouseCard();
-
-    /*
-     * Использовать ли свойство карты "Ренли Баратеон", если есть такая возможность
-     */
-    public boolean useRenly();
-
-    /*
-     * Выбор карты дома противника для сброса после боя, в котором был сыгран Пестряк
-     */
-    public int chooseCardPatchface();
-
-    /*
-     * Использовать ли свойство карты "Тирион Ланнистер" во время боя
-     */
-    public boolean useTyrion();
-
-    /*
-     * Выбрать область, из которой удалить приказ Серсеей после боя. Вернуть -1 для отмены
-     */
-    public int chooseAreaCercei();
-
-    /*
-     * По какому из треков скидывать оппонента Дораном. Возможные варианты:
-     * 0 - по трону
-     * 1 - по мечу
-     * 2 - по ворону
-     * -1 - не скидывать
-     */
-    public int chooseInfluenceTrackDoran();
-
-    /*
-     * Использовать ли свойство карты "Эйерон Грейджой" в бою
-     */
-    public boolean useAeron();
-
-    /*
-     * Выбрать область, из которой удалить приказ Королевой Шипов после боя. Вернуть -1 для отмены
-     */
-    public boolean chooseAreaQueenOfThorns();
 
     // ставки
     /*

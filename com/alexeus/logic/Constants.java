@@ -33,6 +33,15 @@ public class Constants {
     public static final String POWER_SIGNS = " знака короны";
     public static final String BELONGS_TO = "Область принадлежит ";
     public static final String BELONGS_TO_NOBODY = "Область не принадлежит никому";
+    public static final String PAWN = "пехотинец";
+    public static final String PAWNS = "пехотинца";
+    public static final String KNIGHT = "рыцарь";
+    public static final String KNIGHTS = "рыцаря";
+    public static final String TOWER = "осадная башня";
+    public static final String TOWERS = "осадные башни";
+    public static final String SHIP = "корабль";
+    public static final String SHIPS = "корабля";
+    public static final String NO_TROOPS = "нет отрядов";
     public static final String ADJACENT = "Граничит с областями: ";
     public static final String SUPPLY_OF = "Снабжение ";
     public static final String EQUALS = " равно ";
@@ -57,15 +66,25 @@ public class Constants {
     public static final String GARRISON_IS_DEFEATED = "Нейтральный лорд побеждён: сила войск ";
     public static final String GARRISON_STRENGTH_IS = ", сила нейтрального лорда - ";
     public static final String AND_FIGHTS = " и начинает бой";
-    public static final String PAWN = "пехотинец";
-    public static final String PAWNS = "пехотинца";
-    public static final String KNIGHT = "рыцарь";
-    public static final String KNIGHTS = "рыцаря";
-    public static final String TOWER = "осадная башня";
-    public static final String TOWERS = "осадные башни";
-    public static final String SHIP = "корабль";
-    public static final String SHIPS = "корабля";
-    public static final String NO_TROOPS = "нет отрядов";
+    public static final String BATTLE_BEGINS_IN = "Начинается бой за ";
+    public static final String BETWEEN = " между ";
+    public static final String CAN_SUPPORT_SOMEBODY = "должны определиться, кому они оказывают подмогу.";
+    public static final String SUPPORTS = " поддерживает ";
+    public static final String SUPPORTS_NOBODY = " отказывается от поддержки.";
+    public static final String HOUSES_CHOOSE_CARDS = "Воюющие дома выбирают карты.";
+    public static final String RELATION_OF_FORCES_IS = "Соотношение сил: ";
+    public static final String VERSUS = " vs ";
+    public static final String PLAYS_HOUSE_CARD = " играет карту Дома ";
+    public static final String CAN_USE_SPECIAL_PROPERTY_OF_CARD = " может использовать специально свойство карты ";
+    public static final String NO_EFFECT = ": нет эффекта";
+    public static final String TYRION_CANCELS = "Тирион Ланнистер блокирует карту противника, теперь тот должен выбрать другую карту.";
+    public static final String DORAN_ABUSES = "Доран Мартелл опускает ";
+    public static final String QUEEN_OF_THORNS_REMOVES_ORDER_FROM_AREA = "Королева шипов удаляет приказ из области ";
+    public static final String MACE_EATS_MAN_IN = "Мейс Тирелл уничтожает пехотинца в области ";
+    public static final String AERON_RUNS_AWAY = "Эйерон Мокровласый сбегает. ";
+    public static final String MUST_CHOOSE_OTHER_CARD = " должен выбрать другую карту.";
+    public static final String GETS_NEW_DECK = " обновляет колоду карт Дома.";
+
     public static final String WESTEROS_PHASE = "Фаза Вестероса";
     public static final String PLANNING_PHASE = "Фаза замыслов.";
     public static final String RAVEN_PHASE = "Фаза действий. Посыльный ворон.";
@@ -90,6 +109,7 @@ public class Constants {
     public static final String ORDER_MISTAKES = "Ошибки приказов ";
     public static final String NO_CP_IN_SEA = " морская, там не может быть сбора власти";
     public static final String NO_DEFENCE_IN_PORT = " - порт, там не может быть обороны";
+    public static final String PROHIBITED_ORDER = ": запрещённый приказ ";
     public static final String ORDERS = "Приказы ";
     public static final String OF_ORDERS = " приказов ";
     public static final String WHEN_MAX_OF_SUCH_ORDERS_IS = ", когда максимум таких приказов - ";
@@ -118,14 +138,18 @@ public class Constants {
     public static final String NO_POWER_TOKENS_TO_LEAVE_ERROR = "Нет жетонов власти, чтобы оставить один на покидаемой области!";
     public static final String TOO_BIG_ARMY_ERROR = "Ошибка, слишком большая армия!";
     public static final String DELETE_TROOP_ERROR = "Ошибка при удалении отряда, потому что его нету!!!";
+    public static final String DELETE_ARMY_ERROR = "Ошибка при удалении армии из боя!";
     public static final String ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR = "Ошибка добавления отряда: область занята другим игроком";
     public static final String TRYING_TO_ADD_NULL_ARMY_ERROR = "Ошибка! Попытка добавить пустую армию!";
     public static final String TRYING_TO_ADD_ARMY_OF_OTHER_PLAYER_ERROR = "Ошибка! Попытка добавить армию другого игрока!";
+    public static final String NO_DEFENDER_ERROR = "Ошибка! Попытка начать бой в области, где нет защитника!";
+    public static final String CANT_SUPPORT_AGAINST_YOURSELF_ERROR = "Ошибка! Нельзя оказывать поддержку против самого себя!";
 
     // текстовые константы - игроки
     public static final String HOUSE[] = {"Баратеон", "Ланнистер", "Старк", "Мартелл", "Грейджой", "Тирелл"};
     public static final String HOUSE_GENITIVE[] = {"Баратеона", "Ланнистера", "Старка", "Мартелла", "Грейджоя", "Тирелла"};
     public static final String HOUSE_DATIVE[] = {"Баратеону", "Ланнистеру", "Старку", "Мартеллу", "Грейджою", "Тиреллу"};
+    public static final String HOUSE_ABLATIVE[] = {"Баратеоном", "Ланнистером", "Старком", "Мартеллом", "Грейджоем", "Тиреллом"};
     public static final String NOBODY_GENITIVE = "никого";
     public static final String PLAYERS = "Участники партии:";
 

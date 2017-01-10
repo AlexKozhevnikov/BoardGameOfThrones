@@ -3,6 +3,7 @@ package com.alexeus.ai;
 import com.alexeus.logic.Constants;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.*;
+import com.alexeus.logic.struct.BattleInfo;
 import com.alexeus.logic.struct.MarchOrderPlayed;
 import com.alexeus.logic.struct.RaidOrderPlayed;
 import com.alexeus.map.GameOfThronesMap;
@@ -156,6 +157,24 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
+    public SideOfBattle sideToSupport(BattleInfo battleInfo) {
+        if (houseNumber == battleInfo.getAttacker()) {
+            return SideOfBattle.attacker;
+        } else if (houseNumber == battleInfo.getDefender()) {
+            return SideOfBattle.defender;
+        } else {
+            float bet = random.nextFloat();
+            if (bet < 0.4) {
+                return SideOfBattle.attacker;
+            } else if (bet > 0.6) {
+                return SideOfBattle.defender;
+            } else {
+                return SideOfBattle.neutral;
+            }
+        }
+    }
+
+    @Override
     public String playConsolidatePower() {
         return "";
     }
@@ -176,13 +195,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int playHouseCard() {
+    public int playHouseCard(BattleInfo battleInfo) {
         return 0;
     }
 
     @Override
-    public boolean useRenly() {
-        return true;
+    public int areaToUseRenly() {
+        return -1;
     }
 
     @Override
@@ -191,7 +210,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public boolean useTyrion() {
+    public boolean useTyrion(BattleInfo battleInfo, HouseCard opponentCard) {
         return true;
     }
 
@@ -201,18 +220,18 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int chooseInfluenceTrackDoran() {
-        return random.nextInt(3);
+    public TrackType chooseInfluenceTrackDoran(BattleInfo battleInfo) {
+        return TrackType.raven;
     }
 
     @Override
-    public boolean useAeron() {
+    public boolean useAeron(BattleInfo battleInfo) {
         return false;
     }
 
     @Override
-    public boolean chooseAreaQueenOfThorns() {
-        return false;
+    public int chooseAreaQueenOfThorns() {
+        return -1;
     }
 
     @Override

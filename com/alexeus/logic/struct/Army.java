@@ -42,6 +42,20 @@ public class Army {
     }
 
     /**
+     * Метод ищет в армии юнита определённого типа и возвращает его, если находит, или null, если не находит
+     * @param unitType тип юнита
+     * @return юнит, если нашли такого, или null, если не нашли
+     */
+    public Unit getUnitOfType(UnitType unitType) {
+        for (Unit curUnit: units) {
+            if (curUnit.getUnitType().equals(unitType)) {
+                return curUnit;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Метод удаляет из армии одного юнита определённого типа
      * @param unitType тип юнита, которого нужно удалить
      * @return true, если удалось успешно удалить
@@ -55,6 +69,15 @@ public class Army {
         }
         System.out.println(Constants.DELETE_TROOP_ERROR);
         return false;
+    }
+
+    /**
+     * Метод удаляет из армии одного юнита
+     * @param unit юнит, которого нужно удалить
+     * @return true, если удалось успешно удалить
+     */
+    public boolean deleteUnit(Unit unit) {
+        return units.remove(unit);
     }
 
     /**
