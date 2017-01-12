@@ -35,6 +35,7 @@ public class TextErrors {
     public static final String NO_WAY_MARCH_ERROR = "Из области источника похода нальзя попасть в область назначения!";
     public static final String CANT_MARCH_THERE_ERROR = "Поход в данную область невозможен!";
     public static final String EMPTY_ARMY_MARCH_ERROR = "Ошибка: попытка пойти пустой армией.";
+    public static final String SUPPLY_VIOLATION_ERROR = "Данный поход нарушает предел снабжения!";
     public static final String CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR = "Нельзя начинать две битвы одним походом!";
     public static final String CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH = "Невозможно пробить нейтральный гарнизон! Сила игрока: ";
     public static final String LACK_OF_UNITS_ERROR = "В области похода не хватает боеспособных войск для похода!";
@@ -54,4 +55,5 @@ public class TextErrors {
     public static final String INVALID_AREA_ERROR = "Ошибка: неподходящая область!";
     public static final String CARD_IS_NOT_ACTIVE_ERROR = "Ошибка: карта уже в сбросе!";
     public static final String CANT_CHANGE_UNIT_TYPE_ERROR = "Не удалось поменять тип юнита!";
+    public static final String NO_AREAS_TO_RETREAT = "Ошибка: Нет областей для отступления!";
 }

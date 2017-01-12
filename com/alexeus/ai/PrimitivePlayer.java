@@ -26,7 +26,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     protected WildlingCard wildlingCardInfo = null;
 
     // здесь будут храниться области, в которых есть войска игроков
-    protected ArrayList<HashSet<Integer>> areasWithTroopsOfPlayer;
+    protected ArrayList<HashMap<Integer, Integer>> areasWithTroopsOfPlayer;
 
     // здесь будут храниться области, в которых есть набеги игроков
     protected ArrayList<HashSet<Integer>> areasWithRaidsOfPlayer;
@@ -56,7 +56,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public HashMap<Integer, Order> giveOrders() {
         areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer();
-        HashSet<Integer> myAreas = areasWithTroopsOfPlayer.get(houseNumber);
+        Set<Integer> myAreas = areasWithTroopsOfPlayer.get(houseNumber).keySet();
         orderMap.clear();
         switch (houseNumber) {
             case 0:
@@ -172,35 +172,40 @@ public class PrimitivePlayer implements GotPlayerInterface{
         }
         int indexMarchToPlay = random.nextInt(nMarches);
         int curIndexMarch = 0;
+        MarchOrderPlayed march = new MarchOrderPlayed();
         for (Integer areaFrom: areasWithMarchesOfPlayer.get(houseNumber)) {
             if (curIndexMarch != indexMarchToPlay) {
                 curIndexMarch++;
             } else {
-                MarchOrderPlayed march = new MarchOrderPlayed();
                 march.setAreaFrom(areaFrom);
+                march.setLeaveToken(!map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0);
                 Army myArmy = game.getArmyInArea(areaFrom);
                 HashSet<Integer> areasToMove = game.getAccessibleAreas(areaFrom, houseNumber);
                 game.printAreasInSet(areasToMove, "Возможные области для похода " + map.getAreaNameRusGenitive(areaFrom));
 
                 areasToMove.add(-1);
                 HashMap<Integer, Army> destinationsOfMarch = new HashMap<>();
-                for (Unit unit: myArmy.getUnits()) {
-                    if (unit.isWounded()) continue;
-                    int area;
-                    int nTry = 0;
-                    do {
-                        area = getRandomElementOfSet(areasToMove);
-                        nTry++;
-                    } while (/* area >= 0 && game.getGarrisonInArea(area) > 0 ||*/ area < 0 && nTry == 1);
-                    if (area == -1) continue;
-                    if (destinationsOfMarch.containsKey(area)) {
-                        destinationsOfMarch.get(area).addUnit(unit);
-                    } else {
-                        destinationsOfMarch.put(area, new Army(unit, game));
+                // Пытаемся подобрать случайные места назначения, пока не будет успешный тест на снабжение
+                do {
+                    destinationsOfMarch.clear();
+                    for (Unit unit: myArmy.getUnits()) {
+                        if (unit.isWounded()) continue;
+                        int area;
+                        int nTry = 0;
+                        do {
+                            area = getRandomElementOfSet(areasToMove);
+                            nTry++;
+                        } while (/* area >= 0 && game.getGarrisonInArea(area) > 0 ||*/ area < 0 && nTry == 1);
+                        if (area == -1) continue;
+                        if (destinationsOfMarch.containsKey(area)) {
+                            destinationsOfMarch.get(area).addUnit(unit);
+                        } else {
+                            destinationsOfMarch.put(area, new Army(unit, game));
+                        }
                     }
-                }
-                march.setDestinationsOfMarch(destinationsOfMarch);
-                march.setLeaveToken(!map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0);
+                    march.setDestinationsOfMarch(destinationsOfMarch);
+                } while (!game.supplyTestForMarch(march));
+
                 return march;
             }
         }
@@ -277,8 +282,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int chooseAreaQueenOfThorns(HashSet<Integer> possibleVariants) {
-        return getRandomElementOfSet(possibleVariants);
+    public int chooseAreaQueenOfThorns(HashSet<Integer> possibleAreas) {
+        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа");
+        return getRandomElementOfSet(possibleAreas);
     }
 
     @Override
@@ -303,6 +309,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
+        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа");
         return getRandomElementOfSet(possibleAreas);
     }
 

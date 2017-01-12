@@ -339,4 +339,17 @@ public class Army {
         }
         return sb.toString();
     }
+
+    public String getShortString() {
+        StringBuilder sb = new StringBuilder();
+        int n = units.size();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                sb.append(units.get(i).getUnitType().getLetter());
+            }
+        } else {
+            sb.append(TextInfo.NOBODY);
+        }
+        return sb.toString();
+    }
 }

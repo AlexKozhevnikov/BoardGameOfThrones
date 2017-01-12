@@ -9,7 +9,8 @@ import com.alexeus.logic.constants.TextErrors;
 public enum KillingReason {
     sword,
     supplyLimit,
-    noAreaToRetreat;
+    noAreaToRetreat,
+    mace;
 
     @Override
     public String toString() {
@@ -20,6 +21,8 @@ public enum KillingReason {
                 return "ограничение по снабжению";
             case noAreaToRetreat:
                 return "некуда отступать";
+            case mace:
+                return "аппетит Мейса Тирелла";
         }
         return TextErrors.UNKNOWN_UFO_ERROR;
     }

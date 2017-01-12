@@ -57,4 +57,22 @@ public enum UnitType {
         }
         return -1;
     }
+
+    /**
+     * Возыращает символ отряда
+     * @return символ отряда
+     */
+    public char getLetter() {
+        switch (this) {
+            case pawn:
+                return 'п';
+            case knight:
+                return 'Р';
+            case siegeEngine:
+                return 'Б';
+            case ship:
+                return 'к';
+        }
+        return '?';
+    }
 }

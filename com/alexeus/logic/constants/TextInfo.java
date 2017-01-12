@@ -32,6 +32,7 @@ public class TextInfo {
     public static final String MUST_PLAY_RAID = " должен разыграть один свой приказ набега.";
     public static final String DELETES_RAID = " удаляет приказ набега ";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
+    public static final String MARCH_VALIDATION = "Проверка корректности следующего похода: ";
     public static final String MUST_PLAY_MARCH = " должен разыграть один свой приказ похода.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
     public static final String DELETES_MARCH = " удаляет приказ похода ";
@@ -42,6 +43,7 @@ public class TextInfo {
     public static final String GARRISON_IS_DEFEATED = "Нейтральный лорд побеждён: сила войск ";
     public static final String GARRISON_STRENGTH_IS = ", сила нейтрального лорда - ";
     public static final String AND_FIGHTS = " и начинает бой.";
+    public static final String AND_FIGHT = " и начинают бой.";
     public static final String BATTLE_BEGINS_FOR = "Начинается бой за ";
     public static final String BETWEEN = " между ";
     public static final String CAN_SUPPORT_SOMEBODY = " должны определиться, кому они оказывают подмогу.";
@@ -64,7 +66,8 @@ public class TextInfo {
     public static final String SWORDS_U = " мечей, у ";
     public static final String OF_TOWERS = " башен";
     public static final String LOSES = " теряет ";
-    public static final String TROOPS = " отрядов ";
+    public static final String TROOP = " отряд.";
+    public static final String TROOPS = " отряда.";
     public static final String HAS_NO_LOSSES = " не несёт потерь.";
     public static final String BLACKFISH_SAVES = "Чёрная Рыба спасает ";
     public static final String FROM_LOSSES = " от потерь.";
@@ -75,6 +78,7 @@ public class TextInfo {
     public static final String IS_WOUNDED = " ранен!";
     public static final String LORAS_RULES = "Лорас Тирелл перегруппировывает войска.";
     public static final String ARIANNA_RULES_AND_PUTS_BACK = "Арианна Мартелл отбрасывает атакующие войска назад ";
+    public static final String MINIMAL_LOSSES = "Минимальные потери при отступлении: ";
     public static final String MUST_RETREAT = " должен отсупить побеждёнными войсками.";
     public static final String RETREATS_IN = " отступает в ";
     public static final String GETS_NEW_DECK = " обновляет колоду карт Дома.";
@@ -85,6 +89,8 @@ public class TextInfo {
     public static final String PATCHPACE_CAN_DELETE_ANY_CARD = "Пестряк может сбросить карту противника.";
     public static final String PATCHPACE_DELETES_CARD = "Пестряк сбрасывает карту ";
     public static final String AREAS_WITH_TROOPS_OF = "    Области с войсками ";
+    public static final String ARMIES = "Армии ";
+    public static final String NEW_ORDER_ON_TRACK = "Новый порядок игроков на треке влияния ";
 
     public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";
