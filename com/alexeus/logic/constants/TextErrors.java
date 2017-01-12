@@ -36,7 +36,7 @@ public class TextErrors {
     public static final String CANT_MARCH_THERE_ERROR = "Поход в данную область невозможен!";
     public static final String EMPTY_ARMY_MARCH_ERROR = "Ошибка: попытка пойти пустой армией.";
     public static final String CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR = "Нельзя начинать две битвы одним походом!";
-    public static final String CANT_BEAT_NEUTRAL_GARRISON_ERROR = "Невозможно пробить нейтральный гарнизон!";
+    public static final String CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH = "Невозможно пробить нейтральный гарнизон! Сила игрока: ";
     public static final String LACK_OF_UNITS_ERROR = "В области похода не хватает войск!";
     public static final String NO_POWER_TOKENS_TO_LEAVE_ERROR = "Нет жетонов власти, чтобы оставить один на покидаемой области!";
     public static final String CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR = "Нельзя оставить жетон власти в морской области!";

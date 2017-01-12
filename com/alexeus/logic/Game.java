@@ -339,6 +339,16 @@ public class Game {
     }
 
     /**
+     * Добавляет данную область в areasWithTroopsOfPlayer, если там есть отряды
+     * @param area номер области
+     */
+    private void addHouseTroopsInArea(int area) {
+        if (armyInArea[area].getOwner() >= 0) {
+            areasWithTroopsOfPlayer.get(armyInArea[area].getOwner()).add(area);
+        }
+    }
+
+    /**
      * Метод считает и изменяет снабжение каждого из игроков
      */
     private void adjustSupply() {
@@ -549,6 +559,7 @@ public class Game {
                 numNoRaidsPlayers++;
             } else {
                 numNoRaidsPlayers = 0;
+                System.out.println(HOUSE[player] + MUST_PLAY_RAID);
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     RaidOrderPlayed raid = playerInterface[player].playRaid();
                     // Проверяем вариант розыгрыша набега, полученный от игрока, на валидность
@@ -660,12 +671,14 @@ public class Game {
         int place = 0;
         int player;
         int attempt;
+        printAreaWithTroopsOfPlayers();
         while(numNoMarchesPlayers < NUM_PLAYER){
             player = thronePlayerOnPlace[place];
             if (areasWithMarches.get(player).isEmpty()) {
                 numNoMarchesPlayers++;
             } else {
                 numNoMarchesPlayers = 0;
+                System.out.println(HOUSE[player] + MUST_PLAY_MARCH);
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     MarchOrderPlayed march = playerInterface[player].playMarch();
                     // Проверяем вариант розыгрыша похода, полученный от игрока, на валидность
@@ -700,6 +713,7 @@ public class Game {
                                             (curArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
                                             map.getAreaNameRus(curDestination) + ".");
                                     armyInArea[curDestination].addSubArmy(curArmy);
+                                    addHouseTroopsInArea(curDestination);
                                     if (map.getNumCastle(curDestination) > 0) {
                                         victoryPoints[player]++;
                                     }
@@ -716,6 +730,8 @@ public class Game {
                                 }
                                 armyInArea[from].deleteSubArmy(curArmy);
                             }
+                            areasWithTroopsOfPlayer.get(player).remove(from);
+                            addHouseTroopsInArea(from);
                             if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] < 0) {
                                 if (march.isLeaveToken()) {
                                     System.out.println(HOUSE[player] + LEAVES_POWER_TOKEN_IN + map.getAreaNameRus(from) + ".");
@@ -740,7 +756,6 @@ public class Game {
                             }
                             orderInArea[from] = null;
                             areasWithMarches.get(player).remove(from);
-                            renewHousesTroopsArea();
                         }
                         break;
                     }
@@ -752,6 +767,8 @@ public class Game {
                         orderInArea[area] = null;
                         areasWithMarches.get(player).remove(area);
                     }
+                } else {
+                    printAreaWithTroopsOfPlayers();
                 }
             }
             place++;
@@ -838,9 +855,11 @@ public class Game {
                         garrisonInArea[curDestination] > 0 || destinationArmyOwner < 0 && garrisonInArea[curDestination] > 0) {
                     if (areaWhereBattleBegins < 0) {
                         if (destinationArmyOwner < 0 && garrisonInArea[curDestination] > 0) {
-                            if (calculatePowerOfPlayerVersusGarrison(player, curDestination, curArmy,
-                                    orderInArea[from].getModifier()) < garrisonInArea[curDestination]) {
-                                System.out.println(CANT_BEAT_NEUTRAL_GARRISON_ERROR);
+                            int playerStrength = calculatePowerOfPlayerVersusGarrison(player, curDestination, curArmy,
+                                    orderInArea[from].getModifier());
+                            if (playerStrength < garrisonInArea[curDestination]) {
+                                System.out.println(CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH + playerStrength +
+                                        GARRISON_STRENGTH_IS + garrisonInArea[curDestination]);
                                 return false;
                             }
                         }
@@ -945,17 +964,6 @@ public class Game {
                 accessibleAreas.remove(areaFrom);
             }
         }
-        System.out.print("Доступные для похода из " + map.getAreaNameRus(areaFrom) + " области: ");
-        boolean firstFlag = true;
-        for (int area: accessibleAreas) {
-            if (firstFlag) {
-                firstFlag = false;
-            } else {
-                System.out.print(", ");
-            }
-            System.out.print(map.getAreaNameRus(area));
-        }
-        System.out.println();
         return accessibleAreas;
     }
 
@@ -1284,6 +1292,7 @@ public class Game {
         if (winnerSide == 0) {
             // Победил нападающий
             armyInArea[areaOfBattle].woundAndKillTroops(numKilledUnits, KillingReason.sword);
+            areasWithTroopsOfPlayer.get(playerOnSide[1 - winnerSide]).remove(areaOfBattle);
             // Удаление жетона власти с области, если он там был
             if (powerTokenOnArea[areaOfBattle] >= 0) {
                 maxPowerTokensHouse[powerTokenOnArea[areaOfBattle]]++;
@@ -1320,8 +1329,10 @@ public class Game {
             if (houseCardOfSide[1] == HouseCard.arianneMartell) {
                 System.out.println(ARIANNA_RULES_AND_PUTS_IN + map.getAreaNameRus(areaOfMarch) + ".");
                 armyInArea[areaOfMarch].addSubArmy(attackingArmy);
+                addHouseTroopsInArea(areaOfMarch);
             } else {
                 armyInArea[areaOfBattle] = attackingArmy;
+                addHouseTroopsInArea(areaOfBattle);
             }
             attackingArmy = null;
             // Отступление
@@ -1348,6 +1359,7 @@ public class Game {
                     trueAreasToRetreat.remove(areaOfMarch);
                 }
 
+                printAreasInSet(trueAreasToRetreat, "Области для отступления");
                 switch (trueAreasToRetreat.size()) {
                     case 0:
                         // Если нет областей для отступления, то уничтожаем все отступающие юниты
@@ -1360,6 +1372,7 @@ public class Game {
                         }
                         int onlyArea = trueAreasToRetreat.iterator().next();
                         armyInArea[onlyArea].addSubArmy(retreatingArmy);
+                        addHouseTroopsInArea(onlyArea);
                         System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(onlyArea));
                         break;
                     default:
@@ -1373,16 +1386,18 @@ public class Game {
                             System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(area));
                             if (trueAreasToRetreat.contains(area)) {
                                 armyInArea[area].addSubArmy(retreatingArmy);
+                                addHouseTroopsInArea(area);
                                 successFlag = true;
                                 break;
                             } else {
                                 System.out.println(CANT_RETREAT_THERE_ERROR);
                             }
                         }
-                        // Если игрок так и не смог отступить, то отступаем в первую встреченную область
+                        // Если игрок так и не смог отступить, то отступаем в первую доступную область
                         if (!successFlag) {
                             int area = trueAreasToRetreat.iterator().next();
                             armyInArea[area].addSubArmy(retreatingArmy);
+                            addHouseTroopsInArea(area);
                             System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(area));
                         }
                         break;
@@ -1403,13 +1418,13 @@ public class Game {
                 if (!attackingArmy.isEmpty()) {
                     System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(areaOfMarch));
                     armyInArea[areaOfMarch].addSubArmy(attackingArmy);
+                    addHouseTroopsInArea(areaOfMarch);
                 }
             } else {
                 attackingArmy.killAllUnits(KillingReason.noAreaToRetreat);
             }
         }
         attackingArmy = null;
-        renewHousesTroopsArea();
         // Разыгрываем эффект карт "после боя"
         for (int curSide = 0; curSide < 2; curSide++) {
             int heroSide = (curSide + firstSideOnThrone) % 2;
@@ -1942,6 +1957,22 @@ public class Game {
         return nPowerTokensHouse[player];
     }
 
+    public void printAreaWithTroopsOfPlayers() {
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            System.out.print(AREAS_WITH_TROOPS_OF + HOUSE_GENITIVE[player] + ": ");
+            boolean firstFlag = true;
+            for (int area: areasWithTroopsOfPlayer.get(player)) {
+                if (!firstFlag) {
+                    System.out.print(", ");
+                } else {
+                    firstFlag = false;
+                }
+                System.out.print(map.getAreaNameRus(area));
+            }
+            System.out.println();
+        }
+    }
+
     public int getGarrisonInArea(int area) {
         return garrisonInArea[area];
     }
@@ -2023,6 +2054,25 @@ public class Game {
 
     public Army getArmyInArea(int area) {
         return armyInArea[area];
+    }
+
+    /**
+     * Метод выводит все области из множества под их русскими именами
+     * @param areas  множество областей
+     * @rapam text сопутствующий текст
+     */
+    public void printAreasInSet(HashSet<Integer> areas, String text) {
+        System.out.print(text + ": ");
+        boolean firstFlag = true;
+        for (int area: areas) {
+            if (firstFlag) {
+                firstFlag = false;
+            } else {
+                System.out.print(", ");
+            }
+            System.out.print(map.getAreaNameRus(area));
+        }
+        System.out.println();
     }
 
     private PropertyChangeSupport gamePhaseChangeSupport = new PropertyChangeSupport(this);

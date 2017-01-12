@@ -9,25 +9,12 @@ public class TextInfo {
     public static final String NEW_GAME_BEGINS = "Начинается новая партия в Игру престолов!";
     public static final String AREA_NUMBER = "Область №";
     public static final String IN_AREA_NUMBER = "В области №";
-    public static final String GARRISON = "гарнизон";
-    public static final String POWER_TOKEN = "жетон власти";
     public static final String CASTLE = "Замок";
     public static final String FORTRESS = "Крепость";
     public static final String BARREL = " бочка";
     public static final String BARRELS = " бочки";
     public static final String POWER_SIGN = " знак короны";
     public static final String POWER_SIGNS = " знака короны";
-    public static final String BELONGS_TO = "Область принадлежит ";
-    public static final String BELONGS_TO_NOBODY = "Область не принадлежит никому";
-    public static final String PAWN = "пехотинец";
-    public static final String PAWNS = "пехотинца";
-    public static final String KNIGHT = "рыцарь";
-    public static final String KNIGHTS = "рыцаря";
-    public static final String TOWER = "осадная башня";
-    public static final String TOWERS = "осадные башни";
-    public static final String SHIP = "корабль";
-    public static final String SHIPS = "корабля";
-    public static final String NO_TROOPS = "нет отрядов";
     public static final String ADJACENT = "Граничит с областями: ";
     public static final String SUPPLY_OF = "Снабжение ";
     public static final String EQUALS = " равно ";
@@ -42,8 +29,10 @@ public class TextInfo {
     public static final String AND_BURIES = "... и закапывает её.";
     public static final String RAIDS_FROM = " совершает набег из ";
     public static final String RAIDS_TO = " на ";
+    public static final String MUST_PLAY_RAID = " должен разыграть один свой приказ набега.";
     public static final String DELETES_RAID_FROM = " удаляет набег из ";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
+    public static final String MUST_PLAY_MARCH = " должен разыграть один свой приказ похода.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
     public static final String DELETES_MARCH_FROM = " удаляет поход из ";
     public static final String PLAYS_MARCH_FROM = " совершает поход из ";
@@ -95,6 +84,7 @@ public class TextInfo {
     public static final String CERSEI_REMOVES_ORDER_FROM_AREA = "Серсея Ланнистер снимает приказ в ";
     public static final String PATCHPACE_CAN_DELETE_ANY_CARD = "Пестряк может сбросить карту противника.";
     public static final String PATCHPACE_DELETES_CARD = "Пестряк сбрасывает карту ";
+    public static final String AREAS_WITH_TROOPS_OF = "    Области с войсками ";
 
     public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";

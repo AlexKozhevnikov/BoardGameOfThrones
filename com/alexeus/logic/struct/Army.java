@@ -308,15 +308,15 @@ public class Army {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        if (units.size() > 0) {
-            boolean firstFlag = true;
-            for (Unit unit: units) {
-                if (firstFlag) {
-                    firstFlag = false;
-                } else {
+        int n = units.size();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                if (i == n - 1 && i != 0) {
+                    sb.append(" и ");
+                } else if (i != 0) {
                     sb.append(", ");
                 }
-                sb.append(unit.getUnitType());
+                sb.append(units.get(i).getUnitType());
             }
             sb.append(" ").append(MainConstants.HOUSE_GENITIVE[units.get(0).getHouse()]);
         } else {
