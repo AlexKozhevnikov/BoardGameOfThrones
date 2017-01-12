@@ -1,10 +1,12 @@
 package com.alexeus;
 
 import com.alexeus.ai.math.BrownRobinsonSolver;
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class Main {
 
@@ -18,9 +20,9 @@ public class Main {
     final static float ORDER = THRONE_PROFIT / 3;
 
     // Профит от обладания определённым местом по треку ворона
-    static float[][] priceStars = new float[Constants.NUM_PLAYER][Constants.NUM_PLAYER];
+    static float[][] priceStars = new float[MainConstants.NUM_PLAYER][MainConstants.NUM_PLAYER];
     // Профит от обладания деньгами
-    static float[][] priceToken = new float[Constants.NUM_PLAYER][Constants.MAX_TOKENS + 1];
+    static float[][] priceToken = new float[MainConstants.NUM_PLAYER][MainConstants.MAX_TOKENS + 1];
 
     static Random random = new Random();
 
@@ -31,7 +33,6 @@ public class Main {
          */
         Game game = new Game(true);
         game.startNewGame();
-
         //brownRobinsonTest();
     }
 
@@ -62,7 +63,7 @@ public class Main {
                 {0f, 0f, 0f, ORDER, 0f, 0f}};
 
         // Профит для i-го игрока быть выше по мечу, чем j-тый игрок
-        //float[][] priceFirstOnSword = new float[Constants.NUM_PLAYER][Constants.NUM_PLAYER];
+        //float[][] priceFirstOnSword = new float[MainConstants.NUM_PLAYER][MainConstants.NUM_PLAYER];
         float[][] priceFirstOnSword = {  {SWORD_PROFIT, 0f, -SWORD_PROFIT, 0f, 0f, 0f},
                 {0f, SWORD_PROFIT, 0f, 0f, -SWORD_PROFIT, 0f},
                 {-SWORD_PROFIT, 0f, SWORD_PROFIT, 0f, 0f, 0f},
@@ -71,7 +72,7 @@ public class Main {
                 {0f, 0f, 0f, -SWORD_PROFIT, 0f, SWORD_PROFIT}};
 
         // Профит для i-го игрока быть выше по мечу, чем j-тый игрок
-        //float[][] priceHigherOnSword = new float[Constants.NUM_PLAYER][Constants.NUM_PLAYER];
+        //float[][] priceHigherOnSword = new float[MainConstants.NUM_PLAYER][MainConstants.NUM_PLAYER];
         float[][] priceHigherOnSword = {{0, 0f, SWORD_PROFIT / 2, 0f, 0f, 0f},
                 {0f, 0, 0f, 0f, SWORD_PROFIT / 2, 0f},
                 {SWORD_PROFIT / 2, 0f, 0f, 0f, 0f, 0f},
@@ -79,7 +80,7 @@ public class Main {
                 {0f, SWORD_PROFIT / 2, 0f, 0f, 0f, 0f},
                 {0f, 0f, 0f, SWORD_PROFIT / 2, 0f, 0f}};
 
-        for (int player = 0; player < Constants.NUM_PLAYER; player++) {
+        for (int player = 0; player < MainConstants.NUM_PLAYER; player++) {
             priceToken[player][0] = 0;
             priceStars[player][0] = 90f;
             priceStars[player][1] = 80f;
@@ -88,7 +89,7 @@ public class Main {
             priceStars[player][4] = 1f;
             priceStars[player][5] = 0f;
 
-            /*for (int opponent = 0; opponent < Constants.NUM_PLAYER; opponent++) {
+            /*for (int opponent = 0; opponent < MainConstants.NUM_PLAYER; opponent++) {
                 if (player == opponent) {
                     priceFirstOnSword[player][opponent] = SWORD_PROFIT;
                     priceHigherOnSword[player][opponent] = 0;
@@ -99,15 +100,15 @@ public class Main {
             }*/
         }
         float temp = 0f;
-        for (int i = 1; i <= Constants.MAX_TOKENS; i++) {
+        for (int i = 1; i <= MainConstants.MAX_TOKENS; i++) {
             temp += i == 1 ? 9 : (i > 4 ? 4 : (8 - i));
-            for (int player = 0; player < Constants.NUM_PLAYER; player++) {
+            for (int player = 0; player < MainConstants.NUM_PLAYER; player++) {
                 priceToken[player][i] = temp;
             }
         }
-        /*for (int i = 1; i <= Constants.MAX_TOKENS; i++) {
+        /*for (int i = 1; i <= MainConstants.MAX_TOKENS; i++) {
             temp += i == 1 ? 11 : 9;
-            for (int player = 0; player < Constants.NUM_PLAYER; player++) {
+            for (int player = 0; player < MainConstants.NUM_PLAYER; player++) {
                 priceToken[player][i] = temp;
             }
         }*/
@@ -118,7 +119,7 @@ public class Main {
         BrownRobinsonSolver.setKingOrders(defaultKingOrderPlayerOnPlace);
         // Король - Рандом
         int king = 0;
-        System.out.println("Король: " + Constants.HOUSE[king]);
+        System.out.println("Король: " + MainConstants.HOUSE[king]);
         BrownRobinsonSolver.setKing(king);
 
         float[][] results;
@@ -127,8 +128,8 @@ public class Main {
         results = BrownRobinsonSolver.sixPlayersBiddingRaven(money, priceStars, priceToken);
 
         //System.out.println("Настоящие профиты.");
-        /*for (int i = 0; i < Constants.NUM_PLAYER; i++) {
-            System.out.println("\n" + Constants.HOUSE[i] + ".");
+        /*for (int i = 0; i < MainConstants.NUM_PLAYER; i++) {
+            System.out.println("\n" + MainConstants.HOUSE[i] + ".");
             for (int b = 0; b < results[i].length; b++) {
                 System.out.println("Ставка " + b + ": " + results[i][b]);
             }
@@ -137,8 +138,8 @@ public class Main {
         /*BrownRobinsonSolver.fillFutureGamePrice(priceFirstOnSword, priceHigherOnSword, priceStars);
         float[] estimatedProfit = BrownRobinsonSolver.primitiveThroneRestTokensEvaluation(money, priceToken, king);
         System.out.println("Оценочные профиты.");
-        for (int player = 0; player < Constants.NUM_PLAYER; player++) {
-            System.out.println(Constants.HOUSE[player] + ": " + estimatedProfit[player]);
+        for (int player = 0; player < MainConstants.NUM_PLAYER; player++) {
+            System.out.println(MainConstants.HOUSE[player] + ": " + estimatedProfit[player]);
         }*/
         BrownRobinsonSolver.primitiveSwordRestTokensEvaluation(money, priceStars, priceToken);
     }

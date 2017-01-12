@@ -1,11 +1,13 @@
 package com.alexeus.ai;
 
 import com.alexeus.logic.enums.*;
+import com.alexeus.logic.struct.Army;
 import com.alexeus.logic.struct.BattleInfo;
 import com.alexeus.logic.struct.MarchOrderPlayed;
 import com.alexeus.logic.struct.RaidOrderPlayed;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -67,15 +69,17 @@ public interface GotPlayerInterface {
 
     /**
      * В какой области использовать свойство карты "Ренли Баратеон", если есть такая возможность
-     * @return номер области карты, в которой апгрейдить пехотинца до рыцаря, или -1, если отказываемся
+     * @param possibleAreas Возможные номера областей, в которых можно посвятить в рыцари
+     * @return номер области карты, в которой посвятить пехотинца до рыцаря, или -1, если отказываемся
      */
-    public int areaToUseRenly();
+    public int areaToUseRenly(final HashSet<Integer> possibleAreas);
 
     /**
      * Выбор карты дома противника для сброса после боя, в котором был сыгран Пестряк
+     * @param enemy номер дома, у которого можно сбросить карту
      * @return номер карты, которую выбрал игрок в колоде противника
      */
-    public int chooseCardPatchface();
+    public int chooseCardPatchface(int enemy);
 
     /**
      * Использовать ли свойство карты "Тирион Ланнистер" во время боя
@@ -87,7 +91,15 @@ public interface GotPlayerInterface {
      * Выбор области, из которой удалить приказ Серсеей после боя
      * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
      */
-    public int chooseAreaCercei();
+    public int chooseAreaCerseiLannister(final HashSet<Integer> possibleAreas);
+
+    /**
+     * Выбор области для отступления
+     * @param retreatingArmy отступающая армия
+     * @param possibleAreas  множество из возможных вариантов
+     * @return номер области для отступления
+     */
+    public int chooseAreaToRetreat(final Army retreatingArmy, final HashSet<Integer> possibleAreas);
 
     /**
      * По какому из треков скидывать оппонента Дораном.
@@ -103,15 +115,16 @@ public interface GotPlayerInterface {
 
     /**
      * Выбрать область, из которой удалить приказ Королевой Шипов после боя.
+     * @param possibleVariants возможные варианты
      * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
      */
-    public int chooseAreaQueenOfThorns();
+    public int chooseAreaQueenOfThorns(HashSet<Integer> possibleVariants);
 
     /**
      * Использовать ли валирийский меч в битве
      * @return true, если игрок хочет использовать валирийский меч в этой битве
      */
-    public boolean useSword();
+    public boolean useSword(final BattleInfo battleInfo);
 
     /*
      * Разыграть свой приказ сбора власти со звездой

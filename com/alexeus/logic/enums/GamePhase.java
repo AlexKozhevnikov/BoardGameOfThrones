@@ -1,6 +1,7 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextInfo;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -19,20 +20,20 @@ public enum GamePhase {
     public String toString() {
         switch(this) {
             case westerosPhase:
-                return Constants.WESTEROS_PHASE;
+                return TextInfo.WESTEROS_PHASE;
             case planningPhase:
-                return Constants.PLANNING_PHASE;
+                return TextInfo.PLANNING_PHASE;
             case ravenPhase:
-                return Constants.RAVEN_PHASE;
+                return TextInfo.RAVEN_PHASE;
             case raidPhase:
-                return Constants.RAID_PHASE;
+                return TextInfo.RAID_PHASE;
             case marchPhase:
-                return Constants.MARCH_PHASE;
+                return TextInfo.MARCH_PHASE;
             case consolidatePowerPhase:
-                return Constants.CONSOLIDATE_POWER_PHASE;
+                return TextInfo.CONSOLIDATE_POWER_PHASE;
             case end:
-                return Constants.END_OF_GAME;
+                return TextInfo.END_OF_GAME;
         }
-        return Constants.UNKNOWN_UFO_ERROR;
+        return TextErrors.UNKNOWN_UFO_ERROR;
     }
 }

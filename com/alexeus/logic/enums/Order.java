@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -47,7 +47,7 @@ public enum Order {
             case defenceS:
                 return "Оборона +2*";
         }
-        return Constants.UNKNOWN_ORDER_ERROR;
+        return TextErrors.UNKNOWN_ORDER_ERROR;
     }
 
     // Возвращает сокращённое обозначение приказа
@@ -76,7 +76,7 @@ public enum Order {
             case defenceS:
                 return "D*";
         }
-        return Constants.UNKNOWN_ORDER_ERROR;
+        return TextErrors.UNKNOWN_ORDER_ERROR;
     }
 
     public OrderType orderType() {

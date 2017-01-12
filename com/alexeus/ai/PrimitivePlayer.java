@@ -1,11 +1,9 @@
 package com.alexeus.ai;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.*;
-import com.alexeus.logic.struct.BattleInfo;
-import com.alexeus.logic.struct.MarchOrderPlayed;
-import com.alexeus.logic.struct.RaidOrderPlayed;
+import com.alexeus.logic.struct.*;
 import com.alexeus.map.GameOfThronesMap;
 
 import java.util.*;
@@ -52,7 +50,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public String nameYourself() {
-        return "Примитивный игрок за " + Constants.HOUSE_GENITIVE[houseNumber];
+        return "Примитивный игрок за " + MainConstants.HOUSE_GENITIVE[houseNumber];
     }
 
     @Override
@@ -60,32 +58,53 @@ public class PrimitivePlayer implements GotPlayerInterface{
         areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer();
         HashSet<Integer> myAreas = areasWithTroopsOfPlayer.get(houseNumber);
         orderMap.clear();
-        if (houseNumber == 1) {
-            orderMap.put(3, Order.raid);
-            orderMap.put(36, Order.raidS);
-            orderMap.put(37, Order.raid);
-        } else if (houseNumber == 4) {
-            orderMap.put(2, Order.raid);
-            orderMap.put(13, Order.consolidatePower);
-            orderMap.put(33, Order.consolidatePower);
-            orderMap.put(57, Order.march);
-        } else {
-            for (Integer area : myAreas) {
-                orderMap.put(area, Order.getOrderWithCode(random.nextInt(Constants.NUM_DIFFERENT_ORDERS)));
-            }
+        switch (houseNumber) {
+            case 0:
+                orderMap.put(8, Order.march);
+                orderMap.put(53, Order.marchB);
+                orderMap.put(56, Order.marchS);
+                break;
+            case 1:
+                orderMap.put(3, Order.marchS);
+                orderMap.put(37, Order.marchB);
+                orderMap.put(36, Order.march);
+                break;
+            case 2:
+                orderMap.put(11, Order.marchS);
+                orderMap.put(25, Order.marchB);
+                orderMap.put(21, Order.march);
+                break;
+            case 3:
+                orderMap.put(7, Order.marchS);
+                orderMap.put(47, Order.marchB);
+                orderMap.put(48, Order.march);
+                break;
+            case 4:
+                orderMap.put(2, Order.support);
+                orderMap.put(13, Order.consolidatePower);
+                orderMap.put(33, Order.marchB);
+                orderMap.put(57, Order.march);
+                break;
+            case 5:
+                orderMap.put(5, Order.support);
+                orderMap.put(43, Order.marchB);
+                orderMap.put(41, Order.march);
         }
+        /* for (Integer area : myAreas) {
+            orderMap.put(area, Order.getOrderWithCode(random.nextInt(MainConstants.NUM_DIFFERENT_ORDERS)));
+        }*/
         return orderMap;
     }
 
     @Override
     public String useRaven() {
-        return Constants.RAVEN_SEES_WILDLINGS_CODE;
+        return MainConstants.RAVEN_SEES_WILDLINGS_CODE;
     }
 
     @Override
     public boolean leaveWildlingCardOnTop(WildlingCard card) {
         wildlingCardInfo = card;
-        System.out.println(Constants.HOUSE[houseNumber] + ": Пацаны, я узнал карту одичалых: " + card);
+        System.out.println(MainConstants.HOUSE[houseNumber] + ": Пацаны, я узнал карту одичалых: " + card);
         return true;
     }
 
@@ -98,7 +117,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         Order orderDestination;
         if (iterator.hasNext()) {
             int areaOfRaid = iterator.next();
-            List<Integer> adjacentAreas = map.getAdjacentAreas(areaOfRaid);
+            HashSet<Integer> adjacentAreas = map.getAdjacentAreas(areaOfRaid);
             for (int destination : adjacentAreas) {
                 if (game.getTroopsOwner(destination) == houseNumber || game.getTroopsOwner(destination) < 0) continue;
                 orderDestination = game.getOrderInArea(destination);
@@ -138,7 +157,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             }
             return new RaidOrderPlayed(areaOfRaid, bestAreaToRaid);
         } else {
-            System.out.println(Constants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких набегов!");
+            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких набегов!");
             return null;
         }
     }
@@ -146,14 +165,43 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public MarchOrderPlayed playMarch() {
         areasWithMarchesOfPlayer = game.getAreasWithMarchesOfPlayer();
-        Iterator<Integer> iterator = areasWithRaidsOfPlayer.get(houseNumber).iterator();
-        if (iterator.hasNext()) {
-            int areaOfMarch = iterator.next();
-            return null;
-        } else {
-            System.out.println(Constants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких походов!");
+        int nMarches = areasWithMarchesOfPlayer.get(houseNumber).size();
+        if (nMarches == 0) {
+            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких походов!");
             return null;
         }
+        int indexMarchToPlay = random.nextInt(nMarches);
+        int curIndexMarch = 0;
+        for (Integer areaFrom: areasWithMarchesOfPlayer.get(houseNumber)) {
+            if (curIndexMarch != indexMarchToPlay) {
+                curIndexMarch++;
+            } else {
+                MarchOrderPlayed march = new MarchOrderPlayed();
+                march.setAreaFrom(areaFrom);
+                Army myArmy = game.getArmyInArea(areaFrom);
+                HashSet<Integer> areasToMove = game.getAccessibleAreas(areaFrom, houseNumber);
+                areasToMove.add(-1);
+                HashMap<Integer, Army> destinationsOfMarch = new HashMap<>();
+                for (Unit unit: myArmy.getUnits()) {
+                    int area;
+                    int nTry = 0;
+                    do {
+                        area = getRandomElementOfSet(areasToMove);
+                        nTry++;
+                    } while (/* area >= 0 && game.getGarrisonInArea(area) > 0 ||*/ area < 0 && nTry == 1);
+                    if (area == -1) continue;
+                    if (destinationsOfMarch.containsKey(area)) {
+                        destinationsOfMarch.get(area).addUnit(unit);
+                    } else {
+                        destinationsOfMarch.put(area, new Army(unit));
+                    }
+                }
+                march.setDestinationsOfMarch(destinationsOfMarch);
+                march.setLeaveToken(!map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0);
+                return march;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -185,8 +233,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public boolean useSword() {
-        return false;
+    public boolean useSword(BattleInfo battleInfo) {
+        if (battleInfo.getAttacker() == houseNumber) {
+            return battleInfo.getAttackerStrength() + 1 == battleInfo.getDefenderStrength();
+        } else {
+            assert(battleInfo.getDefender() == houseNumber);
+            return battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() + 1;
+        }
     }
 
     @Override
@@ -196,17 +249,40 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int playHouseCard(BattleInfo battleInfo) {
-        return 0;
-    }
-
-    @Override
-    public int areaToUseRenly() {
+        // Просто играем случайную карту из имеющихся активных
+        boolean[] isCardActive = new boolean[MainConstants.NUM_HOUSE_CARDS];
+        int nActiveCards = 0;
+        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+            isCardActive[curCard] = game.isCardActive(houseNumber, curCard);
+            if (isCardActive[curCard]) nActiveCards++;
+        }
+        int curActiveCardIndex = 0;
+        int neededActiveCardIndex = random.nextInt(nActiveCards);
+        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+            if (isCardActive[curCard]) {
+                if (curActiveCardIndex == neededActiveCardIndex) {
+                    return curCard;
+                } else {
+                    curActiveCardIndex++;
+                }
+            }
+        }
         return -1;
     }
 
     @Override
-    public int chooseCardPatchface() {
-        return 0;
+    public int areaToUseRenly(HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
+    }
+
+    @Override
+    public int chooseCardPatchface(int enemy) {
+        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+            if (game.isCardActive(enemy, curCard)) {
+                return curCard;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -215,23 +291,40 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int chooseAreaCercei() {
-        return -1;
+    public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
+    }
+
+    @Override
+    public int chooseAreaToRetreat(Army retreatingArmy, HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
     }
 
     @Override
     public TrackType chooseInfluenceTrackDoran(BattleInfo battleInfo) {
-        return TrackType.raven;
+        int enemy = battleInfo.getAttacker() == houseNumber ? battleInfo.getDefender() : battleInfo.getAttacker();
+        int[] pos = new int[3];
+        pos[0] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.ironThrone);
+        pos[1] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.valyrianSword);
+        pos[2] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.raven);
+        int bestPos = Math.min(Math.min(pos[0], pos[1]), pos[2]);
+        if (bestPos == pos[2]) {
+            return TrackType.raven;
+        } else if (bestPos == pos[1]) {
+            return TrackType.valyrianSword;
+        } else {
+            return TrackType.ironThrone;
+        }
     }
 
     @Override
     public boolean useAeron(BattleInfo battleInfo) {
-        return false;
+        return true;
     }
 
     @Override
-    public int chooseAreaQueenOfThorns() {
-        return -1;
+    public int chooseAreaQueenOfThorns(HashSet<Integer> possibleVariants) {
+        return getRandomElementOfSet(possibleVariants);
     }
 
     @Override
@@ -298,6 +391,25 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public String preemptiveRaidBottomDecision() {
+        return null;
+    }
+
+    /**
+     * Метод возвращает случайный элемент множества
+     * @param set множество
+     * @return случайный элемент
+     */
+    protected <T> T getRandomElementOfSet(Set<T> set) {
+        int size = set.size();
+        int curIndex = 0;
+        int needIndex = random.nextInt(size);
+        for (T element: set) {
+            if (curIndex == needIndex) {
+                return element;
+            } else {
+                curIndex++;
+            }
+        }
         return null;
     }
 }

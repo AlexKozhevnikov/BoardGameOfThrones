@@ -7,9 +7,12 @@ package com.alexeus.logic.enums;
 public enum CardInitiative {
     cancel,
     immediately,
-    strength,
+    bonus,
     passive,
+    retreat,
     afterFight,
+    // Пестряк разыгрывается после боя, но фактически для него нужна отдельная инициатива, потому что он играется после
+    // всех других карт "после боя"
     patchface,
     none
 }

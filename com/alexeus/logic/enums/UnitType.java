@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 08.01.2017.
@@ -37,6 +37,24 @@ public enum UnitType {
             case ship:
                 return "Корабль";
         }
-        return Constants.UNKNOWN_UFO_ERROR;
+        return TextErrors.UNKNOWN_UFO_ERROR;
+    }
+
+    /**
+     * Возвращает код отряда
+     * @return код отряда
+     */
+    public int getCode() {
+        switch (this) {
+            case pawn:
+                return 0;
+            case knight:
+                return 1;
+            case siegeEngine:
+                return 2;
+            case ship:
+                return 3;
+        }
+        return -1;
     }
 }

@@ -7,5 +7,19 @@ package com.alexeus.logic.enums;
 public enum SideOfBattle {
     attacker,
     defender,
-    neutral
+    neutral;
+
+    /**
+     * Метод возвращает код стороны
+     * @return 0, если нападающий, 1, если защищающийся, и -1 в противном случае
+     */
+    public int getCode() {
+        switch (this) {
+            case attacker:
+                return 0;
+            case defender:
+                return 1;
+        }
+        return -1;
+    }
 }

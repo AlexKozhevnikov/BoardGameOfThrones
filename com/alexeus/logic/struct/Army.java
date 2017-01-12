@@ -1,6 +1,9 @@
 package com.alexeus.logic.struct;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.MainConstants;
+import com.alexeus.logic.constants.TextErrors;
+import com.alexeus.logic.constants.TextInfo;
+import com.alexeus.logic.enums.KillingReason;
 import com.alexeus.logic.enums.UnitType;
 
 import java.util.ArrayList;
@@ -15,6 +18,11 @@ public class Army {
 
     public Army() {
         units = new ArrayList<>();
+    }
+
+    public Army(Unit unit) {
+        units = new ArrayList<>();
+        units.add(unit);
     }
 
     /**
@@ -62,12 +70,11 @@ public class Army {
      */
     public boolean deleteUnit(UnitType unitType) {
         for (Unit curUnit: units) {
-            if (curUnit.getUnitType().equals(unitType)) {
-                assert(units.remove(curUnit));
-                return true;
+            if (curUnit.getUnitType() == unitType) {
+                return units.remove(curUnit);
             }
         }
-        System.out.println(Constants.DELETE_TROOP_ERROR);
+        System.out.println(TextErrors.DELETE_TROOP_ERROR);
         return false;
     }
 
@@ -93,7 +100,7 @@ public class Army {
             }
         }
         if (!success) {
-            System.out.println(Constants.DELETE_TROOP_ERROR);
+            System.out.println(TextErrors.DELETE_TROOP_ERROR);
         }
         return success;
     }
@@ -110,12 +117,12 @@ public class Army {
      * @param subArmy армия из добавляемых юнитов
      */
     public void addSubArmy(Army subArmy) {
-        if (units.size() + subArmy.getSize() > Constants.MAX_TROOPS_IN_AREA) {
-            System.out.println(Constants.TOO_BIG_ARMY_ERROR);
+        if (units.size() + subArmy.getSize() > MainConstants.MAX_TROOPS_IN_AREA) {
+            System.out.println(TextErrors.TOO_BIG_ARMY_ERROR);
         } else if (subArmy.isEmpty()) {
-            System.out.println(Constants.TRYING_TO_ADD_NULL_ARMY_ERROR);
+            System.out.println(TextErrors.TRYING_TO_ADD_NULL_ARMY_ERROR);
         } else if (getOwner() >= 0 && subArmy.getOwner() != getOwner()) {
-            System.out.println(Constants.TRYING_TO_ADD_ARMY_OF_OTHER_PLAYER_ERROR);
+            System.out.println(TextErrors.TRYING_TO_ADD_ARMY_OF_OTHER_PLAYER_ERROR);
         } else {
             units.addAll(subArmy.getUnits());
         }
@@ -127,10 +134,10 @@ public class Army {
      * @param lordFamily номер Дома
      */
     public void addUnit(UnitType unitType, int lordFamily) {
-        if (units.size() == Constants.MAX_TROOPS_IN_AREA) {
-            System.out.println(Constants.TOO_BIG_ARMY_ERROR);
+        if (units.size() == MainConstants.MAX_TROOPS_IN_AREA) {
+            System.out.println(TextErrors.TOO_BIG_ARMY_ERROR);
         } else if (getOwner() >= 0 && getOwner() != lordFamily) {
-            System.out.println(Constants.ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR);
+            System.out.println(TextErrors.ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR);
         } else {
             units.add(new Unit(unitType, lordFamily));
         }
@@ -141,13 +148,145 @@ public class Army {
      * @param unit добавляемый юнит
      */
     public void addUnit(Unit unit) {
-        if (units.size() == Constants.MAX_TROOPS_IN_AREA) {
-            System.out.println(Constants.TOO_BIG_ARMY_ERROR);
+        if (units.size() == MainConstants.MAX_TROOPS_IN_AREA) {
+            System.out.println(TextErrors.TOO_BIG_ARMY_ERROR);
         } else if (getOwner() >= 0 && getOwner() != unit.getHouse()) {
-            System.out.println(Constants.ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR);
+            System.out.println(TextErrors.ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR);
         } else {
             units.add(unit);
         }
+    }
+
+    /**
+     * Вызывается при проигрыше данной армии. Осадные башни уничтожаются сразу.
+     * Определённое число юнитов погибает, остальные становятся ранеными.
+     * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
+     * @param reason          причина уничтожения
+     */
+    public void woundAndKillTroops(int numDoomedTroops, KillingReason reason) {
+        int nKilled = 0;
+        ArrayList<Unit> unitsToKill = new ArrayList<>();
+        for (Unit unit: units) {
+            // Осадные башни и раненые уничтожаются сразу
+            if (unit.getUnitType() == UnitType.siegeEngine || unit.isWounded()) {
+                unitsToKill.add(unit);
+            } else if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
+                unitsToKill.add(unit);
+                nKilled++;
+            }
+        }
+        // Если не хватило убийств пешек, принимаемся за рыцарей
+        if (nKilled < numDoomedTroops) {
+            for (Unit unit: units) {
+                if (nKilled < numDoomedTroops && unit.getUnitType() == UnitType.knight) {
+                    unitsToKill.add(unit);
+                    nKilled++;
+                }
+            }
+        }
+        for (Unit doomedUnit: unitsToKill) {
+            killUnit(doomedUnit, reason);
+        }
+        // Оставшиеся в живых войска становятся ранеными
+        for (Unit unit: units) {
+            unit.setWounded(true);
+            System.out.println(unit.getUnitType() + TextInfo.IS_WOUNDED);
+        }
+    }
+
+    /**
+     * Метод убивает всех юнитов в армии
+     * @param reason причина убийства
+     */
+    public void killAllUnits(KillingReason reason) {
+        ArrayList<Unit> unitsToKill = new ArrayList<>();
+        unitsToKill.addAll(units);
+        for (Unit unit: unitsToKill) {
+            killUnit(unit, reason);
+        }
+    }
+
+    /**
+     * Метод убивает одного юнита в армии
+     * @param unit   юнит, который должен быть уничтожен
+     * @param reason причина убийства
+     */
+    public void killUnit(Unit unit, KillingReason reason) {
+        System.out.println(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
+                unit.isWounded() ? TextInfo.IS_FINISHED : (TextInfo.IS_DEFEATED_M  + " (" + reason + ")")));
+        units.remove(unit);
+    }
+
+    /**
+     * Метод убивает несколько юнитов в армии из-за снабжения
+     * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
+     */
+    public void killSomeUnits(int numDoomedTroops) {
+        int nKilled = 0;
+        for (Unit unit: units) {
+            if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
+                killUnit(unit, KillingReason.supplyLimit);
+                nKilled++;
+            }
+        }
+        // Если не хватило убийств пешек, принимаемся за рыцарей
+        if (nKilled < numDoomedTroops) {
+            for (Unit unit: units) {
+                if (nKilled < numDoomedTroops && unit.getUnitType() == UnitType.knight) {
+                    killUnit(unit, KillingReason.supplyLimit);
+                    nKilled++;
+                }
+            }
+        }
+    }
+
+    /**
+     * Метод отвечает, есть ли в армии юнит определённого типа
+     * @param unitType тип юнита
+     * @return true, если есть
+     */
+    public boolean hasUnitOfType(UnitType unitType) {
+        for (Unit unit: units) {
+            if (unit.getUnitType() == unitType) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Метод отвечает, сколько в армии юнитов определённого типа
+     * @param unitType тип юнита
+     * @return количество таких юнитов
+     */
+    public int getNumUnitOfType(UnitType unitType) {
+        int n = 0;
+        for (Unit unit: units) {
+            if (unit.getUnitType() == unitType) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Метод меняет тип одного юнита в армии на другой
+     * @param typeFrom тип юнита, которого нужно поменять
+     * @param typeTo   тип юнита, на который нужно поменять
+     * @return true, если успешно удалось это сделать
+     */
+    public boolean changeType(UnitType typeFrom, UnitType typeTo) {
+        if (typeFrom == typeTo) {
+            System.out.println(TextErrors.SAME_TYPES_ERROR);
+            return false;
+        }
+        for (Unit unit: units) {
+            if (unit.getUnitType() == typeFrom) {
+                unit.setUnitType(typeTo);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -179,9 +318,9 @@ public class Army {
                 }
                 sb.append(unit.getUnitType());
             }
-            sb.append(" ").append(Constants.HOUSE_GENITIVE[units.get(0).getHouse()]);
+            sb.append(" ").append(MainConstants.HOUSE_GENITIVE[units.get(0).getHouse()]);
         } else {
-            sb.append(Constants.NOBODY);
+            sb.append(TextInfo.NOBODY);
         }
         return sb.toString();
     }

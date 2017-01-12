@@ -1,6 +1,6 @@
 package com.alexeus.ai.math;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.MainConstants;
 
 import java.util.Random;
 
@@ -19,7 +19,7 @@ public class BrownRobinsonSolver {
     private static final int CUT_ITERATION = CUT_MULTIPLIER;
     //private static final int N_EXAMPLE = 5;
 
-    private static final int nPlayer = Constants.NUM_PLAYER;
+    private static final int nPlayer = MainConstants.NUM_PLAYER;
 
     private static boolean shutUp = false;
 
@@ -27,9 +27,9 @@ public class BrownRobinsonSolver {
     private static float[] priceOfFutureGame = new float[nPlayer];
 
     // Выдаёт дом, который находится на данном месте по порядку симпатийпри данном короле
-    static int[][] kingOrdersPlayerOnPlace = new int[Constants.NUM_PLAYER][Constants.NUM_PLAYER];
+    static int[][] kingOrdersPlayerOnPlace = new int[MainConstants.NUM_PLAYER][MainConstants.NUM_PLAYER];
     // Выдаёт номер дома по порядку симпатий при данном короле. "Обратный" к kingOrdersPlayerOnPlace и высчитывается вместе с ним
-    static int[][] kingOrdersPlaceForPlayer = new int[Constants.NUM_PLAYER][Constants.NUM_PLAYER];
+    static int[][] kingOrdersPlaceForPlayer = new int[MainConstants.NUM_PLAYER][MainConstants.NUM_PLAYER];
 
     private static int king;
 
@@ -566,7 +566,7 @@ public class BrownRobinsonSolver {
             if (nIterations % CUT_ITERATION == 0 && nIterations != N_ITERATIONS) {
                 for (int player = 0; player < nPlayer; player++) {
                     int nNormalStrategies = 0;
-                    int[] normalStrategies = new int[Constants.MAX_TOKENS + 1];
+                    int[] normalStrategies = new int[MainConstants.MAX_TOKENS + 1];
                     int cut_sum = 0;
                     for (int strat = 0; strat <= commonMoney[player]; strat++) {
                         if (nStrategyChoices[player][strat] * CUT_MULTIPLIER <= nIterations) {
@@ -773,7 +773,7 @@ public class BrownRobinsonSolver {
         float cascadeDescentCorrection[] = new float[nPlayer];
         float[] asymptothicTokenPrice = new float[nPlayer];
         for (int player = 0; player < nPlayer; player++) {
-            asymptothicTokenPrice[player] = 2f * (priceToken[player][Constants.MAX_TOKENS] - priceToken[player][Constants.MAX_TOKENS / 2]) / Constants.MAX_TOKENS;
+            asymptothicTokenPrice[player] = 2f * (priceToken[player][MainConstants.MAX_TOKENS] - priceToken[player][MainConstants.MAX_TOKENS / 2]) / MainConstants.MAX_TOKENS;
         }
         for (int curPlace = 3; curPlace >= 0; curPlace--) {
             descent = oldDescent + (kingOrdersPlaceForPlayer[king][playerOnPlace[curPlace + 1]] >
@@ -786,7 +786,7 @@ public class BrownRobinsonSolver {
 
         if (!shutUp) {
             for (int i = 0; i < nPlayer; i++) {
-                System.out.println("Выгода " + Constants.HOUSE_GENITIVE[i] + ": " + finalProfit[i] + " + " +
+                System.out.println("Выгода " + MainConstants.HOUSE_GENITIVE[i] + ": " + finalProfit[i] + " + " +
                         cascadeDescentCorrection[i] + ". Деньги: " + restMoney[i] + ". Потрачено: " + spentTokens[i]);
             }
         }

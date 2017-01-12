@@ -1,11 +1,10 @@
 package com.alexeus.logic.struct;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 import com.alexeus.logic.enums.SideOfBattle;
 import com.alexeus.logic.enums.UnitType;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by alexeus on 10.01.2017.
@@ -103,7 +102,7 @@ public class BattleInfo {
                         attackerStrength -= unit.getStrength();
                     }
                 } else {
-                    System.out.println(Constants.DELETE_TROOP_ERROR);
+                    System.out.println(TextErrors.DELETE_TROOP_ERROR);
                 }
                 break;
             case defender:
@@ -113,7 +112,7 @@ public class BattleInfo {
                         defenderStrength -= unit.getStrength();
                     }
                 } else {
-                    System.out.println(Constants.DELETE_TROOP_ERROR);
+                    System.out.println(TextErrors.DELETE_TROOP_ERROR);
                 }
                 break;
         }
@@ -131,49 +130,72 @@ public class BattleInfo {
         for (Unit unit: subArmy.getUnits()) {
             if (!deleteUnit(side, unit)) {
                 success = false;
-                System.out.println(Constants.DELETE_ARMY_ERROR);
+                System.out.println(TextErrors.DELETE_ARMY_ERROR);
             }
         }
         return success;
+    }
+
+    /**
+     * Метод возвращает количество кораблей, не принадлежащих определённому игроку, на определённой стороне.
+     * Нужен для учёта эффектов карты "Салладор Саан"
+     * @param player игрок (базово - Баратеон, но всё-таки)
+     * @param side   сторона боя
+     * @return число кораблей
+     */
+    public int getNumEnemyShips (int player, SideOfBattle side) {
+        if (side == SideOfBattle.neutral) {
+            System.out.println(TextErrors.COUNЕ_UNITS_ON_NEUTRAL_SIDE_ERROR);
+            return 0;
+        }
+        int nShips = 0;
+        for (Unit unit : side == SideOfBattle.attacker ? attackerUnits : defenderUnits) {
+            if (unit.getUnitType() == UnitType.ship && unit.getHouse() != player) {
+                nShips++;
+            }
+        }
+        return nShips;
+    }
+
+    /**
+     * Метод возвращает количество юнитов определённого типа, принадлежащих определённому игроку определённой стороны.
+     * Нужен для учёта эффектов карт "Виктарион Грейджой" и "Киван Ланнистер"
+     * @param side     сторона боя
+     * @param unitType тип юнита
+     * @return число дружестенных юнитов такого типа
+     */
+    public int getNumFriendlyUnits (SideOfBattle side, UnitType unitType) {
+        if (side == SideOfBattle.neutral) {
+            System.out.println(TextErrors.COUNЕ_UNITS_ON_NEUTRAL_SIDE_ERROR);
+            return 0;
+        }
+        int nUnits = 0;
+        int player = side == SideOfBattle.attacker ? attacker : defender;
+        for (Unit unit : side == SideOfBattle.attacker ? attackerUnits : defenderUnits) {
+            if (unit.getUnitType() == unitType && unit.getHouse() == player) {
+                nUnits++;
+            }
+        }
+        return nUnits;
     }
 
     public int getAreaOfBattle() {
         return areaOfBattle;
     }
 
-    public void setAreaOfBattle(int areaOfBattle) {
-        this.areaOfBattle = areaOfBattle;
-    }
-
     public int getAttacker() {
         return attacker;
-    }
-
-    public void setAttacker(int attacker) {
-        this.attacker = attacker;
     }
 
     public int getDefender() {
         return defender;
     }
 
-    public void setDefender(int defender) {
-        this.defender = defender;
-    }
-
     public int getAttackerStrength() {
         return attackerStrength;
     }
 
-    public void setAttackerStrength(int attackerStrength) {
-        this.attackerStrength = attackerStrength;
-    }
-
     public int getDefenderStrength() {
         return defenderStrength;
-    }
-
-    public void setDefenderStrength(int defenderStrength) {
-        this.defenderStrength = defenderStrength;
     }
 }

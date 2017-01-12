@@ -1,11 +1,12 @@
 package com.alexeus.map;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextInfo;
 import com.alexeus.logic.enums.AdjacencyType;
 import com.alexeus.logic.enums.AreaType;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -33,7 +34,7 @@ public class GameOfThronesMap {
 
     private int[] numBarrel = new int[NUM_AREA];
 
-    private static List<List<Integer>> adjacentAreasToArea = new ArrayList<>();
+    private static List<HashSet<Integer>> adjacentAreasToArea = new ArrayList<>();
     
     public GameOfThronesMap() {
         adjacencyType = new AdjacencyType[NUM_AREA][NUM_AREA];
@@ -254,7 +255,7 @@ public class GameOfThronesMap {
         matchingPairs.add(new Point(54, 55));
 
         for (int i = 0; i < NUM_AREA; i++) {
-            adjacentAreasToArea.add(new ArrayList<>());
+            adjacentAreasToArea.add(new HashSet<>());
             for (int j = 0; j < NUM_AREA; j++) {
                 adjacencyType[i][j] = AdjacencyType.noAdjacency;
             }
@@ -291,23 +292,23 @@ public class GameOfThronesMap {
     // Метод выводит текст, описывающий все области карты.
     public void print() {
         for (int i = 0; i < NUM_AREA; i++) {
-            System.out.print(Constants.AREA_NUMBER + i + ": " + areaNameRus[i] + ". ");
+            System.out.print(TextInfo.AREA_NUMBER + i + ": " + areaNameRus[i] + ". ");
             if (numCastle[i] == 1) {
-                System.out.print(Constants.CASTLE + ". ");
+                System.out.print(TextInfo.CASTLE + ". ");
             } else if (numCastle[i] == 2) {
-                System.out.print(Constants.FORTRESS + ". ");
+                System.out.print(TextInfo.FORTRESS + ". ");
             }
             if (numCrown[i] == 1) {
-                System.out.print(numCrown[i] + Constants.POWER_SIGN + ". ");
+                System.out.print(numCrown[i] + TextInfo.POWER_SIGN + ". ");
             } else if (numCrown[i] == 2) {
-                System.out.print(numCrown[i] + Constants.POWER_SIGNS + ". ");
+                System.out.print(numCrown[i] + TextInfo.POWER_SIGNS + ". ");
             }
             if (numBarrel[i] == 1) {
-                System.out.print(numBarrel[i] + Constants.BARREL + ". ");
+                System.out.print(numBarrel[i] + TextInfo.BARREL + ". ");
             } else if (numBarrel[i] == 2) {
-                System.out.print(numBarrel[i] + Constants.BARRELS + ". ");
+                System.out.print(numBarrel[i] + TextInfo.BARRELS + ". ");
             }
-            System.out.print(Constants.ADJACENT);
+            System.out.print(TextInfo.ADJACENT);
             boolean firstFlag = true;
             for (int j : adjacentAreasToArea.get(i)) {
                 if (!firstFlag) {
@@ -321,7 +322,7 @@ public class GameOfThronesMap {
         }
     }
 
-    public List<Integer> getAdjacentAreas(int id) {
+    public HashSet<Integer> getAdjacentAreas(int id) {
         return adjacentAreasToArea.get(id);
     }
 

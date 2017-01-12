@@ -11,7 +11,9 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.*;
 
-import static com.alexeus.logic.Constants.*;
+import static com.alexeus.logic.constants.MainConstants.*;
+import static com.alexeus.logic.constants.TextErrors.*;
+import static com.alexeus.logic.constants.TextInfo.*;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -53,6 +55,13 @@ public class Game {
     // Карты двух конфликтующих Домов в последней битве
     private HouseCard houseCardOfSide[] = new HouseCard[2];
 
+    private int[] playerOnSide = new int[2];
+    private int[] swordsOnSide = new int[2];
+    private int[] towersOnSide = new int[2];
+    private int[] cardStrengthOnSide = new int[2];
+    private int[] bonusStrengthOnSide = new int[2];
+    private int[] numSupportsOnSide = new int[2];
+
     // состояние игры
     private GamePhase gamePhase;
 
@@ -70,6 +79,12 @@ public class Game {
      * Здесь хранится армия, атаковавшая другого игрока, и поэтому временно находящаяся на территории врага
      */
     private Army attackingArmy;
+
+    /*
+     * Здесь хранится армия, защищавшая область и проигравшая, и поэтому временно находящаяся на территории врага.
+     * После отступления обнуляется.
+     */
+    private Army retreatingArmy;
 
     /*
      * Массив из гарнизонов в областях. Нейтральный лорд, если при этом в области нет армий игроков
@@ -92,7 +107,7 @@ public class Game {
     private int[] nPowerTokensHouse = new int[NUM_PLAYER];
 
     /*
-     * Максимальное число доступных в обозримом будущем жетонов власти. Отличается от Constants.MAX_TOKENS,
+     * Максимальное число доступных в обозримом будущем жетонов власти. Отличается от MainConstants.MAX_TOKENS,
      * потому что жетоны власти игрока, лежащие на областях карты, могут быть получены обратно только
      * при завоевании области другим игроком
      */
@@ -111,6 +126,13 @@ public class Game {
     private int[] swordPlaceForPlayer = new int[NUM_PLAYER];
     private int[] ravenPlayerOnPlace = new int[NUM_PLAYER];
     private int[] ravenPlaceForPlayer = new int[NUM_PLAYER];
+    // Был ли использован меч в этом раунде
+    private boolean swordUsed = false;
+
+    /*
+     * Количества юнитов в резерве у каждого из домов
+     */
+    private int[][] restingUnitsOfPlayerAndType = new int[NUM_PLAYER][NUM_UNIT_TYPES];
 
     /*
      * **** Вспомогательные переменные для методов ****
@@ -139,7 +161,15 @@ public class Game {
      */
     private ArrayList<HashSet<Integer>> areasWithCPs;
 
+    /*
+     * В этом вспомогательном массиве хранятся количества активных карт каждого игроков
+     */
     private int[] numActiveHouseCardsOfPlayer = new int[NUM_PLAYER];
+
+    /*
+     * Вспомогательное множество областей
+     */
+    private HashSet<Integer> accessibleAreaSet = new HashSet<>();
 
     /**
      * Конструктор.
@@ -228,6 +258,10 @@ public class Game {
         // Баратеон
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
+        armyInArea[0].addUnit(UnitType.ship, 0);
+        armyInArea[6].addUnit(UnitType.ship, 0);
+        armyInArea[4].addUnit(UnitType.ship, 0);
+        armyInArea[1].addUnit(UnitType.ship, 0);
         armyInArea[53].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.knight, 0);
         armyInArea[56].addUnit(UnitType.pawn, 0);
@@ -285,12 +319,20 @@ public class Game {
      */
     private void renewHousesTroopsArea() {
         for (int player = 0; player < NUM_PLAYER; player++) {
+            for (int unitTypeCode = 0; unitTypeCode < NUM_UNIT_TYPES; unitTypeCode++) {
+                restingUnitsOfPlayerAndType[player][unitTypeCode] = MAX_NUM_OF_UNITS[unitTypeCode];
+            }
+        }
+        for (int player = 0; player < NUM_PLAYER; player++) {
             areasWithTroopsOfPlayer.get(player).clear();
         }
         for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
             int troopsOwner = armyInArea[area].getOwner();
             if(troopsOwner >= 0) {
                 areasWithTroopsOfPlayer.get(troopsOwner).add(area);
+                for (UnitType unitType: UnitType.values()) {
+                    restingUnitsOfPlayerAndType[troopsOwner][unitType.getCode()] -= armyInArea[area].getNumUnitOfType(unitType);
+                }
             }
         }
         System.out.println("areasWithTroopsOfPlayer: " + areasWithTroopsOfPlayer);
@@ -344,7 +386,7 @@ public class Game {
                 System.out.println(ORDERS + HOUSE_GENITIVE[player] + ":");
                 for (Map.Entry<Integer, Order> entry : orders.entrySet()) {
                     System.out.println(AREA_NUMBER + entry.getKey() +
-                            " (" + map.getAreaNameRus(entry.getKey()) + ")" + COLON + entry.getValue());
+                            " (" + map.getAreaNameRus(entry.getKey()) + ")" + ": " + entry.getValue());
                 }
                 if (validateOrders(orders, player)) {
                     // Успех: сохраняем приказы и заполняем вспомогательные множества
@@ -557,6 +599,7 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
+        setNewGamePhase(GamePhase.marchPhase);
     }
 
     /**
@@ -583,7 +626,7 @@ public class Game {
         // Случай результативного набега
         if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
             System.out.println(RAIDS_FROM + map.getAreaNameRus(from) +
-                    RAIDS_TO + map.getAreaNameRus(to));
+                    RAIDS_TO + map.getAreaNameRus(to) + ".");
             if (map.getAdjacencyType(from, to) == AdjacencyType.noAdjacency) {
                 System.out.println(NO_ADJACENT_RAID_ERROR);
                 return false;
@@ -633,10 +676,12 @@ public class Game {
                         if (destinationsOfMarch.size() == 0) {
                             // Случай "холостого" снятия приказа похода
                             System.out.println(DELETES_MARCH_FROM + map.getAreaNameRus(from));
+                            orderInArea[from] = null;
+                            areasWithMarches.get(player).remove(from);
                         } else {
                             // Случай результативного похода: перемещаем юниты, если нужно, начинаем бой,
                             // и обновляем попутные переменные
-                            System.out.println(PLAYS_MARCH_FROM + map.getAreaNameRus(from));
+                            System.out.println(PLAYS_MARCH_FROM + map.getAreaNameRus(from) + ".");
                             int areaWhereBattleBegins = -1;
                             for (Map.Entry<Integer, Army> entry: destinationsOfMarch.entrySet()) {
                                 int curDestination = entry.getKey();
@@ -653,8 +698,11 @@ public class Game {
                                     // Иначе перемещаем войска и пробиваем гарнизоны
                                     System.out.print(curArmy.toString() +
                                             (curArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
-                                            map.getAreaNameRus(curDestination));
+                                            map.getAreaNameRus(curDestination) + ".");
                                     armyInArea[curDestination].addSubArmy(curArmy);
+                                    if (map.getNumCastle(curDestination) > 0) {
+                                        victoryPoints[player]++;
+                                    }
                                     // Если в области имелся нейтральный гарнизон, то пробиваем его
                                     if (destinationArmyOwner < 0 && garrisonInArea[curDestination] > 0) {
                                         System.out.println(GARRISON_IS_DEFEATED + HOUSE_GENITIVE[player] + " - " +
@@ -670,6 +718,7 @@ public class Game {
                             }
                             if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] < 0) {
                                 if (march.isLeaveToken()) {
+                                    System.out.println(HOUSE[player] + LEAVES_POWER_TOKEN_IN + map.getAreaNameRus(from) + ".");
                                     powerTokenOnArea[from] = player;
                                     nPowerTokensHouse[player]--;
                                     maxPowerTokensHouse[player]--;
@@ -679,16 +728,21 @@ public class Game {
                                     }
                                 }
                             }
-                            renewHousesTroopsArea();
+                            if (victoryPoints[player] >= NUM_CASTLES_TO_WIN) {
+                                setNewGamePhase(GamePhase.end);
+                                return;
+                            }
                             if (areaWhereBattleBegins >= 0) {
-                                System.out.print(attackingArmy.toString() +
+                                System.out.println(attackingArmy.toString() +
                                         (attackingArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
                                         map.getAreaNameRus(areaWhereBattleBegins) + AND_FIGHTS);
                                 playFight(areaWhereBattleBegins, from, orderInArea[from].getModifier());
                             }
+                            orderInArea[from] = null;
+                            areasWithMarches.get(player).remove(from);
+                            renewHousesTroopsArea();
                         }
-                        orderInArea[from] = null;
-                        areasWithMarches.get(player).remove(from);
+                        break;
                     }
                 }
                 // Если игрок не уложился в количество попыток, то удаляем один его приказ похода
@@ -742,7 +796,7 @@ public class Game {
                  * Составляем множество областей, в которые может пойти игрок из данной области с учётом
                  * правила переброски морем
                  */
-                accessibleAreas = getAccessibleAreas(from);
+                accessibleAreas = getAccessibleAreas(from, player);
             }
             for (Map.Entry<Integer, Army> entry : destinationsOfMarch.entrySet()) {
                 int curDestination = entry.getKey();
@@ -757,9 +811,8 @@ public class Game {
                     return false;
                 }
                 if (map.getAreaType(from).isNaval() && map.getAreaType(curDestination) == AreaType.port) {
-                    int castleWithThisPort = map.getAdjacentAreas(curDestination).get(1);
                     // Если замок, которому принадлежит порт, в который хочет зайти игрок, ему не принадлежит, то фейл
-                    if (getAreaOwner(castleWithThisPort) != player) {
+                    if (!canMoveInPort(curDestination, player)) {
                         System.out.println(CANT_MARCH_IN_NOT_YOUR_PORT_ERROR);
                         return false;
                     }
@@ -845,52 +898,99 @@ public class Game {
                 System.out.println(NO_POWER_TOKENS_TO_LEAVE_ERROR);
                 return false;
             }
+            if (march.isLeaveToken() && map.getAreaType(from).isNaval()) {
+                System.out.println(CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR);
+                return false;
+            }
         }
         return true;
     }
 
     /**
-     * Метод формирует и возвращает множество областей, в которые может пойти игрок из данной области с учётом
-     * правила переброски морем
+     * Метод формирует и возвращает множество областей, которые соединены с данной областью с учётом
+     * правила переброски морем для данного игрока.
      * @param areaFrom область похода
+     * @param player   игрок, для которого рассчитывается множество областей
      * @return множество с доступными для похода областями
      */
-    public HashSet<Integer> getAccessibleAreas(int areaFrom) {
-        // Для морских территорий этот метод бессмысленен
+    public HashSet<Integer> getAccessibleAreas(int areaFrom, int player) {
+        HashSet<Integer> accessibleAreas = new HashSet<>();
         if (map.getAreaType(areaFrom).isNaval()) {
-            return null;
+            // Для морских территорий просто выдаём список соседних территорий
+            for (int adjacentArea: map.getAdjacentAreas(areaFrom)) {
+                switch (map.getAreaType(adjacentArea)) {
+                    case sea:
+                        accessibleAreas.add(adjacentArea);
+                        break;
+                    case port:
+                        if (canMoveInPort(adjacentArea, player)) {
+                            accessibleAreas.add(adjacentArea);
+                        }
+                        break;
+                }
+            }
         } else {
-            HashSet<Integer> accessibleAreas = new HashSet<>();
-            HashSet<Integer> seas = new HashSet<>();
+            // Для сухопутных территорий также рассматриваем вариант переброски морем
+            // здесь мы будем хранить список морей, которые уже рассмотрели
+            accessibleAreaSet.clear();
             for (int area: map.getAdjacentAreas(areaFrom)) {
-                if (map.getAreaType(area) == AreaType.sea) {
-                    seas.add(area);
+                // Если мы нашли море, принадлежащее игроку, то включаем его в множество морей, которые дальше будут рассматриваться
+                if (map.getAreaType(area) == AreaType.sea && getTroopsOwner(area) == player) {
+                    accessibleAreas.addAll(getAreasAdjacentToSea(area, player));
                 } else if (map.getAreaType(area) == AreaType.land) {
                     accessibleAreas.add(area);
                 }
             }
-            for (Integer sea : seas) {
-                for (int area : map.getAdjacentAreas(sea)) {
-                    if (map.getAreaType(area) == AreaType.sea && !seas.contains(area)) {
-                        seas.add(area);
-                    } else if (map.getAreaType(area) == AreaType.land) {
-                        accessibleAreas.add(area);
-                    }
-                }
+            if (accessibleAreas.contains(areaFrom)) {
+                accessibleAreas.remove(areaFrom);
             }
-
-            System.out.print("Доступные для похода из " + map.getAreaNameRus(areaFrom) + " области: ");
-            boolean firstFlag = true;
-            for (int area: accessibleAreas) {
-                if (firstFlag) {
-                    firstFlag = false;
-                } else {
-                    System.out.print(", ");
-                }
-                System.out.print(map.getAreaNameRus(area));
-            }
-            return accessibleAreas;
         }
+        System.out.print("Доступные для похода из " + map.getAreaNameRus(areaFrom) + " области: ");
+        boolean firstFlag = true;
+        for (int area: accessibleAreas) {
+            if (firstFlag) {
+                firstFlag = false;
+            } else {
+                System.out.print(", ");
+            }
+            System.out.print(map.getAreaNameRus(area));
+        }
+        System.out.println();
+        return accessibleAreas;
+    }
+
+    private HashSet<Integer> getAreasAdjacentToSea(int seaAreaFrom, int player) {
+        accessibleAreaSet.add(seaAreaFrom);
+        HashSet<Integer> areaSet = new HashSet<>();
+        for (int area: map.getAdjacentAreas(seaAreaFrom)) {
+            // Если мы нашли море, принадлежащее игроку, то и его рассматриваем
+            if (map.getAreaType(area) == AreaType.sea && getTroopsOwner(area) == player && !accessibleAreaSet.contains(area)) {
+                areaSet.addAll(getAreasAdjacentToSea(area, player));
+            } else if (map.getAreaType(area) == AreaType.land) {
+                areaSet.add(area);
+            }
+        }
+        return areaSet;
+    }
+
+    /**
+     * Метод проверяет, могут ли корабли данного игрока зайти в данный порт
+     * @param portArea область с портом
+     * @param player   номер игрока
+     * @return true, если можно
+     */
+    private boolean canMoveInPort(int portArea, int player) {
+        HashSet<Integer> adjacentAreas = map.getAdjacentAreas(portArea);
+        int castleWithThisPort = -1;
+        // Ищем замок, которому принадлежит этот порт
+        for (int curArea: adjacentAreas) {
+            if (map.getNumCastle(curArea) > 0) {
+                castleWithThisPort = curArea;
+                break;
+            }
+        }
+        // Если замок, которому принадлежит порт, в который хочет зайти игрок, принадлежит ему, то всё хорошо
+        return getAreaOwner(castleWithThisPort) == player;
     }
 
     /**
@@ -901,7 +1001,6 @@ public class Game {
      * @param marchModifier модификатор похода, которым было начато сражение
      */
     private void playFight(int areaOfBattle, int areaOfMarch, int marchModifier) {
-        int[] playerOnSide = new int[2];
         playerOnSide[0] = attackingArmy.getOwner();
         if (armyInArea[areaOfBattle].getOwner() >= 0) {
             playerOnSide[1] = armyInArea[areaOfBattle].getOwner();
@@ -914,75 +1013,88 @@ public class Game {
             return;
         }
         System.out.println(BATTLE_BEGINS_IN + map.getAreaNameRus(areaOfBattle) + BETWEEN +
-                HOUSE_ABLATIVE[playerOnSide[0]] + " и " + HOUSE_ABLATIVE[playerOnSide[1]]);
+                HOUSE_ABLATIVE[playerOnSide[0]] + " и " + HOUSE_ABLATIVE[playerOnSide[1]] + ".");
         BattleInfo battleInfo = new BattleInfo(playerOnSide[0], playerOnSide[1], areaOfBattle, map.getNumCastle(areaOfBattle) > 0);
         battleInfo.addStrength(SideOfBattle.attacker, marchModifier);
         battleInfo.addArmyToSide(SideOfBattle.attacker, attackingArmy);
+        battleInfo.addStrength(SideOfBattle.defender, garrisonInArea[areaOfBattle]);
         if (!armyInArea[areaOfBattle].isEmpty()) {
             battleInfo.addArmyToSide(SideOfBattle.defender, armyInArea[areaOfBattle]);
         }
 
-        if (orderInArea[areaOfBattle].orderType() == OrderType.defence) {
+        if (orderInArea[areaOfBattle] != null && orderInArea[areaOfBattle].orderType() == OrderType.defence) {
             battleInfo.addStrength(SideOfBattle.defender, orderInArea[areaOfBattle].getModifier());
         }
         // Учитываем подмоги из соседних областей
         SideOfBattle[] supportOfPlayer = new SideOfBattle[NUM_PLAYER];
         HashSet<Integer> supporters = new HashSet<>();
         ArrayList<Integer> areasOfSupport = new ArrayList<>();
-        for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
-            if (orderInArea[adjacentArea].orderType() == OrderType.support &&
-                    map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.landToSea &&
-                    map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.portOfCastle &&
-                    map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.castleWithPort) {
-                supporters.add(getTroopsOwner(adjacentArea));
-                areasOfSupport.add(adjacentArea);
-            }
-        }
-        boolean firstFlag = true;
-        for (int player: supporters) {
-            if (firstFlag) {
-                firstFlag = false;
-            } else {
-                System.out.print(", ");
-            }
-            System.out.print(HOUSE[player]);
-        }
-        System.out.println(CAN_SUPPORT_SOMEBODY);
-        // Спрашиваем игроков, кого они поддержат
-        SideOfBattle sideOfBattle;
-        for (int player: supporters) {
-            for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
-                sideOfBattle = playerInterface[player].sideToSupport(battleInfo);
-                System.out.print(HOUSE[player]);
-                switch (sideOfBattle) {
-                    case attacker:
-                        System.out.println(SUPPORTS + HOUSE_GENITIVE[playerOnSide[0]] + ".");
-                        break;
-                    case defender:
-                        System.out.println(SUPPORTS + HOUSE_GENITIVE[playerOnSide[1]] + ".");
-                        break;
-                    default:
-                        System.out.println(SUPPORTS_NOBODY);
+        // Спрашиваем игроков, кого они поддержат. Не имеет смысла, если есть событие "Паутина лжи"
+        if (event3 != Deck3Cards.webOfLies) {
+            for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
+                if (orderInArea[adjacentArea] != null && orderInArea[adjacentArea].orderType() == OrderType.support &&
+                        map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.landToSea &&
+                        map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.portOfCastle &&
+                        map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.castleWithPort) {
+                    supporters.add(getTroopsOwner(adjacentArea));
+                    areasOfSupport.add(adjacentArea);
                 }
-                if (sideOfBattle == SideOfBattle.attacker && player == playerOnSide[1] ||
-                        sideOfBattle == SideOfBattle.defender && player == playerOnSide[0]) {
-                    System.out.println(CANT_SUPPORT_AGAINST_YOURSELF_ERROR);
+            }
+            SideOfBattle sideOfBattle;
+            boolean firstFlag = true;
+            for (int player: supporters) {
+                if (firstFlag) {
+                    firstFlag = false;
                 } else {
-                    supportOfPlayer[player] = sideOfBattle;
-                    break;
+                    System.out.print(", ");
+                }
+                System.out.print(HOUSE[player]);
+            }
+            if (!supporters.isEmpty()) {
+                System.out.println(CAN_SUPPORT_SOMEBODY);
+            }
+
+            for (int player : supporters) {
+                for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                    sideOfBattle = playerInterface[player].sideToSupport(battleInfo);
+                    System.out.print(HOUSE[player]);
+                    switch (sideOfBattle) {
+                        case attacker:
+                            System.out.println(SUPPORTS + HOUSE_GENITIVE[playerOnSide[0]] + ".");
+                            break;
+                        case defender:
+                            System.out.println(SUPPORTS + HOUSE_GENITIVE[playerOnSide[1]] + ".");
+                            break;
+                        default:
+                            System.out.println(SUPPORTS_NOBODY);
+                    }
+                    if (sideOfBattle == SideOfBattle.attacker && player == playerOnSide[1] ||
+                            sideOfBattle == SideOfBattle.defender && player == playerOnSide[0]) {
+                        System.out.println(CANT_SUPPORT_AGAINST_YOURSELF_ERROR);
+                    } else {
+                        supportOfPlayer[player] = sideOfBattle;
+                        break;
+                    }
+                }
+                if (supportOfPlayer[player] == null) {
+                    // Если игрок так и не смог определиться с подмогой, он никому её не оказывает
+                    System.out.println(HOUSE[player] + SUPPORTS_NOBODY);
+                    supportOfPlayer[player] = SideOfBattle.neutral;
                 }
             }
-            if (supportOfPlayer[player] == null) {
-                // Если игрок так и не смог определиться с подмогой, он никому её не оказывает
-                System.out.println(HOUSE[player] + SUPPORTS_NOBODY);
-                supportOfPlayer[player] = SideOfBattle.neutral;
+
+            // Добавляем боевую силу поддерживающих войск
+            for (int areaOfSupport: areasOfSupport) {
+                battleInfo.addArmyToSide(supportOfPlayer[getTroopsOwner(areaOfSupport)], armyInArea[areaOfSupport]);
+                if (supportOfPlayer[getTroopsOwner(areaOfSupport)] == SideOfBattle.attacker) {
+                    numSupportsOnSide[0]++;
+                }
+                if (supportOfPlayer[getTroopsOwner(areaOfSupport)] == SideOfBattle.defender) {
+                    numSupportsOnSide[1]++;
+                }
             }
         }
 
-        // Добавляем боевую силу поддерживающих войск
-        for (int areaOfSupport: areasOfSupport) {
-            battleInfo.addArmyToSide(supportOfPlayer[getTroopsOwner(areaOfSupport)], armyInArea[areaOfSupport]);
-        }
         // Выбираем карты дома
         System.out.println(HOUSES_CHOOSE_CARDS);
         System.out.println(RELATION_OF_FORCES_IS + battleInfo.getAttackerStrength() + VERSUS +
@@ -990,26 +1102,31 @@ public class Game {
         houseCardOfSide[0] = getHouseCard(battleInfo, playerOnSide[0]);
         houseCardOfSide[1] = getHouseCard(battleInfo, playerOnSide[1]);
 
-        System.out.println(HOUSE[playerOnSide[0]] + PLAYS_HOUSE_CARD + houseCardOfPlayer[0]);
-        System.out.println(HOUSE[playerOnSide[1]] + PLAYS_HOUSE_CARD + houseCardOfPlayer[1]);
-        // Учёт особых эффектов разыгранных карт
-        HouseCard temporaryUnactiveCard = null;
-        boolean propertyUsed;
+        countBattleVariables(battleInfo);
+
         int firstSideOnThrone = thronePlaceForPlayer[playerOnSide[0]] < thronePlaceForPlayer[playerOnSide[1]] ? 0 : 1;
+        HouseCard temporaryInactiveCard = null;
+        boolean propertyUsed;
         // Карты отмены: Тирион
         for (int curSide = 0; curSide < 2; curSide++) {
             int heroSide = (curSide + firstSideOnThrone) % 2;
             if (houseCardOfSide[heroSide] == HouseCard.tyrionLannister) {
                 System.out.println(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD + houseCardOfSide[heroSide]);
-                boolean useTyrion = playerInterface[playerOnSide[heroSide]].useTyrion(battleInfo, houseCardOfSide[1 - heroSide]);
-                if (useTyrion) {
-                    System.out.println(TYRION_CANCELS);
-                    temporaryUnactiveCard = houseCardOfSide[1 - heroSide];
-                    houseCardOfSide[1 - heroSide].setActive(false);
-                    numActiveHouseCardsOfPlayer[playerOnSide[1 - heroSide]]--;
-                    houseCardOfSide[1 - heroSide] = getHouseCard(battleInfo, playerOnSide[1 - heroSide]);
-                } else {
-                    System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
+                switch (houseCardOfSide[heroSide]) {
+                    case tyrionLannister:
+                        boolean useTyrion = playerInterface[playerOnSide[heroSide]].useTyrion(battleInfo, houseCardOfSide[1 - heroSide]);
+                        if (useTyrion) {
+                            System.out.println(TYRION_CANCELS);
+                            temporaryInactiveCard = houseCardOfSide[1 - heroSide];
+                            houseCardOfSide[1 - heroSide].setActive(false);
+                            numActiveHouseCardsOfPlayer[playerOnSide[1 - heroSide]]--;
+                            houseCardOfSide[1 - heroSide] = null;
+                            countBattleVariables(battleInfo);
+                            houseCardOfSide[1 - heroSide] = getHouseCard(battleInfo, playerOnSide[1 - heroSide]);
+                            countBattleVariables(battleInfo);
+                        } else {
+                            System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
+                        }
                 }
             }
         }
@@ -1021,33 +1138,41 @@ public class Game {
                 switch (houseCardOfSide[heroSide]) {
                     case maceTyrell:
                         // Чёрная Рыба защищает от свойства Мейса Тирелла
-                        if (houseCardOfSide[1 - heroSide] == HouseCard.theBlackfish) break;
+                        if (houseCardOfSide[1 - heroSide] == HouseCard.theBlackfish) {
+                            System.out.println(BLACKFISH_SAVES + HOUSE_GENITIVE[playerOnSide[1 - heroSide]] + FROM_LOSSES);
+                            break;
+                        }
                         Army armyToSearchForFootmen = heroSide == 0 ? armyInArea[areaOfBattle] : attackingArmy;
                         Unit victimOfMace = armyToSearchForFootmen.getUnitOfType(UnitType.pawn);
                         if (victimOfMace != null) {
                             System.out.println(MACE_EATS_MAN_IN + map.getAreaNameRus(areaOfBattle));
                             battleInfo.deleteUnit(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker, victimOfMace);
                             armyToSearchForFootmen.deleteUnit(victimOfMace);
+                            countBattleVariables(battleInfo);
                         } else {
                             System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
                         }
                         break;
                     case queenOfThorns:
-                        boolean thereAreOrdersToRemove = false;
                         propertyUsed = false;
+                        accessibleAreaSet.clear();
                         for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
                             if (orderInArea[adjacentArea] != null && getTroopsOwner(adjacentArea) == playerOnSide[1 - heroSide]) {
-                                thereAreOrdersToRemove = true;
+                                accessibleAreaSet.add(adjacentArea);
                             }
                         }
-                        if (thereAreOrdersToRemove) {
+                        if (!accessibleAreaSet.isEmpty()) {
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
-                                int area = playerInterface[playerOnSide[heroSide]].chooseAreaQueenOfThorns();
+                                int area = playerInterface[playerOnSide[heroSide]].chooseAreaQueenOfThorns(accessibleAreaSet);
                                 // Если область меньше нуля, значит, игрок отказался использовать свойство карты
                                 if (area < 0) {
                                     break;
                                 }
-                                if (getTroopsOwner(area) == playerOnSide[1 - heroSide] && orderInArea[area] != null) {
+                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                    System.out.println(INVALID_AREA_ERROR);
+                                }
+                                System.out.println(QUEEN_OF_THORNS_REMOVES_ORDER_FROM_AREA + map.getAreaNameRus(area));
+                                if (accessibleAreaSet.contains(area)) {
                                     propertyUsed = true;
                                     //noinspection ConstantConditions
                                     switch (orderInArea[area].orderType()) {
@@ -1058,16 +1183,19 @@ public class Game {
                                             areasWithCPs.get(playerOnSide[1 - heroSide]).remove(area);
                                             break;
                                         case support:
-                                            // Если игрок сам себя поддержал, а мы снимаем поддержку,
+                                            // Если противник сам себя поддержал, а мы снимаем поддержку,
                                             // то боевая сила поддержки аннулируется
                                             if (supportOfPlayer[playerOnSide[1 - heroSide]] != SideOfBattle.neutral) {
                                                 battleInfo.deleteArmy(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker,
                                                         armyInArea[area]);
+                                                numSupportsOnSide[1 - heroSide]--;
+                                                countBattleVariables(battleInfo);
                                             }
                                     }
                                     orderInArea[area] = null;
-                                    System.out.println(QUEEN_OF_THORNS_REMOVES_ORDER_FROM_AREA + map.getAreaNameRus(area));
                                     break;
+                                } else {
+                                    System.out.println(INVALID_AREA_ERROR);
                                 }
                             }
                         }
@@ -1081,6 +1209,7 @@ public class Game {
                             pissOffOnTrack(playerOnSide[1 - heroSide], trackToPissOff);
                             System.out.println(DORAN_ABUSES + HOUSE_GENITIVE[playerOnSide[1 - heroSide]] +
                                     trackToPissOff.onTheTrack());
+                            countBattleVariables(battleInfo);
                         } else {
                             System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
                         }
@@ -1096,6 +1225,7 @@ public class Game {
                                 houseCardOfSide[heroSide].setActive(false);
                                 numActiveHouseCardsOfPlayer[playerOnSide[heroSide]]--;
                                 houseCardOfSide[heroSide] = getHouseCard(battleInfo, playerOnSide[heroSide]);
+                                countBattleVariables(battleInfo);
                             }
                         }
                         if (!propertyUsed) {
@@ -1104,11 +1234,25 @@ public class Game {
                         break;
                 }
             }
-            // TODO остальные карты
         }
-        // TODO исход сражения, потери, отступление
-        if (temporaryUnactiveCard != null) {
-            temporaryUnactiveCard.setActive(true);
+
+        battleInfo.addStrength(SideOfBattle.attacker, cardStrengthOnSide[0] + bonusStrengthOnSide[0]);
+        battleInfo.addStrength(SideOfBattle.defender, cardStrengthOnSide[1] + bonusStrengthOnSide[1]);
+        // Валирийский меч
+        int swordsMan = swordPlayerOnPlace[0];
+        if (!swordUsed && (playerOnSide[0] == swordsMan || playerOnSide[1] == swordsMan)) {
+            boolean useSword = playerInterface[swordsMan].useSword(battleInfo);
+            if (useSword) {
+                battleInfo.addStrength(playerOnSide[0] == swordsMan ? SideOfBattle.attacker : SideOfBattle.defender, 1);
+                swordUsed = true;
+                System.out.println(HOUSE[swordsMan] + USES_SWORD);
+                printRelationOfForces(battleInfo);
+            }
+        }
+        // Делаем неактивными карты, которые были сыграны, и возвращаем к жизни карту, отменённую Тирионом
+        if (temporaryInactiveCard != null) {
+            temporaryInactiveCard.setActive(true);
+            numActiveHouseCardsOfPlayer[temporaryInactiveCard.house()]++;
         }
         for (int side = 0; side < 2; side++) {
             if (houseCardOfSide[side] != HouseCard.none) {
@@ -1116,16 +1260,297 @@ public class Game {
                 numActiveHouseCardsOfPlayer[playerOnSide[side]]--;
                 // Если это была последняя активная карта игрока, то обновляем ему колоду
                 if (numActiveHouseCardsOfPlayer[playerOnSide[side]] == 0) {
-                    System.out.println(HOUSE[playerOnSide[side]] + GETS_NEW_DECK);
-                    for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
-                        if (houseCardOfPlayer[playerOnSide[side]][i] != houseCardOfSide[side]) {
-                            houseCardOfPlayer[playerOnSide[side]][i].setActive(true);
-                        }
-                    }
+                    renewHandExceptCard(playerOnSide[side], houseCardOfSide[side]);
                 }
             }
         }
-        adjustVictoryPoints();
+        // Определяем победителя
+        int winnerSide = battleInfo.getAttackerStrength() > battleInfo.getDefenderStrength() ||
+                battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() &&
+                swordPlaceForPlayer[playerOnSide[0]] < swordPlaceForPlayer[playerOnSide[1]] ? 0 : 1;
+        System.out.println(HOUSE[playerOnSide[winnerSide]] + WINS_THE_BATTLE);
+        // Подсчитываем потери проигравшего
+        System.out.println("У " + HOUSE_GENITIVE[playerOnSide[winnerSide]] + " " + swordsOnSide[winnerSide] +
+                SWORDS_U + HOUSE_GENITIVE[playerOnSide[1 - winnerSide]] + " " + towersOnSide[1 - winnerSide] + OF_TOWERS);
+        int numKilledUnits = Math.max(0, swordsOnSide[winnerSide] - towersOnSide[1 - winnerSide]);
+        if (numKilledUnits == 0) {
+            System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + HAS_NO_LOSSES);
+        } else if (houseCardOfSide[1 - winnerSide] == HouseCard.theBlackfish) {
+            System.out.println(BLACKFISH_SAVES + HOUSE_GENITIVE[playerOnSide[1 - winnerSide]] + FROM_LOSSES);
+            numKilledUnits = 0;
+        } else {
+            System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + LOSES + numKilledUnits + TROOPS);
+        }
+        if (winnerSide == 0) {
+            // Победил нападающий
+            armyInArea[areaOfBattle].woundAndKillTroops(numKilledUnits, KillingReason.sword);
+            // Удаление жетона власти с области, если он там был
+            if (powerTokenOnArea[areaOfBattle] >= 0) {
+                maxPowerTokensHouse[powerTokenOnArea[areaOfBattle]]++;
+                powerTokenOnArea[areaOfBattle] = -1;
+            }
+            // Удаление приказа из области, если он там был
+            if (orderInArea[areaOfBattle] != null) {
+                //noinspection ConstantConditions
+                switch (orderInArea[areaOfBattle].orderType()) {
+                    case march:
+                        areasWithMarches.get(playerOnSide[1 - winnerSide]).remove(areaOfBattle);
+                        break;
+                    case consolidatePower:
+                        areasWithCPs.get(playerOnSide[1 - winnerSide]).remove(areaOfBattle);
+                        break;
+                }
+                orderInArea[areaOfBattle] = null;
+            }
+            // Уничтожение гарнизона в области, если он там был
+            if (garrisonInArea[areaOfBattle] > 0) {
+                System.out.println(GARRISON_IN + map.getAreaNameRus(areaOfBattle) + IS_DEFEATED_M);
+                garrisonInArea[areaOfBattle] = 0;
+            }
+            // Лорас Тирелл контрится Арианной
+            if (houseCardOfSide[0] == HouseCard.serLorasTyrell && houseCardOfSide[1] != HouseCard.arianneMartell) {
+                System.out.println(LORAS_RULES);
+                Order marchOrder = marchModifier == -1 ? Order.marchB : (marchModifier == 0 ? Order.march : Order.marchS);
+                orderInArea[areaOfBattle] = marchOrder;
+                areasWithMarches.get(playerOnSide[winnerSide]).add(areaOfBattle);
+            }
+
+            retreatingArmy = armyInArea[areaOfBattle];
+            // Арианна
+            if (houseCardOfSide[1] == HouseCard.arianneMartell) {
+                System.out.println(ARIANNA_RULES_AND_PUTS_IN + map.getAreaNameRus(areaOfMarch) + ".");
+                armyInArea[areaOfMarch].addSubArmy(attackingArmy);
+            } else {
+                armyInArea[areaOfBattle] = attackingArmy;
+            }
+            attackingArmy = null;
+            // Отступление
+            if (retreatingArmy.getNumUnits() > 0) {
+                HashSet<Integer> areasToRetreat = getAccessibleAreas(areaOfBattle, playerOnSide[1 - winnerSide]);
+                HashSet<Integer> trueAreasToRetreat = new HashSet<>();
+                int minLosses = retreatingArmy.getNumUnits();
+
+                for (int area: areasToRetreat) {
+                    int areaOwner = getAreaOwner(area);
+                    if (areaOwner < 0 || areaOwner == playerOnSide[1 - winnerSide]) {
+                        // TODO подкорректировать в связи со снабжением
+                        if (minLosses == 0) {
+                            trueAreasToRetreat.add(area);
+                        } else {
+                            trueAreasToRetreat.clear();
+                            minLosses = 0;
+                            trueAreasToRetreat.add(area);
+                        }
+                    }
+                }
+                // Нельзя отступить в область, откуда пришла атака
+                if (trueAreasToRetreat.contains(areaOfMarch)) {
+                    trueAreasToRetreat.remove(areaOfMarch);
+                }
+
+                switch (trueAreasToRetreat.size()) {
+                    case 0:
+                        // Если нет областей для отступления, то уничтожаем все отступающие юниты
+                        retreatingArmy.killAllUnits(KillingReason.noAreaToRetreat);
+                        break;
+                    case 1:
+                        // Если имеется единтсвенная область для отступления, то отступаем туда автоматически
+                        if (minLosses > 0) {
+                            retreatingArmy.killSomeUnits(minLosses);
+                        }
+                        int onlyArea = trueAreasToRetreat.iterator().next();
+                        armyInArea[onlyArea].addSubArmy(retreatingArmy);
+                        System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(onlyArea));
+                        break;
+                    default:
+                        // Если есть выбор, то спрашиваем игрока, куда ему отступить
+                        int player = houseCardOfSide[winnerSide] == HouseCard.robbStark ?
+                                playerOnSide[winnerSide] : playerOnSide[1 - winnerSide];
+                        boolean successFlag = false;
+                        System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + MUST_RETREAT);
+                        for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                            int area = playerInterface[player].chooseAreaToRetreat(retreatingArmy, trueAreasToRetreat);
+                            System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(area));
+                            if (trueAreasToRetreat.contains(area)) {
+                                armyInArea[area].addSubArmy(retreatingArmy);
+                                successFlag = true;
+                                break;
+                            } else {
+                                System.out.println(CANT_RETREAT_THERE_ERROR);
+                            }
+                        }
+                        // Если игрок так и не смог отступить, то отступаем в первую встреченную область
+                        if (!successFlag) {
+                            int area = trueAreasToRetreat.iterator().next();
+                            armyInArea[area].addSubArmy(retreatingArmy);
+                            System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(area));
+                        }
+                        break;
+                }
+            }
+            retreatingArmy = null;
+            if (!map.getAreaType(areaOfBattle).isNaval()) {
+                adjustVictoryPoints();
+            }
+        } else {
+            // Победил защищающийся
+            int marchAreaOwner = getAreaOwner(areaOfMarch);
+            // Если область, из которой был поход, стала вражеской (как это бывает с престольными землями, на которых
+            // не оставили жетонов власти), то все оставшиеся юниты уничтожаются.
+            if (marchAreaOwner < 0 || marchAreaOwner == playerOnSide[1 - winnerSide]) {
+                attackingArmy.woundAndKillTroops(numKilledUnits, KillingReason.sword);
+                // Если остались атакующие юниты, то они перемещаются в область, откуда нападали
+                if (!attackingArmy.isEmpty()) {
+                    System.out.println(HOUSE[playerOnSide[1 - winnerSide]] + RETREATS_IN + map.getAreaNameRus(areaOfMarch));
+                    armyInArea[areaOfMarch].addSubArmy(attackingArmy);
+                }
+            } else {
+                attackingArmy.killAllUnits(KillingReason.noAreaToRetreat);
+            }
+        }
+        attackingArmy = null;
+        renewHousesTroopsArea();
+        // Разыгрываем эффект карт "после боя"
+        for (int curSide = 0; curSide < 2; curSide++) {
+            int heroSide = (curSide + firstSideOnThrone) % 2;
+            if (houseCardOfSide[heroSide].getCardInitiative() == CardInitiative.afterFight) {
+                int player = playerOnSide[heroSide];
+                switch (houseCardOfSide[heroSide]) {
+                    case renlyBaratheon:
+                        propertyUsed = false;
+                        if (heroSide != winnerSide || restingUnitsOfPlayerAndType[player][1] == 0) break;
+                        accessibleAreaSet.clear();
+                        if (armyInArea[areaOfBattle].hasUnitOfType(UnitType.pawn)) {
+                            accessibleAreaSet.add(areaOfBattle);
+                        }
+                        for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
+                            if (getTroopsOwner(adjacentArea) == player && orderInArea[adjacentArea] != null &&
+                                    orderInArea[adjacentArea].orderType() == OrderType.support &&
+                                    supportOfPlayer[player].getCode() == heroSide) {
+                                accessibleAreaSet.add(adjacentArea);
+                            }
+                        }
+                        if (accessibleAreaSet.size() > 0) {
+                            System.out.println(RENLY_CAN_MAKE_KNIGHT);
+                            for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                                int area = playerInterface[player].areaToUseRenly(accessibleAreaSet);
+                                // Если область меньше нуля, значит, игрок отказался использовать свойство карты
+                                if (area < 0) {
+                                    break;
+                                }
+                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                    System.out.println(INVALID_AREA_ERROR);
+                                }
+                                System.out.println(RENLY_MAKES_KNIGHT_IN + map.getAreaNameRus(area) + ".");
+                                if (accessibleAreaSet.contains(area)) {
+                                    assert(armyInArea[area].changeType(UnitType.pawn, UnitType.knight));
+                                    restingUnitsOfPlayerAndType[player][0]++;
+                                    restingUnitsOfPlayerAndType[player][1]--;
+                                    propertyUsed = true;
+                                    break;
+                                } else {
+                                    System.out.println(INVALID_AREA_ERROR);
+                                }
+                            }
+                        }
+                        if (!propertyUsed) {
+                            System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
+                        }
+                        break;
+                    case cerseiLannister:
+                        if (heroSide != winnerSide) break;
+                        accessibleAreaSet.clear();
+                        System.out.println(CERSEI_CAN_REMOVE_ANY_ORDER);
+                        propertyUsed = false;
+                        for (int area: areasWithTroopsOfPlayer.get(playerOnSide[1 - heroSide])) {
+                            if (orderInArea[area] != null) {
+                                accessibleAreaSet.add(area);
+                            }
+                        }
+                        if (accessibleAreaSet.size() > 0) {
+                            for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                                int area = playerInterface[player].chooseAreaCerseiLannister(accessibleAreaSet);
+                                // Если область меньше нуля, значит, игрок отказался использовать свойство карты
+                                if (area < 0) {
+                                    break;
+                                }
+                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                    System.out.println(INVALID_AREA_ERROR);
+                                }
+                                System.out.println(CERSEI_REMOVES_ORDER_FROM_AREA + map.getAreaNameRus(area));
+                                if (getTroopsOwner(area) == playerOnSide[1 - heroSide] && orderInArea[area] != null) {
+                                    propertyUsed = true;
+                                    //noinspection ConstantConditions
+                                    switch (orderInArea[area].orderType()) {
+                                        case march:
+                                            areasWithMarches.get(playerOnSide[1 - heroSide]).remove(area);
+                                            break;
+                                        case consolidatePower:
+                                            areasWithCPs.get(playerOnSide[1 - heroSide]).remove(area);
+                                            break;
+                                    }
+                                    orderInArea[area] = null;
+                                    break;
+                                } else {
+                                    System.out.println(INVALID_AREA_ERROR);
+                                }
+                            }
+                        }
+                        if (!propertyUsed) {
+                            System.out.println(houseCardOfPlayer[heroSide] + NO_EFFECT);
+                        }
+                        break;
+                    case tywinLannister:
+                        if (heroSide != winnerSide) break;
+                        nPowerTokensHouse[player] = Math.min(nPowerTokensHouse[player] + 2, maxPowerTokensHouse[player]);
+                        break;
+                    case rooseBolton:
+                        if (heroSide == winnerSide) break;
+                        returnAllCards(player);
+                        break;
+                }
+            }
+        }
+
+        // Разыгрываем Пестряка
+        for (int curSide = 0; curSide < 2; curSide++) {
+            if (houseCardOfSide[curSide] == HouseCard.patchface) {
+                propertyUsed = false;
+                System.out.println(PATCHPACE_CAN_DELETE_ANY_CARD);
+                for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                    int card = playerInterface[playerOnSide[curSide]].chooseCardPatchface(playerOnSide[1 - curSide]);
+                    // Если карта меньше нуля, значит, игрок отказался использовать свойство карты
+                    if (card < 0) {
+                        break;
+                    }
+                    if (houseCardOfPlayer[playerOnSide[1 - curSide]][card].isActive()) {
+                        propertyUsed = true;
+                        houseCardOfPlayer[playerOnSide[1 - curSide]][card].setActive(false);
+                        numActiveHouseCardsOfPlayer[playerOnSide[1 - curSide]]--;
+                        if (numActiveHouseCardsOfPlayer[playerOnSide[1 - curSide]] == 0) {
+                            renewHandExceptCard(playerOnSide[1 - curSide], houseCardOfPlayer[playerOnSide[1 - curSide]][card]);
+                        }
+                        System.out.println(PATCHPACE_DELETES_CARD + houseCardOfPlayer[playerOnSide[1 - curSide]][card] + "\".");
+                        break;
+                    } else {
+                        System.out.println(CARD_IS_NOT_ACTIVE_ERROR);
+                    }
+                }
+                if (!propertyUsed) {
+                    System.out.println(houseCardOfPlayer[curSide] + NO_EFFECT);
+                }
+            }
+        }
+    }
+
+    private void renewHandExceptCard(int player, HouseCard card) {
+        System.out.println(HOUSE[player] + GETS_NEW_DECK);
+        for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
+            if (houseCardOfPlayer[player][i] != card) {
+                houseCardOfPlayer[player][i].setActive(true);
+                numActiveHouseCardsOfPlayer[player]++;
+            }
+        }
     }
 
     /**
@@ -1148,7 +1573,8 @@ public class Game {
         }
         // Прибавляем силу поддеривающих юнитов
         for (int adjacentArea: map.getAdjacentAreas(area)) {
-            if (getTroopsOwner(adjacentArea) == player && orderInArea[adjacentArea].orderType() == OrderType.support) {
+            if (getTroopsOwner(adjacentArea) == player &&
+                    orderInArea[adjacentArea] != null && orderInArea[adjacentArea].orderType() == OrderType.support) {
                 strength += orderInArea[adjacentArea].getModifier();
                 for (Unit unit: armyInArea[adjacentArea].getUnits()) {
                     if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) > 0) {
@@ -1198,20 +1624,37 @@ public class Game {
      * @return карта дома, которую выбрал игрок
      */
     private HouseCard getHouseCard(BattleInfo battleInfo, int player) {
+        HouseCard chosenCard = null;
         if (numActiveHouseCardsOfPlayer[player] == 1) {
-            return getFirstActiveHouseCard(player);
+            chosenCard = getFirstActiveHouseCard(player);
         } else if (numActiveHouseCardsOfPlayer[player] == 0) {
-            return HouseCard.none;
+            chosenCard = HouseCard.none;
         } else {
             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                 int givenCard = playerInterface[player].playHouseCard(battleInfo);
                 if (givenCard >= 0 && givenCard < NUM_HOUSE_CARDS && houseCardOfPlayer[player][givenCard].isActive()) {
-                    return houseCardOfPlayer[player][givenCard];
+                    chosenCard = houseCardOfPlayer[player][givenCard];
                 }
             }
         }
         // Если игрок не уложился в число попыток, то выбираем первую активную его карту
-        return getFirstActiveHouseCard(player);
+        if (chosenCard == null) {
+            chosenCard = getFirstActiveHouseCard(player);
+        }
+        System.out.println(HOUSE[player] + PLAYS_HOUSE_CARD + chosenCard + "\".");
+        return chosenCard;
+    }
+
+    /**
+     * Вернуть на руку все карты данного игрока (Русе Болтон или победа на Молоководной)
+     * @param player номер игрока
+     */
+    private void returnAllCards (int player) {
+        for (int card = 0; card < NUM_HOUSE_CARDS; card++) {
+            if (!houseCardOfPlayer[player][card].isActive()) {
+                houseCardOfPlayer[player][card].setActive(true);
+            }
+        }
     }
 
     /**
@@ -1226,6 +1669,83 @@ public class Game {
             }
         }
         return null;
+    }
+
+    /**
+     * Метод рассчитывает стандартные переменные боя - сила карты, мечи, башни и бонусы к боевой силе из-за свойств карт
+     * @param battleInfo информация о бое
+     */
+    private void countBattleVariables(BattleInfo battleInfo) {
+        for (int curSide = 0; curSide < 2; curSide++) {
+            cardStrengthOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getStrength();
+            swordsOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getNumSwords();
+            towersOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getNumTowers();
+            bonusStrengthOnSide[curSide] = 0;
+        }
+
+        for (int side = 0; side < 2; side++) {
+            if (houseCardOfSide[side] == null) continue;
+            if (houseCardOfSide[side].getCardInitiative() == CardInitiative.bonus) {
+                switch (houseCardOfSide[side]) {
+                    case stannisBaratheon:
+                        if (thronePlaceForPlayer[playerOnSide[side]] > thronePlaceForPlayer[playerOnSide[side]]) {
+                            bonusStrengthOnSide[side] = 1;
+                        }
+                        break;
+                    case serDevosSeaworth:
+                        if (!houseCardOfPlayer[0][0].isActive()) {
+                            bonusStrengthOnSide[side] = 1;
+                            swordsOnSide[side] = 1;
+                        }
+                        break;
+                    case salladhorSaan:
+                        if (numSupportsOnSide[side] > 0) {
+                            bonusStrengthOnSide[side] -= battleInfo.getNumEnemyShips(playerOnSide[side],
+                                    side == 0 ? SideOfBattle.attacker : SideOfBattle.defender);
+                            bonusStrengthOnSide[1 - side] -= battleInfo.getNumEnemyShips(playerOnSide[side],
+                                    side == 0 ? SideOfBattle.defender : SideOfBattle.attacker);
+                        }
+                        break;
+                    case serKevanLannister:
+                        if (side == 0) {
+                            bonusStrengthOnSide[side] += battleInfo.getNumFriendlyUnits(SideOfBattle.attacker, UnitType.pawn);
+                        }
+                        break;
+                    case catylynStark:
+                        break;
+                    case nymeriaSand:
+                        if (side == 0) {
+                            swordsOnSide[side]++;
+                        } else {
+                            towersOnSide[side]++;
+                        }
+                        break;
+                    case ashaGreyjoy:
+                        if (numSupportsOnSide[side] == 0) {
+                            swordsOnSide[side] += 2;
+                            towersOnSide[side]++;
+                        }
+                        break;
+                    case theonGreyjoy:
+                        if (side == 1 && map.getNumCastle(battleInfo.getAreaOfBattle()) > 0) {
+                            bonusStrengthOnSide[side] = 1;
+                            swordsOnSide[side] = 1;
+                        }
+                        break;
+                    case victarionGreyjoy:
+                        // Салладор Саан подавляет свойство Виктариона
+                        if (houseCardOfSide[1 - side] == HouseCard.salladhorSaan) break;
+                        if (side == 0) {
+                            bonusStrengthOnSide[side] += battleInfo.getNumFriendlyUnits(SideOfBattle.attacker, UnitType.ship);
+                        }
+                        break;
+                    case balonGreyjoy:
+                        cardStrengthOnSide[1 - side] = 0;
+                        break;
+                }
+            }
+        }
+        printRelationOfForces(battleInfo);
     }
 
     /**
@@ -1261,6 +1781,16 @@ public class Game {
                 fillRavenPlaceForPlayer();
                 break;
         }
+    }
+
+    /**
+     * Выводит соотношение сил в сражении
+     * @param battleInfo информация о сражении
+     */
+    private void printRelationOfForces(BattleInfo battleInfo) {
+        System.out.println(RELATION_OF_FORCES_IS +
+                (battleInfo.getAttackerStrength() + cardStrengthOnSide[0] + bonusStrengthOnSide[0]) + VERSUS +
+                (battleInfo.getDefenderStrength() + cardStrengthOnSide[1] + bonusStrengthOnSide[1]) + ".");
     }
 
     /**
@@ -1385,6 +1915,7 @@ public class Game {
             orderInArea[area] = null;
         }
         prohibitedOrder = null;
+        swordUsed = false;
     }
 
     public GameOfThronesMap getMap() {
@@ -1405,6 +1936,14 @@ public class Game {
 
     public ArrayList<HashSet<Integer>> getAreasWithCPsOfPlayer() {
         return areasWithCPs;
+    }
+
+    public int getNumPowerTokensHouse(int player) {
+        return nPowerTokensHouse[player];
+    }
+
+    public int getGarrisonInArea(int area) {
+        return garrisonInArea[area];
     }
 
     /**
@@ -1434,6 +1973,56 @@ public class Game {
         } else {
             return houseHomeLandInArea[area];
         }
+    }
+
+    /**
+     * Метод возвращает место определённого игрока на определённом треке влияния
+     * @param player    номер игрока
+     * @param trackType трек влияния
+     * @return место
+     */
+    public int getInfluenceTrackPlaceForPlayer(int player, TrackType trackType) {
+        switch (trackType) {
+            case ironThrone:
+                return thronePlaceForPlayer[player];
+            case valyrianSword:
+                return swordPlaceForPlayer[player];
+            case raven:
+                return ravenPlaceForPlayer[player];
+        }
+        return -1;
+    }
+
+    /**
+     * Метод возвращает игрока на определённом месте треке влияния
+     * @param place     место на треке влияния
+     * @param trackType трек влияния
+     * @return место
+     */
+    public int getInfluenceTrackPlayerOnPlace(int place, TrackType trackType) {
+        switch (trackType) {
+            case ironThrone:
+                return thronePlayerOnPlace[place];
+            case valyrianSword:
+                return thronePlayerOnPlace[place];
+            case raven:
+                return thronePlayerOnPlace[place];
+        }
+        return -1;
+    }
+
+    /**
+     * Метод отвечает, активна ли определённая карта определённого игрока
+     * @param player    игрок
+     * @param cardIndex номер карты
+     * @return true, если активна
+     */
+    public boolean isCardActive(int player, int cardIndex) {
+        return houseCardOfPlayer[player][cardIndex].isActive();
+    }
+
+    public Army getArmyInArea(int area) {
+        return armyInArea[area];
     }
 
     private PropertyChangeSupport gamePhaseChangeSupport = new PropertyChangeSupport(this);

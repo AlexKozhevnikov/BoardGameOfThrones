@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 10.01.2017.
@@ -60,7 +60,8 @@ public enum HouseCard {
 
     private boolean isActive = true;
 
-    public String getRusName() {
+    @Override
+    public String toString() {
         switch (this) {
             case aeronDamphair:
                 return "Эйерон Мокровласый";
@@ -149,7 +150,7 @@ public enum HouseCard {
             case victarionGreyjoy:
                 return "Виктарион Грейджой";
         }
-        return Constants.UNKNOWN_HOUSE_CARD_ERROR;
+        return TextErrors.UNKNOWN_HOUSE_CARD_ERROR;
     }
 
     /**
@@ -209,7 +210,7 @@ public enum HouseCard {
             case none:
                 return -1;
         }
-        System.out.println(Constants.UNKNOWN_HOUSE_CARD_ERROR);
+        System.out.println(TextErrors.UNKNOWN_HOUSE_CARD_ERROR);
         return -1;
     }
 
@@ -268,7 +269,7 @@ public enum HouseCard {
             case none:
                 return 0;
         }
-        System.out.println(Constants.UNKNOWN_HOUSE_CARD_ERROR);
+        System.out.println(TextErrors.UNKNOWN_HOUSE_CARD_ERROR);
         return 0;
     }
 
@@ -343,15 +344,16 @@ public enum HouseCard {
             case theonGreyjoy:
             case victarionGreyjoy:
             case balonGreyjoy:
-                return CardInitiative.strength;
+                return CardInitiative.bonus;
             case theBlackfish:
             case serLorasTyrell:
             case arianneMartell:
                 return CardInitiative.passive;
+            case robbStark:
+                return CardInitiative.retreat;
             case renlyBaratheon:
             case tywinLannister:
             case cerseiLannister:
-            case robbStark:
             case rooseBolton:
                 return CardInitiative.afterFight;
             case patchface:

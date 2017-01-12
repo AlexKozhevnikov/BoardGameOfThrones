@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -39,6 +39,6 @@ public enum WildlingCard {
             case aKingBeyondTheWall:
                 return "Король за стеной";
         }
-        return Constants.UNKNOWN_EVENT_ERROR;
+        return TextErrors.UNKNOWN_EVENT_ERROR;
     }
 }

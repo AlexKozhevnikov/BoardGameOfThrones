@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -33,7 +33,7 @@ public enum Deck3Cards {
             case stormOfSwords:
                 return "Буря мечей";
         }
-        return Constants.UNKNOWN_EVENT_ERROR;
+        return TextErrors.UNKNOWN_EVENT_ERROR;
     }
 
     public boolean isWild() {

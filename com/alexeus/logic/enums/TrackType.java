@@ -1,6 +1,6 @@
 package com.alexeus.logic.enums;
 
-import com.alexeus.logic.Constants;
+import com.alexeus.logic.constants.TextErrors;
 
 /**
  * Created by alexeus on 05.01.2017.
@@ -21,7 +21,7 @@ public enum TrackType {
             case raven:
                 return "Посыльный ворон";
         }
-        return Constants.UNKNOWN_UFO_ERROR;
+        return TextErrors.UNKNOWN_UFO_ERROR;
     }
 
     public String onTheTrack() {
@@ -33,6 +33,6 @@ public enum TrackType {
             case raven:
                 return " по треку ворона";
         }
-        return Constants.UNKNOWN_UFO_ERROR;
+        return TextErrors.UNKNOWN_UFO_ERROR;
     }
 }
