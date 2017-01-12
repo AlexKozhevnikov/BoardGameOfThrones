@@ -1,5 +1,6 @@
 package com.alexeus.logic.struct;
 
+import com.alexeus.logic.Game;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.constants.TextErrors;
 import com.alexeus.logic.constants.TextInfo;
@@ -16,13 +17,17 @@ public class Army {
 
     private ArrayList<Unit> units;
 
-    public Army() {
+    private Game game;
+
+    public Army(Game game) {
         units = new ArrayList<>();
+        this.game = game;
     }
 
-    public Army(Unit unit) {
+    public Army(Unit unit, Game game) {
         units = new ArrayList<>();
         units.add(unit);
+        this.game = game;
     }
 
     /**
@@ -215,6 +220,7 @@ public class Army {
         System.out.println(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
                 unit.isWounded() ? TextInfo.IS_FINISHED : (TextInfo.IS_DEFEATED_M  + " (" + reason + ")")));
         units.remove(unit);
+        game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
     }
 
     /**

@@ -193,7 +193,7 @@ public class Game {
         for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
             powerTokenOnArea[area] = -1;
             houseHomeLandInArea[area] = -1;
-            armyInArea[area] = new Army();
+            armyInArea[area] = new Army(this);
         }
     }
 
@@ -339,7 +339,7 @@ public class Game {
     }
 
     /**
-     * Добавляет данную область в areasWithTroopsOfPlayer, если там есть отряды
+     * Добавляет данную область во вспомогательную коллекцию areasWithTroopsOfPlayer, если там есть отряды
      * @param area номер области
      */
     private void addHouseTroopsInArea(int area) {
@@ -1433,7 +1433,9 @@ public class Game {
                 switch (houseCardOfSide[heroSide]) {
                     case renlyBaratheon:
                         propertyUsed = false;
-                        if (heroSide != winnerSide || restingUnitsOfPlayerAndType[player][1] == 0) break;
+                        if (heroSide != winnerSide || restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()] == 0) {
+                            break;
+                        }
                         accessibleAreaSet.clear();
                         if (armyInArea[areaOfBattle].hasUnitOfType(UnitType.pawn)) {
                             accessibleAreaSet.add(areaOfBattle);
@@ -1458,10 +1460,14 @@ public class Game {
                                 }
                                 System.out.println(RENLY_MAKES_KNIGHT_IN + map.getAreaNameRus(area) + ".");
                                 if (accessibleAreaSet.contains(area)) {
-                                    assert(armyInArea[area].changeType(UnitType.pawn, UnitType.knight));
-                                    restingUnitsOfPlayerAndType[player][0]++;
-                                    restingUnitsOfPlayerAndType[player][1]--;
-                                    propertyUsed = true;
+                                    boolean success = armyInArea[area].changeType(UnitType.pawn, UnitType.knight);
+                                    if (success) {
+                                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]--;
+                                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
+                                        propertyUsed = true;
+                                    } else {
+                                        System.out.println(CANT_CHANGE_UNIT_TYPE_ERROR);
+                                    }
                                     break;
                                 } else {
                                     System.out.println(INVALID_AREA_ERROR);
@@ -1761,6 +1767,10 @@ public class Game {
             }
         }
         printRelationOfForces(battleInfo);
+    }
+
+    public void unitStoreIncreased(UnitType type, int player) {
+        restingUnitsOfPlayerAndType[player][type.getCode()]++;
     }
 
     /**

@@ -68,38 +68,10 @@ public interface GotPlayerInterface {
     public int playHouseCard(final BattleInfo battleInfo);
 
     /**
-     * В какой области использовать свойство карты "Ренли Баратеон", если есть такая возможность
-     * @param possibleAreas Возможные номера областей, в которых можно посвятить в рыцари
-     * @return номер области карты, в которой посвятить пехотинца до рыцаря, или -1, если отказываемся
-     */
-    public int areaToUseRenly(final HashSet<Integer> possibleAreas);
-
-    /**
-     * Выбор карты дома противника для сброса после боя, в котором был сыгран Пестряк
-     * @param enemy номер дома, у которого можно сбросить карту
-     * @return номер карты, которую выбрал игрок в колоде противника
-     */
-    public int chooseCardPatchface(int enemy);
-
-    /**
      * Использовать ли свойство карты "Тирион Ланнистер" во время боя
      * @return true, если использовать
      */
     public boolean useTyrion(final BattleInfo battleInfo, final HouseCard opponentCard);
-
-    /**
-     * Выбор области, из которой удалить приказ Серсеей после боя
-     * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
-     */
-    public int chooseAreaCerseiLannister(final HashSet<Integer> possibleAreas);
-
-    /**
-     * Выбор области для отступления
-     * @param retreatingArmy отступающая армия
-     * @param possibleAreas  множество из возможных вариантов
-     * @return номер области для отступления
-     */
-    public int chooseAreaToRetreat(final Army retreatingArmy, final HashSet<Integer> possibleAreas);
 
     /**
      * По какому из треков скидывать оппонента Дораном.
@@ -125,6 +97,34 @@ public interface GotPlayerInterface {
      * @return true, если игрок хочет использовать валирийский меч в этой битве
      */
     public boolean useSword(final BattleInfo battleInfo);
+
+    /**
+     * Выбор области для отступления
+     * @param retreatingArmy отступающая армия
+     * @param possibleAreas  множество из возможных вариантов
+     * @return номер области для отступления
+     */
+    public int chooseAreaToRetreat(final Army retreatingArmy, final HashSet<Integer> possibleAreas);
+
+    /**
+     * Выбор области, из которой удалить приказ Серсеей после боя
+     * @return номер области, из которой игрок хочет удалить приказ. Вернуть -1 для отмены
+     */
+    public int chooseAreaCerseiLannister(final HashSet<Integer> possibleAreas);
+
+    /**
+     * В какой области использовать свойство карты "Ренли Баратеон", если есть такая возможность
+     * @param possibleAreas Возможные номера областей, в которых можно посвятить в рыцари
+     * @return номер области карты, в которой посвятить пехотинца до рыцаря, или -1, если отказываемся
+     */
+    public int areaToUseRenly(final HashSet<Integer> possibleAreas);
+
+    /**
+     * Выбор карты дома противника для сброса после боя, в котором был сыгран Пестряк
+     * @param enemy номер дома, у которого можно сбросить карту
+     * @return номер карты, которую выбрал игрок в колоде противника
+     */
+    public int chooseCardPatchface(int enemy);
 
     /*
      * Разыграть свой приказ сбора власти со звездой

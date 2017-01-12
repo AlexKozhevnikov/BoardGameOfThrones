@@ -195,7 +195,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     if (destinationsOfMarch.containsKey(area)) {
                         destinationsOfMarch.get(area).addUnit(unit);
                     } else {
-                        destinationsOfMarch.put(area, new Army(unit));
+                        destinationsOfMarch.put(area, new Army(unit, game));
                     }
                 }
                 march.setDestinationsOfMarch(destinationsOfMarch);
@@ -225,31 +225,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public String playConsolidatePower() {
-        return "";
-    }
-
-    @Override
-    public String muster() {
-        return "";
-    }
-
-    @Override
-    public boolean useSword(BattleInfo battleInfo) {
-        if (battleInfo.getAttacker() == houseNumber) {
-            return battleInfo.getAttackerStrength() + 1 == battleInfo.getDefenderStrength();
-        } else {
-            assert(battleInfo.getDefender() == houseNumber);
-            return battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() + 1;
-        }
-    }
-
-    @Override
-    public int eventToChoose(int deckNumber) {
-        return random.nextInt(3);
-    }
-
-    @Override
     public int playHouseCard(BattleInfo battleInfo) {
         // Просто играем случайную карту из имеющихся активных
         boolean[] isCardActive = new boolean[MainConstants.NUM_HOUSE_CARDS];
@@ -273,34 +248,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int areaToUseRenly(HashSet<Integer> possibleAreas) {
-        return getRandomElementOfSet(possibleAreas);
-    }
-
-    @Override
-    public int chooseCardPatchface(int enemy) {
-        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
-            if (game.isCardActive(enemy, curCard)) {
-                return curCard;
-            }
-        }
-        return -1;
-    }
-
-    @Override
     public boolean useTyrion(BattleInfo battleInfo, HouseCard opponentCard) {
         return true;
     }
 
-    @Override
-    public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
-        return getRandomElementOfSet(possibleAreas);
-    }
-
-    @Override
-    public int chooseAreaToRetreat(Army retreatingArmy, HashSet<Integer> possibleAreas) {
-        return getRandomElementOfSet(possibleAreas);
-    }
 
     @Override
     public TrackType chooseInfluenceTrackDoran(BattleInfo battleInfo) {
@@ -327,6 +278,56 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int chooseAreaQueenOfThorns(HashSet<Integer> possibleVariants) {
         return getRandomElementOfSet(possibleVariants);
+    }
+
+    @Override
+    public boolean useSword(BattleInfo battleInfo) {
+        if (battleInfo.getAttacker() == houseNumber) {
+            return battleInfo.getAttackerStrength() + 1 == battleInfo.getDefenderStrength();
+        } else {
+            assert(battleInfo.getDefender() == houseNumber);
+            return battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() + 1;
+        }
+    }
+
+    @Override
+    public int chooseAreaToRetreat(Army retreatingArmy, HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
+    }
+
+    @Override
+    public int areaToUseRenly(HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
+    }
+
+    @Override
+    public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
+        return getRandomElementOfSet(possibleAreas);
+    }
+
+    @Override
+    public int chooseCardPatchface(int enemy) {
+        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+            if (game.isCardActive(enemy, curCard)) {
+                return curCard;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public String playConsolidatePower() {
+        return "";
+    }
+
+    @Override
+    public String muster() {
+        return "";
+    }
+
+    @Override
+    public int eventToChoose(int deckNumber) {
+        return random.nextInt(3);
     }
 
     @Override

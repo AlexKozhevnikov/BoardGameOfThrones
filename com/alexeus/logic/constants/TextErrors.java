@@ -53,4 +53,5 @@ public class TextErrors {
     public static final String SAME_TYPES_ERROR = "Ошибка превращения одного юнита в другой: одинаковые типы!";
     public static final String INVALID_AREA_ERROR = "Ошибка: неподходящая область!";
     public static final String CARD_IS_NOT_ACTIVE_ERROR = "Ошибка: карта уже в сбросе!";
+    public static final String CANT_CHANGE_UNIT_TYPE_ERROR = "Не удалось поменять тип юнита!";
 }
