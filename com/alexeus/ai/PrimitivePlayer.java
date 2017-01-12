@@ -180,11 +180,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 march.setAreaFrom(areaFrom);
                 Army myArmy = game.getArmyInArea(areaFrom);
                 HashSet<Integer> areasToMove = game.getAccessibleAreas(areaFrom, houseNumber);
-                game.printAreasInSet(areasToMove, "Возможные области для похода из " + map.getAreaNameRus(areaFrom));
+                game.printAreasInSet(areasToMove, "Возможные области для похода " + map.getAreaNameRusGenitive(areaFrom));
 
                 areasToMove.add(-1);
                 HashMap<Integer, Army> destinationsOfMarch = new HashMap<>();
                 for (Unit unit: myArmy.getUnits()) {
+                    if (unit.isWounded()) continue;
                     int area;
                     int nTry = 0;
                     do {

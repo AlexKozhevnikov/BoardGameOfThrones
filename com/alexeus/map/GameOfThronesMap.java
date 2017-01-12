@@ -24,6 +24,12 @@ public class GameOfThronesMap {
 
     private String[] areaNameRus = new String[NUM_AREA];
 
+    private String[] areaNameRusAccusative = new String[NUM_AREA];
+
+    private String[] areaNameRusGenitive = new String[NUM_AREA];
+
+    private String[] areaNameRusLocative = new String[NUM_AREA];
+
     private String[] areaNm = new String[NUM_AREA];
 
     private AreaType[] areaType = new AreaType[NUM_AREA];
@@ -38,66 +44,77 @@ public class GameOfThronesMap {
     
     public GameOfThronesMap() {
         adjacencyType = new AdjacencyType[NUM_AREA][NUM_AREA];
-        addNewArea(AreaType.sea, 0, "Ледовый залив", "лз", 0, 0, 0);
-        addNewArea(AreaType.sea, 1, "Закатное море", "зм", 0, 0, 0);
-        addNewArea(AreaType.sea, 2, "Залив железных людей", "зжл", 0, 0, 0);
-        addNewArea(AreaType.sea, 3, "Золотой пролив", "зп", 0, 0, 0);
-        addNewArea(AreaType.sea, 4, "Западное летнее море", "злм", 0, 0, 0);
-        addNewArea(AreaType.sea, 5, "Пролив Редвин", "пр", 0, 0, 0);
-        addNewArea(AreaType.sea, 6, "Восточное летнее море", "влм", 0, 0, 0);
-        addNewArea(AreaType.sea, 7, "Дорнское море", "дрн", 0, 0, 0);
-        addNewArea(AreaType.sea, 8, "Губительные валы", "гв", 0, 0, 0);
-        addNewArea(AreaType.sea, 9, "Черноводный залив", "чвз", 0, 0, 0);
-        addNewArea(AreaType.sea, 10, "Узкое море", "ум", 0, 0, 0);
-        addNewArea(AreaType.sea, 11, "Дрожащее море", "држ", 0, 0, 0);
+        addNewArea(AreaType.sea, 0, "Ледовый залив", "в Ледовом заливе", "из Ледового заливе", "лз", 0, 0, 0);
+        addNewArea(AreaType.sea, 1, "Закатное море", "в Закатном море", "из Закатного моря", "зм", 0, 0, 0);
+        addNewArea(AreaType.sea, 2, "Залив железных людей", "в Заливе железных людей", "из Залива Железных людей",
+                "зжл", 0, 0, 0);
+        addNewArea(AreaType.sea, 3, "Золотой пролив", "в Золотом проливе", "из Золотого пролива", "зп", 0, 0, 0);
+        addNewArea(AreaType.sea, 4, "Западное летнее море", "в Западном летнем море", "из Западного летнего моря",
+                "злм", 0, 0, 0);
+        addNewArea(AreaType.sea, 5, "Пролив Редвин", "в Проливе Редвин", "из Пролива Редвин", "пр", 0, 0, 0);
+        addNewArea(AreaType.sea, 6, "Восточное летнее море", "в Восточном летнем море", "из Восточного летнего моря",
+                "влм", 0, 0, 0);
+        addNewArea(AreaType.sea, 7, "Дорнское море", "в Дорнском море", "из Дорнского моря", "дрн", 0, 0, 0);
+        addNewArea(AreaType.sea, 8, "Губительные валы", "в Губительных валах", "из Губительных валов", "гв", 0, 0, 0);
+        addNewArea(AreaType.sea, 9, "Черноводный залив", "в Черноводном заливе", "из Черноводного залива", "чвз", 0, 0, 0);
+        addNewArea(AreaType.sea, 10, "Узкое море", "в Узком море", "из Узкого моря", "ум", 0, 0, 0);
+        addNewArea(AreaType.sea, 11, "Дрожащее море", "в Дрожащем море", "из Дрожащего моря", "држ", 0, 0, 0);
 
-        addNewArea(AreaType.port, 12, "Порт Винтерфелла", "пВФ", 0, 0, 0);
-        addNewArea(AreaType.port, 13, "Порт Пайка", "пП", 0, 0, 0);
-        addNewArea(AreaType.port, 14, "Порт Ланниспорта", "пЛП", 0, 0, 0);
-        addNewArea(AreaType.port, 15, "Порт Староместа", "пСТ", 0, 0, 0);
-        addNewArea(AreaType.port, 16, "Порт Солнечного Копья", "пСК", 0, 0, 0);
-        addNewArea(AreaType.port, 17, "Порт Штормового Предела", "пШП", 0, 0, 0);
-        addNewArea(AreaType.port, 18, "Порт Драконьего Камня", "пДК", 0, 0, 0);
-        addNewArea(AreaType.port, 19, "Порт Белой Гавани", "пБГ", 0, 0, 0);
+        addNewArea(AreaType.port, 12, "Порт Винтерфелла", "в порту Винтерфелла", "из порта Винтерфелла", "пВФ", 0, 0, 0);
+        addNewArea(AreaType.port, 13, "Порт Пайка", "в порту Пайка", "из порта Пайка", "пП", 0, 0, 0);
+        addNewArea(AreaType.port, 14, "Порт Ланниспорта", "в порту Ланниспорта", "из порта Ланниспорта", "пЛП", 0, 0, 0);
+        addNewArea(AreaType.port, 15, "Порт Староместа", "в порту Староместа", "из порта Староместа", "пСТ", 0, 0, 0);
+        addNewArea(AreaType.port, 16, "Порт Солнечного Копья", "в порту Солнечного Копья", "из порта Солнечного Копья",
+                "пСК", 0, 0, 0);
+        addNewArea(AreaType.port, 17, "Порт Штормового Предела", "в порту Штормового Предела", "из порта Штормового Предела",
+                "пШП", 0, 0, 0);
+        addNewArea(AreaType.port, 18, "Порт Драконьего Камня", "в порту Драконьего Камня", "из порта Драконьего Камня",
+                "пДК", 0, 0, 0);
+        addNewArea(AreaType.port, 19, "Порт Белой Гавани", "в порту Белой Гавани", "из порта Белой Гавани", "пБГ", 0, 0, 0);
 
-        addNewArea(AreaType.land, 20, "Арбор", "АРБ", 0, 1, 0);
-        addNewArea(AreaType.land, 21, "Винтерфелл", "ВФ", 2, 1, 1);
-        addNewArea(AreaType.land, 22, "Каменный берег", "КБ", 0, 0, 1);
-        addNewArea(AreaType.land, 23, "Чёрный замок", "ЧЗ", 0, 1, 0);
-        addNewArea(AreaType.land, 24, "Кархолд", "КРХ", 0, 1, 0);
-        addNewArea(AreaType.land, 25, "Белая Гавань", "БГ", 1, 0, 0);
-        addNewArea(AreaType.land, 26, "Вдовий Дозор", "ВД", 0, 0, 1);
-        addNewArea(AreaType.land, 27, "Ров Кейлин", "РОВ", 1, 0, 0);
-        addNewArea(AreaType.land, 28, "Близнецы", "БЛЗ", 0, 1, 0);
-        addNewArea(AreaType.land, 29, "Персты", "ПРС", 0, 0, 1);
-        addNewArea(AreaType.land, 30, "Лунные горы", "ЛГ", 0, 0, 1);
-        addNewArea(AreaType.land, 31, "Орлиное гнездо", "ОГ", 1, 1, 1);
-        addNewArea(AreaType.land, 32, "Кремень", "КНЬ", 1, 0, 0);
-        addNewArea(AreaType.land, 33, "Сероводье", "СВ", 0, 0, 1);
-        addNewArea(AreaType.land, 34, "Сигард", "СИГ", 2, 1, 1);
-        addNewArea(AreaType.land, 35, "Риверран", "РИВ", 2, 1, 1);
-        addNewArea(AreaType.land, 36, "Ланниспорт", "ЛП", 2, 0, 2);
-        addNewArea(AreaType.land, 37, "Каменная септа", "КС", 0, 1, 0);
-        addNewArea(AreaType.land, 38, "Харенхол", "ХАР", 1, 1, 0);
-        addNewArea(AreaType.land, 39, "Черноводная", "ЧВ", 0, 0, 2);
-        addNewArea(AreaType.land, 40, "Приморские марки", "ПМ", 0, 0, 1);
-        addNewArea(AreaType.land, 41, "Хайгарден", "ХГ", 2, 0, 2);
-        addNewArea(AreaType.land, 42, "Простор", "ПРО", 1, 0, 0);
-        addNewArea(AreaType.land, 43, "Дорнские марки", "ДМ", 0, 1, 0);
-        addNewArea(AreaType.land, 44, "Три башни", "БББ", 0, 0, 1);
-        addNewArea(AreaType.land, 45, "Старомест", "СТ", 2, 0, 0);
-        addNewArea(AreaType.land, 46, "Звездопад", "ЗДП", 1, 0, 1);
-        addNewArea(AreaType.land, 47, "Солёный берег", "СБ", 0, 0, 1);
-        addNewArea(AreaType.land, 48, "Солнечное Копьё", "СК", 2, 1, 1);
-        addNewArea(AreaType.land, 49, "Айронвуд", "АЙР", 1, 0, 0);
-        addNewArea(AreaType.land, 50, "Принцев перевал", "ПП", 0, 1, 1);
-        addNewArea(AreaType.land, 51, "Костяной путь", "КП", 0, 1, 0);
-        addNewArea(AreaType.land, 52, "Штормовой Предел", "ШП", 1, 0, 0);
-        addNewArea(AreaType.land, 53, "Королевский лес", "КЛ", 0, 1, 1);
-        addNewArea(AreaType.land, 54, "Королевская Гавань", "КГ", 2, 2, 0);
-        addNewArea(AreaType.land, 55, "Клешня", "КЛЯ", 1, 0, 0);
-        addNewArea(AreaType.land, 56, "Драконий Камень", "ДК", 2, 1, 1);
-        addNewArea(AreaType.land, 57, "Пайк", "П", 2, 1, 1);
+        addNewArea(AreaType.land, 20, "Арбор", "в Арборе", "из Арбора", "АРБ", 0, 1, 0);
+        addNewArea(AreaType.land, 21, "Винтерфелл", "в Винтерфелле", "из Винтерфелла", "ВФ", 2, 1, 1);
+        addNewArea(AreaType.land, 22, "Каменный берег", "на Каменном берегу", "с Каменного берега", "КБ", 0, 0, 1);
+        addNewArea(AreaType.land, 23, "Чёрный замок", "в Чёрном замке", "из Чёрного замка", "ЧЗ", 0, 1, 0);
+        addNewArea(AreaType.land, 24, "Кархолд", "в Кархолде", "из Кархолда", "КРХ", 0, 1, 0);
+        addNewArea(AreaType.land, 25, "Белая Гавань", "в Белой Гавани", "из Белой Гавани", "БГ", 1, 0, 0);
+        addAreaAccusative(25, "Белую Гавань");
+        addNewArea(AreaType.land, 26, "Вдовий Дозор", "во Вдовьем Дозоре", "из Вдовьего Дозора", "ВД", 0, 0, 1);
+        addNewArea(AreaType.land, 27, "Ров Кейлин", "во Рву Кейлин", "из Рва Кейлин", "РОВ", 1, 0, 0);
+        addNewArea(AreaType.land, 28, "Близнецы", "в Близнецах", "из Близнецов", "БЛЗ", 0, 1, 0);
+        addNewArea(AreaType.land, 29, "Персты", "в Перстах", "из Перстов", "ПРС", 0, 0, 1);
+        addNewArea(AreaType.land, 30, "Лунные горы", "в Лунных горах", "из Лунных гор", "ЛГ", 0, 0, 1);
+        addNewArea(AreaType.land, 31, "Орлиное гнездо", "в Орлином гнезде", "из Орлиного гнезда", "ОГ", 1, 1, 1);
+        addNewArea(AreaType.land, 32, "Кремень", "в Кремне", "из Кремня", "КНЬ", 1, 0, 0);
+        addNewArea(AreaType.land, 33, "Сероводье", "в Сероводье", "из Сероводья", "СВ", 0, 0, 1);
+        addNewArea(AreaType.land, 34, "Сигард", "в Сигарде", "из Сигарда", "СИГ", 2, 1, 1);
+        addNewArea(AreaType.land, 35, "Риверран", "в Риверране", "из Риверрана", "РИВ", 2, 1, 1);
+        addNewArea(AreaType.land, 36, "Ланниспорт", "в Ланниспорте", "из Ланниспорта", "ЛП", 2, 0, 2);
+        addNewArea(AreaType.land, 37, "Каменная септа", "в Каменной септе", "из Каменной септы", "КС", 0, 1, 0);
+        addAreaAccusative(37, "Каменную септу");
+        addNewArea(AreaType.land, 38, "Харенхол", "в Харенхоле", "из Харенхола", "ХАР", 1, 1, 0);
+        addNewArea(AreaType.land, 39, "Черноводная", "в Черноводной", "из Черноводной", "ЧВ", 0, 0, 2);
+        addAreaAccusative(39, "Черноводную");
+        addNewArea(AreaType.land, 40, "Приморские марки", "в Приморских марках", "из Приморских марок", "ПМ", 0, 0, 1);
+        addNewArea(AreaType.land, 41, "Хайгарден", "в Хайгардене", "из Хайгардена", "ХГ", 2, 0, 2);
+        addNewArea(AreaType.land, 42, "Простор", "в Просторе", "из Простора", "ПРО", 1, 0, 0);
+        addNewArea(AreaType.land, 43, "Дорнские марки", "в Дорнских марках", "из Дорнских марок", "ДМ", 0, 1, 0);
+        addNewArea(AreaType.land, 44, "Три башни", "в Трёх башнях", "из Трёх башен", "БББ", 0, 0, 1);
+        addNewArea(AreaType.land, 45, "Старомест", "в Староместе", "из Староместа", "СТ", 2, 0, 0);
+        addNewArea(AreaType.land, 46, "Звездопад", "в Звездопаде", "из Звездопада", "ЗДП", 1, 0, 1);
+        addNewArea(AreaType.land, 47, "Солёный берег", "на Солёном берегу", "с Солёного берега", "СБ", 0, 0, 1);
+        addNewArea(AreaType.land, 48, "Солнечное Копьё", "в Солнечном Копье", "из Солнечного Копья", "СК", 2, 1, 1);
+        addNewArea(AreaType.land, 49, "Айронвуд", "в Айронвуде", "из Айронвуда", "АЙР", 1, 0, 0);
+        addNewArea(AreaType.land, 50, "Принцев перевал", "в Принцевом перевале", "из Принцевого перевала", "ПП", 0, 1, 1);
+        addNewArea(AreaType.land, 51, "Костяной путь", "в Костяном пути", "из Костяного пути", "КП", 0, 1, 0);
+        addNewArea(AreaType.land, 52, "Штормовой Предел", "в Штормовом Пределе", "из Штормового предела", "ШП", 1, 0, 0);
+        addNewArea(AreaType.land, 53, "Королевский лес", "в Королевском лесу", "из Королевского леса", "КЛ", 0, 1, 1);
+        addNewArea(AreaType.land, 54, "Королевская Гавань", "в Королевской Гавани", "из Королевской Гавани", "КГ", 2, 2, 0);
+        addAreaAccusative(54, "Королевскую Гавань");
+        addNewArea(AreaType.land, 55, "Клешня", "в Клешне", "из Клешни", "КЛЯ", 1, 0, 0);
+        addAreaAccusative(55, "Клешню");
+        addNewArea(AreaType.land, 56, "Драконий Камень", "в Драконьем Камне", "из Драконьего камня", "ДК", 2, 1, 1);
+        addNewArea(AreaType.land, 57, "Пайк", "в Пайке", "из Пайка", "П", 2, 1, 1);
 
         // соседства морей
         ArrayList<Point> matchingPairs = new ArrayList<>();
@@ -334,6 +351,18 @@ public class GameOfThronesMap {
         return areaNameRus[area];
     }
 
+    public String getAreaNameRusLocative(int area) {
+        return areaNameRusLocative[area];
+    }
+
+    public String getAreaNameRusGenitive(int area) {
+        return areaNameRusGenitive[area];
+    }
+
+    public String getAreaNameRusAccusative(int area) {
+        return areaNameRusAccusative[area] != null ? areaNameRusAccusative[area] : getAreaNameRus(area);
+    }
+
     public String getAreaNm(int area) {
         return areaNm[area];
     }
@@ -378,12 +407,30 @@ public class GameOfThronesMap {
         this.numBarrel = numBarrel;
     }
 
-    private void addNewArea(AreaType areaType, int number, String nameRus, String nm, int numCastle, int numCrown, int numBarrel) {
+    /**
+     * Добавляем новую область в карту
+     * @param areaType        тип местности (земля, море, порт)
+     * @param number          порядковый номер местности
+     * @param nameRus         название
+     * @param nameRusLocative название в предложном падеже
+     * @param nm              краткое название (2-3 буквы)
+     * @param numCastle       число ярусов замка (и, соотвтетсвенно, очков сбора) в области
+     * @param numCrown        количество знаков короны
+     * @param numBarrel       количество бочек
+     */
+    private void addNewArea(AreaType areaType, int number, String nameRus, String nameRusLocative,
+                            String nameRusGenitive, String nm, int numCastle, int numCrown, int numBarrel) {
         this.areaType[number] = areaType;
         areaNameRus[number] = nameRus;
+        areaNameRusGenitive[number] = nameRusGenitive;
+        areaNameRusLocative[number] = nameRusLocative;
         areaNm[number] = nm;
         this.numCastle[number] = numCastle;
         this.numCrown[number] = numCrown;
         this.numBarrel[number] = numBarrel;
+    }
+
+    private void addAreaAccusative(int number, String nameRusAccusative) {
+        areaNameRusAccusative[number] = nameRusAccusative;
     }
 }

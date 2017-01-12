@@ -247,6 +247,15 @@ public class Army {
     }
 
     /**
+     * Исцелить всех юнитов в армии. Должен вызываться в начале каждого раунда.
+     */
+    public void healAllUnits() {
+        for (Unit unit: units) {
+            unit.setWounded(false);
+        }
+    }
+
+    /**
      * Метод отвечает, есть ли в армии юнит определённого типа
      * @param unitType тип юнита
      * @return true, если есть
