@@ -163,6 +163,11 @@ public class Game {
     private ArrayList<HashSet<Integer>> areasWithCPs;
 
     /*
+     * Список множеств, состоящих из областей, где нужно собрать войска.
+     */
+    private HashSet<Integer> areasToMuster;
+
+    /*
      * В этом вспомогательном массиве хранятся количества активных карт каждого игроков
      */
     private int[] numActiveHouseCardsOfPlayer = new int[NUM_PLAYER];
@@ -221,6 +226,7 @@ public class Game {
         areasWithRaids = new ArrayList<>();
         areasWithMarches = new ArrayList<>();
         areasWithCPs = new ArrayList<>();
+        areasToMuster = new HashSet<>();
         for (int player = 0; player < NUM_PLAYER; player++) {
             areasWithTroopsOfPlayer.add(new HashMap<>());
             areasWithRaids.add(new HashSet<>());
@@ -265,10 +271,6 @@ public class Game {
         // Баратеон
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
-        armyInArea[0].addUnit(UnitType.ship, 0);
-        armyInArea[6].addUnit(UnitType.ship, 0);
-        armyInArea[4].addUnit(UnitType.ship, 0);
-        armyInArea[1].addUnit(UnitType.ship, 0);
         armyInArea[53].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.knight, 0);
         armyInArea[56].addUnit(UnitType.pawn, 0);
@@ -792,6 +794,7 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
+        setNewGamePhase(event3 == Deck3Cards.feastForCrows ? GamePhase.westerosPhase : GamePhase.consolidatePowerPhase);
     }
 
     /**
@@ -954,6 +957,151 @@ public class Game {
                 System.out.println(CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR);
                 return false;
             }
+        }
+        return true;
+    }
+
+    private void playConsolidatePower() {
+        int areaWithMuster[] = new int[NUM_PLAYER];
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            int earning = 0;
+            areaWithMuster[player] = -1;
+            for (int area: areasWithCPs.get(player)) {
+                if (orderInArea[area] == Order.consolidatePowerS && map.getNumCastle(area) > 0) {
+                    areaWithMuster[player] = area;
+                    areasToMuster.add(area);
+                } else {
+                    earning += map.getNumCrown(area) + 1;
+                    orderInArea[area] = null;
+                }
+            }
+            areasWithCPs.get(player).clear();
+            if (earning > 0) {
+                earnTokens(player, earning);
+            }
+        }
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (areaWithMuster[player] >= 0) {
+                System.out.println(HOUSE[player] + CAN_MUSTER + map.getAreaNameRusLocative(areaWithMuster[player]) + ".");
+                int attempt;
+                for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                    MusterPlayed musterVariant = playerInterface[player].playConsolidatePowerS(areaWithMuster[player]);
+                    if (validateMuster(musterVariant, player)) {
+                        int nMusteredObjects = musterVariant.getNumberMusterUnits();
+                        if (nMusteredObjects > 0) {
+                            for (int i = 0; i < nMusteredObjects; i++) {
+                                int area = musterVariant.getArea(i);
+                                Musterable musterObject = musterVariant.getMusterUnit(i);
+                                if (musterObject instanceof Unit) {
+                                    Unit unit = (Unit) musterObject;
+                                    System.out.println(HOUSE[player] + PUTS + unit.getUnitType().nameGenitive() + " " +
+                                            map.getAreaNameRusLocative(area));
+                                    armyInArea[area].addUnit(unit);
+                                    restingUnitsOfPlayerAndType[player][unit.getUnitType().getCode()]--;
+                                } else {
+                                    System.out.println(HOUSE[player] + ((PawnPromotion) musterObject).getActionString() +
+                                            map.getAreaNameRusLocative(area));
+                                    armyInArea[area].changeType(UnitType.pawn,
+                                            ((PawnPromotion) musterObject).getTargetType());
+                                    restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                                    restingUnitsOfPlayerAndType[player][((PawnPromotion) musterObject).getTargetType().getCode()]--;
+                                }
+                            }
+                        } else {
+                            int earning = map.getNumCrown(areaWithMuster[player]);
+                            earnTokens(player, earning);
+                        }
+                        break;
+                    }
+                }
+                if (attempt >= MAX_TRIES_TO_GO) {
+                    earnTokens(player, map.getNumCrown(areaWithMuster[player]) + 1);
+                }
+                areasToMuster.remove(areaWithMuster[player]);
+            }
+        }
+    }
+
+    /**
+     * Метод добавляет игроку некоторое число заработанных жетонов
+     * @param player  номер игрока
+     * @param earning заработок
+     */
+    private void earnTokens(int player, int earning) {
+        nPowerTokensHouse[player] = Math.min(maxPowerTokensHouse[player], nPowerTokensHouse[player] + earning);
+        System.out.print(HOUSE[player] + EARNS + earning +
+                (earning == 1 ? POWER_TOKEN : earning < 5 ? POWER_TOKENA : POWER_TOKENS));
+        System.out.println(NOW_HE_HAS + nPowerTokensHouse[player] +
+                (nPowerTokensHouse[player] == 1 ? POWER_TOKEN : nPowerTokensHouse[player] < 5 ? POWER_TOKENA : POWER_TOKENS));
+    }
+
+    /**
+     * Метод валидирует розыгрыш сбора власти на определённой территории
+     * @param muster вариант сбора власти
+     * @param player номер игрока
+     * @return true, если можно так сделать
+     */
+    private boolean validateMuster(MusterPlayed muster, int player) {
+        int from = muster.getCastleArea();
+        if (!areasToMuster.contains(from) || getAreaOwner(from) != player) {
+            System.out.println(WRONG_AREAS_TO_MUSTER_ERROR);
+            return false;
+        }
+        int numNeededUnitsOfType[] = new int[NUM_UNIT_TYPES];
+        int numNeededPawns = 0;
+        int spentMusterPoints = 0;
+        int numUnits = muster.getNumberMusterUnits();
+        for (int i = 0; i < numUnits; i++) {
+            if (map.getAreaType(muster.getArea(i)).isNaval() &&
+                    map.getAdjacencyType(from, muster.getArea(i)) == AdjacencyType.noAdjacency ||
+                    !map.getAreaType(muster.getArea(i)).isNaval() && from != muster.getArea(i) ||
+                    map.getAreaType(muster.getArea(i)) == AreaType.sea &&
+                    getTroopsOwner(muster.getArea(i)) >= 0 &&  getTroopsOwner(muster.getArea(i)) != player) {
+                System.out.println(CANT_MUSTER_HERE_ERROR);
+                return false;
+            }
+            if (muster.getMusterUnit(i) instanceof PawnPromotion) {
+                numNeededPawns++;
+                numNeededUnitsOfType[UnitType.pawn.getCode()]--;
+                numNeededUnitsOfType[((PawnPromotion) muster.getMusterUnit(i)).getTargetType().getCode()]++;
+            } else {
+                numNeededUnitsOfType[((Unit) muster.getMusterUnit(i)).getUnitType().getCode()]++;
+            }
+            spentMusterPoints += muster.getMusterUnit(i).getNumMusterPoints();
+        }
+
+        if (spentMusterPoints > map.getNumCastle(from)) {
+            System.out.println(MUSTER_POINTS_VIOLATED_ERROR);
+            return false;
+        }
+        if (armyInArea[from].getNumUnitOfType(UnitType.pawn) < numNeededPawns) {
+            System.out.println(NO_PAWN_TO_PROMOTE_ERROR);
+            return false;
+        }
+        for (UnitType unitType: UnitType.values()) {
+            if (numNeededUnitsOfType[unitType.getCode()] > restingUnitsOfPlayerAndType[player][unitType.getCode()]) {
+                System.out.println(NO_UNITS_TO_PUT_ERROR + unitType);
+                return false;
+            }
+        }
+
+        // Проверка по снабжению
+        virtualAreasWithTroops.clear();
+        virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
+        for (int i = 0; i < numUnits; i++) {
+            if (muster.getMusterUnit(i) instanceof Unit) {
+                if (virtualAreasWithTroops.containsKey(muster.getArea(i))) {
+                    int armySize = virtualAreasWithTroops.get(muster.getArea(i));
+                    virtualAreasWithTroops.put(muster.getArea(i), armySize + 1);
+                } else {
+                    virtualAreasWithTroops.put(muster.getArea(i), 1);
+                }
+
+            }
+        }
+        if (!supplyTest(virtualAreasWithTroops, supply[player])) {
+            System.out.println(MUSTER_SUPPLY_VIOLATION_ERROR);
+            return false;
         }
         return true;
     }
@@ -1598,7 +1746,7 @@ public class Game {
                         break;
                     case tywinLannister:
                         if (heroSide != winnerSide) break;
-                        nPowerTokensHouse[player] = Math.min(nPowerTokensHouse[player] + 2, maxPowerTokensHouse[player]);
+                        earnTokens(playerOnSide[heroSide], 2);
                         break;
                     case rooseBolton:
                         if (heroSide == winnerSide) break;
@@ -2158,6 +2306,16 @@ public class Game {
     }
 
     /**
+     * Метод возвращает количество юнитов определённого типа в запаса определённого игрока
+     * @param player   номер игрока
+     * @param unitType тип юнита
+     * @return количество оставшихся в запасе юнитов
+     */
+    public int getRestingUnitsOfType(int player, UnitType unitType) {
+        return restingUnitsOfPlayerAndType[player][unitType.getCode()];
+    }
+
+    /**
      * Метод выводит все области из множества под их русскими именами
      * @param areas  множество областей
      * @rapam text сопутствующий текст
@@ -2303,6 +2461,9 @@ public class Game {
                     break;
                 case marchPhase:
                     playMarches();
+                    break;
+                case consolidatePowerPhase:
+                    playConsolidatePower();
                     break;
                 case westerosPhase:
                     nullifyOrdersAndVariables();

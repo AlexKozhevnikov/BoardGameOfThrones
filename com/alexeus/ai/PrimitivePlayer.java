@@ -61,33 +61,33 @@ public class PrimitivePlayer implements GotPlayerInterface{
         switch (houseNumber) {
             case 0:
                 orderMap.put(8, Order.march);
-                orderMap.put(53, Order.marchB);
-                orderMap.put(56, Order.marchS);
+                orderMap.put(53, Order.consolidatePower);
+                orderMap.put(56, Order.consolidatePowerS);
                 break;
             case 1:
                 orderMap.put(3, Order.marchS);
-                orderMap.put(37, Order.marchB);
-                orderMap.put(36, Order.march);
+                orderMap.put(37, Order.consolidatePower);
+                orderMap.put(36, Order.consolidatePowerS);
                 break;
             case 2:
                 orderMap.put(11, Order.marchS);
-                orderMap.put(25, Order.marchB);
-                orderMap.put(21, Order.march);
+                orderMap.put(25, Order.consolidatePower);
+                orderMap.put(21, Order.consolidatePowerS);
                 break;
             case 3:
                 orderMap.put(7, Order.marchS);
-                orderMap.put(47, Order.marchB);
-                orderMap.put(48, Order.march);
+                orderMap.put(47, Order.consolidatePower);
+                orderMap.put(48, Order.consolidatePowerS);
                 break;
             case 4:
-                orderMap.put(2, Order.support);
+                orderMap.put(2, Order.marchB);
                 orderMap.put(13, Order.consolidatePower);
-                orderMap.put(33, Order.marchB);
+                orderMap.put(33, Order.consolidatePower);
                 orderMap.put(57, Order.march);
                 break;
             case 5:
-                orderMap.put(5, Order.support);
-                orderMap.put(43, Order.marchB);
+                orderMap.put(5, Order.marchB);
+                orderMap.put(43, Order.consolidatePower);
                 orderMap.put(41, Order.march);
         }
         /* for (Integer area : myAreas) {
@@ -324,13 +324,44 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public String playConsolidatePower() {
-        return "";
+    public MusterPlayed playConsolidatePowerS(int castleArea) {
+        int numMusterPoints = map.getNumCastle(castleArea);
+        if (numMusterPoints == 0) {
+            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: очков сбора войск нету!");
+            return null;
+        }
+        MusterPlayed muster = new MusterPlayed(castleArea);
+        HashSet<Integer> normNavalAreas = new HashSet<>();
+        HashSet<Integer> mustHaveNavalAreas = new HashSet<>();
+        if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 0) {
+            HashSet<Integer> adjacentAreas = map.getAdjacentAreas(castleArea);
+            for (int area: adjacentAreas) {
+                if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) < 0) {
+                    mustHaveNavalAreas.add(area);
+                } else if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) == houseNumber ||
+                        map.getAreaType(area) == AreaType.port && game.getTroopsOwner(area) < 0){
+                    normNavalAreas.add(area);
+                }
+            }
+        }
+        if (mustHaveNavalAreas.size() > 0) {
+            for (int mustHaveArea: mustHaveNavalAreas) {
+                muster.addNewMusterUnit(mustHaveArea, new Unit(UnitType.ship, houseNumber));
+                numMusterPoints--;
+                if (numMusterPoints == 0) {
+                    break;
+                }
+            }
+        }
+        if (numMusterPoints > 0) {
+            muster.addNewMusterUnit(castleArea, new Unit(numMusterPoints == 1 ? UnitType.pawn : UnitType.knight, houseNumber));
+        }
+        return muster;
     }
 
     @Override
-    public String muster() {
-        return "";
+    public MusterPlayed muster(HashSet<Integer> castleAreas) {
+        return null;
     }
 
     @Override

@@ -145,7 +145,7 @@ public class BattleInfo {
      */
     public int getNumEnemyShips (int player, SideOfBattle side) {
         if (side == SideOfBattle.neutral) {
-            System.out.println(TextErrors.COUNЕ_UNITS_ON_NEUTRAL_SIDE_ERROR);
+            System.out.println(TextErrors.COUNT_UNITS_ON_NEUTRAL_SIDE_ERROR);
             return 0;
         }
         int nShips = 0;
@@ -166,7 +166,7 @@ public class BattleInfo {
      */
     public int getNumFriendlyUnits (SideOfBattle side, UnitType unitType) {
         if (side == SideOfBattle.neutral) {
-            System.out.println(TextErrors.COUNЕ_UNITS_ON_NEUTRAL_SIDE_ERROR);
+            System.out.println(TextErrors.COUNT_UNITS_ON_NEUTRAL_SIDE_ERROR);
             return 0;
         }
         int nUnits = 0;

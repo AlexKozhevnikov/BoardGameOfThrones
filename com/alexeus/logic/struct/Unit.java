@@ -6,7 +6,7 @@ import com.alexeus.logic.enums.UnitType;
  * Created by alexeus on 09.01.2017.
  * Класс представляет собой нормального, вещественного юнита на карте Вестероса
  */
-public class Unit {
+public class Unit implements Musterable {
 
     /**
      * Тип юнита
@@ -53,5 +53,10 @@ public class Unit {
 
     public int getStrength() {
         return this.getUnitType().getStrength();
+    }
+
+    @Override
+    public int getNumMusterPoints() {
+        return unitType == UnitType.siegeEngine ? 2 : getStrength();
     }
 }

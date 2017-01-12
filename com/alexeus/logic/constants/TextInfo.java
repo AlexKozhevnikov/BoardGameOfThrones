@@ -91,6 +91,13 @@ public class TextInfo {
     public static final String AREAS_WITH_TROOPS_OF = "    Области с войсками ";
     public static final String ARMIES = "Армии ";
     public static final String NEW_ORDER_ON_TRACK = "Новый порядок игроков на треке влияния ";
+    public static final String EARNS = " получает ";
+    public static final String POWER_TOKEN = " жетон власти.";
+    public static final String POWER_TOKENA = " жетона власти.";
+    public static final String POWER_TOKENS = " жетонов власти.";
+    public static final String CAN_MUSTER = " может собрать войска ";
+    public static final String PUTS = " ставит ";
+    public static final String NOW_HE_HAS = " Теперь у него ";
 
     public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";

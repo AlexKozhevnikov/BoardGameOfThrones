@@ -49,11 +49,17 @@ public class TextErrors {
     public static final String TRYING_TO_ADD_ARMY_OF_OTHER_PLAYER_ERROR = "Ошибка! Попытка добавить армию другого игрока!";
     public static final String NO_DEFENDER_ERROR = "Ошибка! Попытка начать бой в области, где нет защитника!";
     public static final String CANT_SUPPORT_AGAINST_YOURSELF_ERROR = "Ошибка! Нельзя оказывать поддержку против самого себя!";
-    public static final String COUNЕ_UNITS_ON_NEUTRAL_SIDE_ERROR = "Ошибка! Попытка посчитать юниты на нейтральной стороне.";
+    public static final String COUNT_UNITS_ON_NEUTRAL_SIDE_ERROR = "Ошибка! Попытка посчитать юниты на нейтральной стороне.";
     public static final String CANT_RETREAT_THERE_ERROR = "Нельзя отступить в эту область!";
     public static final String SAME_TYPES_ERROR = "Ошибка превращения одного юнита в другой: одинаковые типы!";
     public static final String INVALID_AREA_ERROR = "Ошибка: неподходящая область!";
     public static final String CARD_IS_NOT_ACTIVE_ERROR = "Ошибка: карта уже в сбросе!";
     public static final String CANT_CHANGE_UNIT_TYPE_ERROR = "Не удалось поменять тип юнита!";
     public static final String NO_AREAS_TO_RETREAT = "Ошибка: Нет областей для отступления!";
+    public static final String WRONG_AREAS_TO_MUSTER_ERROR = "Неверная область для сбора войск!";
+    public static final String CANT_MUSTER_HERE_ERROR = "Нельзя собрать войска здесь!";
+    public static final String NO_PAWN_TO_PROMOTE_ERROR = "Ошибка сбора войск: нет пехотинца для улучшения.";
+    public static final String NO_UNITS_TO_PUT_ERROR = "Ошибка сбора войск: в запасе недостаточно юнитов типа ";
+    public static final String MUSTER_SUPPLY_VIOLATION_ERROR = "Ошибка сбора войск: нарушен предел снабжения.";
+    public static final String MUSTER_POINTS_VIOLATED_ERROR = "Ошибка сбора войск: превышено число очков сбора.";
 }

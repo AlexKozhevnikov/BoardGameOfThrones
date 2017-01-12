@@ -40,6 +40,20 @@ public enum UnitType {
         return TextErrors.UNKNOWN_UFO_ERROR;
     }
 
+    public String nameGenitive() {
+        switch(this) {
+            case pawn:
+                return "пехотинца";
+            case knight:
+                return "рыцаря";
+            case siegeEngine:
+                return "осадную башню";
+            case ship:
+                return "корабль";
+        }
+        return TextErrors.UNKNOWN_UFO_ERROR;
+    }
+
     /**
      * Возвращает код отряда
      * @return код отряда

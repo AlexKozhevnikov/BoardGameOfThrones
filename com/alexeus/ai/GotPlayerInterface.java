@@ -1,10 +1,7 @@
 package com.alexeus.ai;
 
 import com.alexeus.logic.enums.*;
-import com.alexeus.logic.struct.Army;
-import com.alexeus.logic.struct.BattleInfo;
-import com.alexeus.logic.struct.MarchOrderPlayed;
-import com.alexeus.logic.struct.RaidOrderPlayed;
+import com.alexeus.logic.struct.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -126,15 +123,19 @@ public interface GotPlayerInterface {
      */
     int chooseCardPatchface(int enemy);
 
-    /*
+    /**
      * Разыграть свой приказ сбора власти со звездой
+     * @param area номер области, где игрок поставил приказ сбора власти со звездой
+     * @return Вариант сбора войск; если ни одного войска не собирается, то вместо этого собираются жетоны власти
      */
-    String playConsolidatePower();
+    MusterPlayed playConsolidatePowerS(int area);
 
-    /*
-     * Разыграть один свой приказ сбора войск
+    /**
+     * Разыграть сбор войск в одном из своих замков
+     * @param areas номера областей с замками, где игрок ещё не провёл сбор войск
+     * @return Вариант сбора войск
      */
-    String muster();
+    MusterPlayed muster(HashSet<Integer> areas);
 
     /*
      * Какое событие выбрать (1, 2, 3).
