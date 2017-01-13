@@ -1,9 +1,13 @@
 package com.alexeus;
 
 import com.alexeus.ai.math.BrownRobinsonSolver;
+import com.alexeus.graph.MainFrame;
+import com.alexeus.graph.MainPanel;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -31,9 +35,10 @@ public class Main {
         /*
          * АКТУАЛЬНЫЕ ВЫЗОВЫ *******************************************
          */
-        Game game = new Game(true);
-        game.startNewGame();
+        /*Game game = new Game(true);
+        game.startNewGame();*/
         //brownRobinsonTest();
+        MainFrame.createGUI();
     }
 
     private static void brownRobinsonTest() {
