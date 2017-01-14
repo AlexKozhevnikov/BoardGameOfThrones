@@ -15,6 +15,7 @@ import java.util.*;
 import static com.alexeus.logic.constants.MainConstants.*;
 import static com.alexeus.logic.constants.TextErrors.*;
 import static com.alexeus.logic.constants.TextInfo.*;
+import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -69,12 +70,12 @@ public class Game {
     /*
      * Массив приказов, которые сейчас лежат в данных областях карты
      */
-    private Order[] orderInArea = new Order[GameOfThronesMap.NUM_AREA];
+    private Order[] orderInArea = new Order[NUM_AREA];
 
     /*
      * Массив из армий, находящихся в каждой из областей карты. Пустые при инициализации.
      */
-    private Army[] armyInArea = new Army[GameOfThronesMap.NUM_AREA];
+    private Army[] armyInArea = new Army[NUM_AREA];
 
     /*
      * Здесь хранится армия, атаковавшая другого игрока, и поэтому временно находящаяся на территории врага
@@ -90,13 +91,13 @@ public class Game {
     /*
      * Массив из гарнизонов в областях. Нейтральный лорд, если при этом в области нет армий игроков
      */
-    private int[] garrisonInArea = new int[GameOfThronesMap.NUM_AREA];
+    private int[] garrisonInArea = new int[NUM_AREA];
 
     /*
      * Массив из жетонов власти, лежащих на областях.
      * Если на области нет жетона власти, то соответстующая переменная равна -1.
      */
-    private int[] powerTokenOnArea = new int[GameOfThronesMap.NUM_AREA];
+    private int[] powerTokenOnArea = new int[NUM_AREA];
 
     // Текущее снабжение каждого дома
     private int[] supply = new int[NUM_PLAYER];
@@ -118,7 +119,7 @@ public class Game {
      * Престольная земля - это область, на которой есть фамильный герб; если эту область оставит захватчик, она снова
      * перейдёт под контроль дома, чьей престольной землёй она является.
      */
-    private int[] houseHomeLandInArea = new int[GameOfThronesMap.NUM_AREA];
+    private int[] houseHomeLandInArea = new int[NUM_AREA];
 
     // Массивы, хранящие необходимые сведения о позициях по треку влияния
     private int[] thronePlayerOnPlace = new int[NUM_PLAYER];
@@ -201,7 +202,7 @@ public class Game {
                 playerInterface[i] = new PrimitivePlayer(this, i);
             }
         }
-        for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
+        for (int area = 0; area < NUM_AREA; area++) {
             powerTokenOnArea[area] = -1;
             houseHomeLandInArea[area] = -1;
             armyInArea[area] = new Army(this);
@@ -264,38 +265,30 @@ public class Game {
 
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
     private void setInitialPosition() {
-        // Баратеон
+        /*// Баратеон
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[53].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.knight, 0);
         armyInArea[56].addUnit(UnitType.pawn, 0);
-        garrisonInArea[56] = 2;
-        houseHomeLandInArea[56] = 0;
 
         // Ланнистер
         armyInArea[3].addUnit(UnitType.ship, 1);
         armyInArea[37].addUnit(UnitType.pawn, 1);
         armyInArea[36].addUnit(UnitType.knight, 1);
         armyInArea[36].addUnit(UnitType.pawn, 1);
-        houseHomeLandInArea[36] = 1;
-        garrisonInArea[36] = 2;
 
         // Старк
         armyInArea[11].addUnit(UnitType.ship, 2);
         armyInArea[25].addUnit(UnitType.pawn, 2);
         armyInArea[21].addUnit(UnitType.knight, 2);
         armyInArea[21].addUnit(UnitType.pawn, 2);
-        houseHomeLandInArea[21] = 2;
-        garrisonInArea[21] = 2;
 
         // Мартелл
         armyInArea[7].addUnit(UnitType.ship, 3);
         armyInArea[47].addUnit(UnitType.pawn, 3);
         armyInArea[48].addUnit(UnitType.knight, 3);
         armyInArea[48].addUnit(UnitType.pawn, 3);
-        houseHomeLandInArea[48] = 3;
-        garrisonInArea[48] = 2;
 
         // Грейджой
         armyInArea[2].addUnit(UnitType.ship, 4);
@@ -303,20 +296,36 @@ public class Game {
         armyInArea[33].addUnit(UnitType.pawn, 4);
         armyInArea[57].addUnit(UnitType.knight, 4);
         armyInArea[57].addUnit(UnitType.pawn, 4);
-        houseHomeLandInArea[57] = 4;
-        garrisonInArea[57] = 2;
 
         // Тирелл
         armyInArea[5].addUnit(UnitType.ship, 5);
         armyInArea[43].addUnit(UnitType.pawn, 5);
         armyInArea[41].addUnit(UnitType.knight, 5);
         armyInArea[41].addUnit(UnitType.pawn, 5);
-        houseHomeLandInArea[41] = 5;
-        garrisonInArea[41] = 2;
 
         // Нейтральные лорды
         garrisonInArea[31] = 6;
-        garrisonInArea[54] = 5;
+        garrisonInArea[54] = 5;*/
+        houseHomeLandInArea[56] = 0;
+        garrisonInArea[56] = 2;
+        houseHomeLandInArea[36] = 1;
+        garrisonInArea[36] = 2;
+        houseHomeLandInArea[21] = 2;
+        garrisonInArea[21] = 2;
+        houseHomeLandInArea[48] = 3;
+        garrisonInArea[48] = 2;
+        houseHomeLandInArea[57] = 4;
+        garrisonInArea[57] = 2;
+        houseHomeLandInArea[41] = 5;
+        garrisonInArea[41] = 2;
+        for (int i = 0; i < NUM_AREA; i++) {
+            if (map.getAreaType(i) == AreaType.port) continue;
+            int owner = houseHomeLandInArea[i] >= 0 ? houseHomeLandInArea[i] : random.nextInt(NUM_PLAYER);
+            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
+        }
     }
 
     /**
@@ -331,7 +340,7 @@ public class Game {
         for (int player = 0; player < NUM_PLAYER; player++) {
             areasWithTroopsOfPlayer.get(player).clear();
         }
-        for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
+        for (int area = 0; area < NUM_AREA; area++) {
             int troopsOwner = armyInArea[area].getOwner();
             if(troopsOwner >= 0) {
                 areasWithTroopsOfPlayer.get(troopsOwner).put(area, armyInArea[area].getNumUnits());
@@ -371,7 +380,7 @@ public class Game {
         for (int player = 0; player < NUM_PLAYER; player++) {
             supply[player] = 0;
         }
-        for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
+        for (int area = 0; area < NUM_AREA; area++) {
             int areaOwner = getAreaOwner(area);
             if (areaOwner >= 0 && map.getNumBarrel(area) > 0) {
                 supply[areaOwner] = Math.min(supply[areaOwner] + map.getNumBarrel(area), MAX_SUPPLY);
@@ -389,7 +398,7 @@ public class Game {
         for (int player = 0; player < NUM_PLAYER; player++) {
             victoryPoints[player] = 0;
         }
-        for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
+        for (int area = 0; area < NUM_AREA; area++) {
             int areaOwner = getAreaOwner(area);
             if (areaOwner >= 0 && map.getNumCastle(area) > 0) {
                 victoryPoints[areaOwner]++;
@@ -583,7 +592,7 @@ public class Game {
                         System.out.print(HOUSE[player]);
                         int from = raid.getAreaFrom();
                         int to = raid.getAreaTo();
-                        if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
+                        if (to >= 0 && to < NUM_AREA && to != from) {
                             // Разыгрываем результативный набег, снимаем два приказа и обновляем попутные переменные
                             int raidedPlayer = armyInArea[to].getOwner();
                             //noinspection ConstantConditions
@@ -640,7 +649,7 @@ public class Game {
         int to = raid.getAreaTo();
 
         // Банальные проверки на валидность областей и наличие набега, происходят для всех вариантов набегов без исключения
-        if (from < 0 || from >= GameOfThronesMap.NUM_AREA || to >= GameOfThronesMap.NUM_AREA) {
+        if (from < 0 || from >= NUM_AREA || to >= NUM_AREA) {
             System.out.println(WRONG_AREAS_RAID_ERROR);
             return false;
         }
@@ -651,7 +660,7 @@ public class Game {
         }
 
         // Случай результативного набега
-        if (to >= 0 && to < GameOfThronesMap.NUM_AREA && to != from) {
+        if (to >= 0 && to < NUM_AREA && to != from) {
             System.out.println(RAIDS + map.getAreaNameRusGenitive(from) + TO + map.getAreaNameRusAccusative(to) + ".");
             if (map.getAdjacencyType(from, to) == AdjacencyType.noAdjacency) {
                 System.out.println(NO_ADJACENT_RAID_ERROR);
@@ -806,11 +815,11 @@ public class Game {
         // Банальные проверки на валидность областей и наличие похода, происходят для всех вариантов походов без исключения
         boolean wrongAreasFlag = false;
         for (int areaDestination: destinationsOfMarch.keySet()) {
-            if (areaDestination < 0 || areaDestination >= GameOfThronesMap.NUM_AREA) {
+            if (areaDestination < 0 || areaDestination >= NUM_AREA) {
                 wrongAreasFlag = true;
             }
         }
-        if (wrongAreasFlag || from < 0 || from >= GameOfThronesMap.NUM_AREA) {
+        if (wrongAreasFlag || from < 0 || from >= NUM_AREA) {
             System.out.println(WRONG_AREAS_MARCH_ERROR);
             return false;
         }
@@ -1349,7 +1358,7 @@ public class Game {
                                 if (area < 0) {
                                     break;
                                 }
-                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                if (area >= NUM_AREA) {
                                     System.out.println(INVALID_AREA_ERROR);
                                 }
                                 System.out.println(QUEEN_OF_THORNS_REMOVES_ORDER + map.getAreaNameRusGenitive(area));
@@ -1674,7 +1683,7 @@ public class Game {
                                 if (area < 0) {
                                     break;
                                 }
-                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                if (area >= NUM_AREA) {
                                     System.out.println(INVALID_AREA_ERROR);
                                 }
                                 System.out.println(RENLY_MAKES_KNIGHT + map.getAreaNameRusLocative(area) + ".");
@@ -1714,7 +1723,7 @@ public class Game {
                                 if (area < 0) {
                                     break;
                                 }
-                                if (area >= GameOfThronesMap.NUM_AREA) {
+                                if (area >= NUM_AREA) {
                                     System.out.println(INVALID_AREA_ERROR);
                                 }
                                 System.out.println(CERSEI_REMOVES_ORDER + map.getAreaNameRusGenitive(area));
@@ -2168,7 +2177,7 @@ public class Game {
     }
 
     private void nullifyOrdersAndVariables() {
-        for (int area = 0; area < GameOfThronesMap.NUM_AREA; area++) {
+        for (int area = 0; area < NUM_AREA; area++) {
             orderInArea[area] = null;
             armyInArea[area].healAllUnits();
         }

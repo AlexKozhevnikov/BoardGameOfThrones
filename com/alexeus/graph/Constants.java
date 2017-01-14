@@ -1,8 +1,10 @@
 package com.alexeus.graph;
 
+import java.awt.*;
+
 /**
  * Created by alexeus on 13.01.2017.
- * Сюда были вынесены все константы, обозначающие путь к файлам.
+ * Сюда были вынесены все константы, имеющие отношение к отрисовке
  */
 public class Constants {
     static final String WAY = "C:\\Users\\Пользователь\\IdeaProjects\\BoardGameOfThrones\\img\\";
@@ -24,4 +26,8 @@ public class Constants {
     static final String BARBARIAN = "barbarian.png";
     static final String DEFENCE = "defence\\";
     static final String PNG = ".png";
+    static final String AREA = "area\\";
+
+    static final Color[] HOUSE_COLOR = {Color.YELLOW, Color.RED, Color.WHITE,
+            new Color(255, 128, 0), new Color(0x10, 0x10, 0x10), new Color(0, 180, 0)};
 }
