@@ -40,6 +40,20 @@ public enum UnitType {
         return TextErrors.UNKNOWN_UFO_ERROR;
     }
 
+    public String engName() {
+        switch(this) {
+            case pawn:
+                return "foot";
+            case knight:
+                return "knight";
+            case siegeEngine:
+                return "tower";
+            case ship:
+                return "ship";
+        }
+        return TextErrors.UNKNOWN_UFO_ERROR;
+    }
+
     public String nameGenitive() {
         switch(this) {
             case pawn:

@@ -1,5 +1,6 @@
 package com.alexeus;
 
+import com.alexeus.control.Controller;
 import com.alexeus.graph.MainPanel;
 import com.alexeus.logic.Game;
 
@@ -9,16 +10,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class Main {
+
+    static Controller controller;
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
+                controller = new Controller();
                 JFrame frame = new JFrame("Board Game of Thrones");
-                frame.setContentPane(new MainPanel());
+                frame.setContentPane(new MainPanel(controller));
                 addMenu(frame);
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.pack();
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
+                controller.startNewGame();
             }
         });
     }
@@ -45,8 +51,7 @@ public class Main {
 
         newGameItemMenu.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                Game game = new Game(true);
-                game.startNewGame();
+                controller.startNewGame();
             }
         });
 

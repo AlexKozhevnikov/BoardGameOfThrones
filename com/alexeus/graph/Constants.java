@@ -16,4 +16,12 @@ public class Constants {
     static final String PLAY_END = "playEnd.png";
     static final String COLLAPSE = "collapse.png";
     static final String RETURN = "return.png";
+    static final String POWER = "_power.png";
+    static final String INFLUENCE = "_influence.png";
+    static final String CARD_BACK = "_back.png";
+    static final String VICTORY = "_victory.png";
+    static final String TIME = "turn-marker.png";
+    static final String BARBARIAN = "barbarian.png";
+    static final String DEFENCE = "defence\\";
+    static final String PNG = ".png";
 }

@@ -1,5 +1,6 @@
 package com.alexeus.graph;
 
+import com.alexeus.control.Controller;
 import com.alexeus.graph.tab.*;
 
 import javax.imageio.ImageIO;
@@ -41,7 +42,7 @@ public class MainPanel extends JPanel {
     HouseTabPanel houseTab;
     JButton leftPanelCollapser;
 
-    public MainPanel() {
+    public MainPanel(Controller controller) {
         setLayout(new BorderLayout());
         loadPics();
         JPanel bottomPanel = new JPanel(new BorderLayout());
@@ -59,7 +60,7 @@ public class MainPanel extends JPanel {
                 leftPanelCollapser.setIcon(isPanelVisible ? returnIcon : collapseIcon);
             }
         });
-        bottomPanel.add(log, BorderLayout.LINE_START);
+        bottomPanel.add(new ScrollPane().add(log), BorderLayout.LINE_START);
         bottomPanel.add(leftPanelCollapser, BorderLayout.LINE_END);
         add(bottomPanel, BorderLayout.PAGE_END);
         // Отрисовка карты
@@ -132,8 +133,8 @@ public class MainPanel extends JPanel {
         buttonsPanel.add(playEndButton);
         buttonsPanel.setPreferredSize(new Dimension(LEFT_PANEL_WIDTH, BUTTON_PANEL_HEIGHT));
         leftPanel.add(buttonsPanel, BorderLayout.PAGE_START);
-
         add(leftPanel, BorderLayout.LINE_END);
+        controller.sendComponents(mapPanel, log, chatTab, eventTab, fightTab, houseTab);
     }
 
     private void loadPics() {

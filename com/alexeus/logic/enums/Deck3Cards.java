@@ -39,4 +39,14 @@ public enum Deck3Cards {
     public boolean isWild() {
         return (this != wildlingsAttack && this != devotedToSword);
     }
+
+    public int getNumOfCards() {
+        switch(this) {
+            case wildlingsAttack:
+                return 3;
+            case devotedToSword:
+                return 2;
+        }
+        return 1;
+    }
 }

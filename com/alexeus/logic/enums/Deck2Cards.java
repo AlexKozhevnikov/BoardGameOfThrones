@@ -10,11 +10,10 @@ public enum Deck2Cards {
     clashOfKings,
     gameOfThrones,
     darkWingsDarkWords,
-    lastDayOfSummer,
-    winterIsComing;
+    lastDayOfSummer2,
+    winterIsComing2;
 
-    @Override
-    public String toString() {
+    public String getName() {
         switch(this) {
             case clashOfKings:
                 return "Битва королей";
@@ -22,15 +21,26 @@ public enum Deck2Cards {
                 return "Игра престолов";
             case darkWingsDarkWords:
                 return "Чёрные крылья, чёрные слова";
-            case lastDayOfSummer:
+            case lastDayOfSummer2:
                 return "Последние дни лета";
-            case winterIsComing:
+            case winterIsComing2:
                 return "Зима близко";
         }
         return TextErrors.UNKNOWN_EVENT_ERROR;
     }
 
     public boolean isWild() {
-        return (this == darkWingsDarkWords || this == lastDayOfSummer);
+        return (this == darkWingsDarkWords || this == lastDayOfSummer2);
+    }
+
+    public int getNumOfCards() {
+        switch(this) {
+            case clashOfKings:
+            case gameOfThrones:
+                return 3;
+            case darkWingsDarkWords:
+                return 2;
+        }
+        return 1;
     }
 }

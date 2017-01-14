@@ -209,11 +209,10 @@ public class Game {
     }
 
     /**
-     * Метод вызывается при старте новой игры. Все переменные принимают начальные значения, текущий прогресс теряется.
+     * Метод вызывается при старте новой игры. Все переменные принимают начальные значения, текущий прогресс,
+     * если таковой имелся, теряется.
      */
-    public void startNewGame() {
-        System.out.println(NEW_GAME_BEGINS);
-        System.out.println(PLAYERS);
+    public void prepareNewGame() {
         for (int player = 0; player < NUM_PLAYER; player++) {
             System.out.println(playerInterface[player].nameYourself());
         }
@@ -261,9 +260,6 @@ public class Game {
         initializeDecks();
 
         //testDecks();
-
-        // Игра престолов началась.
-        setNewGamePhase(GamePhase.planningPhase);
     }
 
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
@@ -2064,27 +2060,21 @@ public class Game {
      * Метод инициализирует колоды событий, одичалых и домов
      */
     private void initializeDecks() {
-        for (int i = 0; i < 3; i++) {
-            deck1.add(Deck1Cards.muster);
-            deck1.add(Deck1Cards.supply);
-            deck2.add(Deck2Cards.clashOfKings);
-            deck2.add(Deck2Cards.gameOfThrones);
-            deck3.add(Deck3Cards.wildlingsAttack);
-            if(i < 2) {
-                deck1.add(Deck1Cards.throneOfSwords);
-                deck2.add(Deck2Cards.darkWingsDarkWords);
-                deck3.add(Deck3Cards.devotedToSword);
+        for (Deck1Cards card: Deck1Cards.values()) {
+            for (int i = 0; i < card.getNumOfCards(); i++) {
+                deck1.add(card);
             }
         }
-        deck1.add(Deck1Cards.lastDayOfSummer);
-        deck1.add(Deck1Cards.winterIsComing);
-        deck2.add(Deck2Cards.lastDayOfSummer);
-        deck2.add(Deck2Cards.winterIsComing);
-        deck3.add(Deck3Cards.seaOfStorms);
-        deck3.add(Deck3Cards.rainOfAutumn);
-        deck3.add(Deck3Cards.feastForCrows);
-        deck3.add(Deck3Cards.webOfLies);
-        deck3.add(Deck3Cards.stormOfSwords);
+        for (Deck2Cards card: Deck2Cards.values()) {
+            for (int i = 0; i < card.getNumOfCards(); i++) {
+                deck2.add(card);
+            }
+        }
+        for (Deck3Cards card: Deck3Cards.values()) {
+            for (int i = 0; i < card.getNumOfCards(); i++) {
+                deck3.add(card);
+            }
+        }
         wildlingDeck.addAll(Arrays.asList(WildlingCard.values()));
         int curIndexForPlayer[] = new int[NUM_PLAYER];
         for (HouseCard houseCard: HouseCard.values()) {
@@ -2109,7 +2099,7 @@ public class Game {
             deck1.addLast(event1);
         }
         event1 = deck1.pollFirst();
-        while (event1 == Deck1Cards.winterIsComing) {
+        while (event1 == Deck1Cards.winterIsComing1) {
             deck1.addLast(event1);
             Collections.shuffle(deck1);
             event1 = deck1.pollFirst();
@@ -2122,7 +2112,7 @@ public class Game {
             deck2.addLast(event2);
         }
         event2 = deck2.pollFirst();
-        while (event2 == Deck2Cards.winterIsComing) {
+        while (event2 == Deck2Cards.winterIsComing2) {
             deck2.addLast(event2);
             Collections.shuffle(deck2);
             event2 = deck2.pollFirst();

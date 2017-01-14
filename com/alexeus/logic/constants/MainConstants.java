@@ -15,6 +15,7 @@ public class MainConstants {
     public static final String HOUSE_DATIVE[] = {"Баратеону", "Ланнистеру", "Старку", "Мартеллу", "Грейджою", "Тиреллу"};
     public static final String HOUSE_ABLATIVE[] = {"Баратеоном", "Ланнистером", "Старком", "Мартеллом", "Грейджоем", "Тиреллом"};
     public static final String PLAYERS = "Участники партии:";
+    public static final String HOUSE_ENG[] = {"baratheon", "lannister", "stark", "martell", "greyjoy", "tyrell"};
 
     // числовые константы
     public static final int NUM_PLAYER = 6;
@@ -30,6 +31,8 @@ public class MainConstants {
     public static final int NUM_DIFFERENT_ORDERS = 11;
     public static final int MAX_TROOPS_IN_AREA = 4;
     public static final int NUM_UNIT_TYPES = 4;
+    public static final int MAX_DEFENCE = 6;
+    public static final int MIN_DEFENCE = 2;
 
     public static final int[][] INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE = {{0, 1, 2, 3, 4, 5},
                                                                             {4, 5, 3, 2, 0, 1},
