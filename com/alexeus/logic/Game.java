@@ -139,6 +139,10 @@ public class Game {
     /*
      * **** Вспомогательные переменные для методов ****
      */
+
+    // Область, в которой был сыгран последний бой
+    private int battleArea;
+
     // Количество разыгранных приказов с определённым кодом; нужно для валидации приказов каждого игрока
     private int[] nOrdersWithCode = new int[NUM_DIFFERENT_ORDERS];
 
@@ -237,29 +241,11 @@ public class Game {
         setInitialPosition();
         renewHousesTroopsArea();
         adjustSupply();
-        adjustVictoryPoints();
-        time = 1;
-        wildlingsStrength = 2;
-        // Устанавливаем начальные количаства жетонов власти
         for (int player = 0; player < NUM_PLAYER; player++) {
             printSupplyEaters(player);
-            nPowerTokensHouse[player] = INITIAL_TOKENS;
-            maxPowerTokensHouse[player] = MAX_TOKENS;
-            numActiveHouseCardsOfPlayer[player] = NUM_HOUSE_CARDS;
         }
-        // Устанавливаем начальные позиции на треках влияния
-        for (int place = 0; place < NUM_PLAYER; place++) {
-            thronePlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[0][place];
-            swordPlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[1][place];
-            ravenPlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[2][place];
-        }
-        fillThronePlaceForPlayer();
-        fillSwordPlaceForPlayer();
-        fillRavenPlaceForPlayer();
-        // готовим карты домов и инициализируем колоды событий и одичалых
-        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
-        initializeDecks();
-
+        adjustVictoryPoints();
+        battleArea = -1;
         //testDecks();
     }
 
@@ -305,7 +291,7 @@ public class Game {
 
         // Нейтральные лорды
         garrisonInArea[31] = 6;
-        garrisonInArea[54] = 5;*/
+        garrisonInArea[54] = 5; */
         houseHomeLandInArea[56] = 0;
         garrisonInArea[56] = 2;
         houseHomeLandInArea[36] = 1;
@@ -319,14 +305,51 @@ public class Game {
         houseHomeLandInArea[41] = 5;
         garrisonInArea[41] = 2;
         for (int i = 0; i < NUM_AREA; i++) {
-            if (map.getAreaType(i) == AreaType.port) continue;
+            if (i >= 12 && i < 20) {
+                continue;
+            }
             int owner = houseHomeLandInArea[i] >= 0 ? houseHomeLandInArea[i] : random.nextInt(NUM_PLAYER);
             armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
             armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
             armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
             armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].woundAndKillTroops(random.nextInt(5), KillingReason.sword);
+            if (!armyInArea[i].isEmpty()) {
+                orderInArea[i] = Order.closed;
+            }
+            if (i >= 20) {
+                powerTokenOnArea[i] = owner;
+            }
+        }
+        for (int i = 12; i < 20; i++) {
+            int castleOwner = getAreaOwner(getCastleWithPort(i));
+            if (castleOwner >= 0) {
+                for (int j = 0; j < i % 3 + 1; j++) {
+                    armyInArea[i].addUnit(UnitType.ship, castleOwner);
+                }
+            }
             orderInArea[i] = Order.closed;
         }
+        time = 1;
+        wildlingsStrength = 2;
+        // Устанавливаем начальные количаства жетонов власти
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            nPowerTokensHouse[player] = INITIAL_TOKENS;
+            maxPowerTokensHouse[player] = MAX_TOKENS;
+            numActiveHouseCardsOfPlayer[player] = NUM_HOUSE_CARDS;
+        }
+        // Устанавливаем начальные позиции на треках влияния
+        for (int place = 0; place < NUM_PLAYER; place++) {
+            thronePlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[0][place];
+            swordPlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[1][place];
+            ravenPlayerOnPlace[place] = INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[2][place];
+        }
+        fillThronePlaceForPlayer();
+        fillSwordPlaceForPlayer();
+        fillRavenPlaceForPlayer();
+        // готовим карты домов и инициализируем колоды событий и одичалых
+        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
+        initializeDecks();
     }
 
     /**
@@ -779,6 +802,7 @@ public class Game {
                                         (attackingArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
                                         map.getAreaNameRusAccusative(areaWhereBattleBegins) +
                                         (attackingArmy.getSize() == 1 ? AND_FIGHTS : AND_FIGHT));
+                                battleArea = areaWhereBattleBegins;
                                 playFight(areaWhereBattleBegins, from, orderInArea[from].getModifier());
                             }
                             orderInArea[from] = null;
@@ -1175,17 +1199,23 @@ public class Game {
      * @return true, если можно
      */
     private boolean canMoveInPort(int portArea, int player) {
+        // Если замок, которому принадлежит порт, в который хочет зайти игрок, принадлежит ему, то всё хорошо
+        return getAreaOwner(getCastleWithPort(portArea)) == player;
+    }
+
+    /**
+     * Метод возвращает номер области с замком, которой принадлежит данная обасть с портом
+     * @param portArea портовая область
+     * @return номер области с замком
+     */
+    public int getCastleWithPort(int portArea) {
         HashSet<Integer> adjacentAreas = map.getAdjacentAreas(portArea);
-        int castleWithThisPort = -1;
-        // Ищем замок, которому принадлежит этот порт
         for (int curArea: adjacentAreas) {
             if (map.getNumCastle(curArea) > 0) {
-                castleWithThisPort = curArea;
-                break;
+                return curArea;
             }
         }
-        // Если замок, которому принадлежит порт, в который хочет зайти игрок, принадлежит ему, то всё хорошо
-        return getAreaOwner(castleWithThisPort) == player;
+        return -1;
     }
 
     /**
@@ -2233,6 +2263,51 @@ public class Game {
      */
     public Order getOrderInArea(int area) {
         return orderInArea[area];
+    }
+
+    public int getTime() {
+        return time;
+    }
+
+    public int getWildlingsStrength() {
+        return wildlingsStrength;
+    }
+
+    public int[] getSupply() {
+        return supply;
+    }
+
+    public int getSupply(int player) {
+        return supply[player];
+    }
+
+    public int[] getVictoryPoints() {
+        return victoryPoints;
+    }
+
+    public int getVictoryPoints(int player) {
+        return victoryPoints[player];
+    }
+
+    public Army getAttackingArmy() {
+        return attackingArmy;
+    }
+
+    public Army getRetreatingArmy() {
+        return retreatingArmy;
+    }
+
+    public int getBattleArea() {
+        return battleArea;
+    }
+
+    /**
+     * Метод возвращает номер дома, которому принадлежит жетон власти на этой области
+     * @param area номер области
+     * @return номер дома-автора жетона власти, или -1, если жетона власти на области нет.
+     */
+    public int getPowerTokenInArea(int area) {
+        return powerTokenOnArea[area];
     }
 
     /**

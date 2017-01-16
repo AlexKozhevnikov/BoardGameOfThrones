@@ -12,7 +12,6 @@ public class MainConstants {
     // текстовые константы - игроки
     public static final String HOUSE[] = {"Баратеон", "Ланнистер", "Старк", "Мартелл", "Грейджой", "Тирелл"};
     public static final String HOUSE_GENITIVE[] = {"Баратеона", "Ланнистера", "Старка", "Мартелла", "Грейджоя", "Тирелла"};
-    public static final String HOUSE_DATIVE[] = {"Баратеону", "Ланнистеру", "Старку", "Мартеллу", "Грейджою", "Тиреллу"};
     public static final String HOUSE_ABLATIVE[] = {"Баратеоном", "Ланнистером", "Старком", "Мартеллом", "Грейджоем", "Тиреллом"};
     public static final String PLAYERS = "Участники партии:";
     public static final String HOUSE_ENG[] = {"baratheon", "lannister", "stark", "martell", "greyjoy", "tyrell"};
