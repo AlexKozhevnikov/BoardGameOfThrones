@@ -17,7 +17,9 @@ public enum Order {
     support,
     supportS,
     defence,
-    defenceS;
+    defenceS,
+    // Закрытый приказ выкладывается на поле во время фазы замыслов
+    closed;
 
     public final static int[] maxNumOrdersWithCode = {2, 1,  1, 1, 1,  2, 1,  2, 1,  2, 1};
 

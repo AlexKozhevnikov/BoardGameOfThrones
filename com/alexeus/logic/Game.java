@@ -321,10 +321,11 @@ public class Game {
         for (int i = 0; i < NUM_AREA; i++) {
             if (map.getAreaType(i) == AreaType.port) continue;
             int owner = houseHomeLandInArea[i] >= 0 ? houseHomeLandInArea[i] : random.nextInt(NUM_PLAYER);
-            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
-            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
-            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
-            armyInArea[i].addUnit(map.getAreaType(i) == AreaType.sea ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            orderInArea[i] = Order.closed;
         }
     }
 
@@ -2283,11 +2284,28 @@ public class Game {
             case ironThrone:
                 return thronePlayerOnPlace[place];
             case valyrianSword:
-                return thronePlayerOnPlace[place];
+                return swordPlaceForPlayer[place];
             case raven:
-                return thronePlayerOnPlace[place];
+                return ravenPlayerOnPlace[place];
         }
         return -1;
+    }
+
+    /**
+     * Метод возвращает массив игроков на определённом месте треке влияния
+     * @param trackType трек влияния
+     * @return место
+     */
+    public int[] getInfluenceTrackPlayerOnPlace(TrackType trackType) {
+        switch (trackType) {
+            case ironThrone:
+                return thronePlayerOnPlace;
+            case valyrianSword:
+                return swordPlayerOnPlace;
+            case raven:
+                return ravenPlayerOnPlace;
+        }
+        return null;
     }
 
     /**

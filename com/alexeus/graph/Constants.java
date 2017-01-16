@@ -25,6 +25,7 @@ public class Constants {
     static final String TIME = "turn-marker.png";
     static final String BARBARIAN = "barbarian.png";
     static final String DEFENCE = "defence\\";
+    static final String ORDER = "order\\";
     static final String PNG = ".png";
     static final String AREA = "area\\";
 
