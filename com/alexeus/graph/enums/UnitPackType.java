@@ -1,4 +1,4 @@
-package com.alexeus.graph.helper;
+package com.alexeus.graph.enums;
 
 /**
  * Created by alexeus on 15.01.2017.

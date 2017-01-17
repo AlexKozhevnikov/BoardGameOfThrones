@@ -29,6 +29,7 @@ public class MainConstants {
     public static final int MAX_TOKENS = 20;
     public static final int NUM_DIFFERENT_ORDERS = 11;
     public static final int NUM_TRACK = 3;
+    public static final int NUM_EVENT_DECKS = 3;
     public static final int MAX_TROOPS_IN_AREA = 4;
     public static final int NUM_UNIT_TYPES = 4;
     public static final int MAX_DEFENCE = 6;

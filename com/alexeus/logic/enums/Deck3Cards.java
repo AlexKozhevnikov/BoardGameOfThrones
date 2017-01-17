@@ -6,7 +6,7 @@ import com.alexeus.logic.constants.TextErrors;
  * Created by alexeus on 03.01.2017.
  * Перечисление событий третьей колоды
  */
-public enum Deck3Cards {
+public enum Deck3Cards implements Happenable {
     wildlingsAttack,
     devotedToSword,
     seaOfStorms,
@@ -16,7 +16,7 @@ public enum Deck3Cards {
     stormOfSwords;
 
     @Override
-    public String toString() {
+    public String getName() {
         switch(this) {
             case wildlingsAttack:
                 return "Нашествие одичалых";
@@ -36,10 +36,12 @@ public enum Deck3Cards {
         return TextErrors.UNKNOWN_EVENT_ERROR;
     }
 
+    @Override
     public boolean isWild() {
         return (this != wildlingsAttack && this != devotedToSword);
     }
 
+    @Override
     public int getNumOfCards() {
         switch(this) {
             case wildlingsAttack:
@@ -48,5 +50,10 @@ public enum Deck3Cards {
                 return 2;
         }
         return 1;
+    }
+
+    @Override
+    public int getDeckNumber() {
+        return 3;
     }
 }

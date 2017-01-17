@@ -23,11 +23,10 @@ import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
  */
 public class Game {
 
-    private LinkedList<Deck1Cards> deck1;
+    private static Game instance;
 
-    private LinkedList<Deck2Cards> deck2;
-
-    private LinkedList<Deck3Cards> deck3;
+    // Все 3 колоды событий в одном объекте
+    private LinkedList<LinkedList<Happenable>> decks;
 
     private LinkedList<WildlingCard> wildlingDeck;
 
@@ -46,9 +45,7 @@ public class Game {
     private int wildlingsStrength;
 
     // события текущего раунда
-    private Deck1Cards event1;
-    private Deck2Cards event2;
-    private Deck3Cards event3;
+    private Happenable[] event = new Happenable[NUM_EVENT_DECKS];
     // Запрещённый в данном раунде приказ
     private OrderType prohibitedOrder = null;
     // последняя сыгранная карта одичалых
@@ -187,30 +184,36 @@ public class Game {
      */
     private HashMap<Integer, Integer> virtualAreasWithTroops = new HashMap<>();
 
+    private HashMap<Happenable, Integer> numRemainingCards = new HashMap<>();
+
     /**
      * Конструктор.
-     * @param dump "затычка", нужная для игры лошков
-     * TODO избавиться от неё, когда напишу нормальных игроков
      */
-    public Game(boolean dump) {
+    private Game() {
         map = new GameOfThronesMap();
-        deck1 = new LinkedList<>();
-        deck2 = new LinkedList<>();
-        deck3 = new LinkedList<>();
+        decks = new LinkedList<>();
+        for (int deckNumber = 1; deckNumber <= NUM_EVENT_DECKS; deckNumber++) {
+            decks.add(new LinkedList<>());
+        }
         wildlingDeck = new LinkedList<>();
         random = new Random();
         addListener(new GamePhaseChangeListener());
-        if (dump) {
-            playerInterface = new PrimitivePlayer[NUM_PLAYER];
-            for (int i = 0; i < NUM_PLAYER; i++) {
-                playerInterface[i] = new PrimitivePlayer(this, i);
-            }
+        playerInterface = new PrimitivePlayer[NUM_PLAYER];
+        for (int i = 0; i < NUM_PLAYER; i++) {
+            playerInterface[i] = new PrimitivePlayer(this, i);
         }
         for (int area = 0; area < NUM_AREA; area++) {
             powerTokenOnArea[area] = -1;
             houseHomeLandInArea[area] = -1;
             armyInArea[area] = new Army(this);
         }
+    }
+
+    public static Game getInstance() {
+        if (instance == null) {
+            instance = new Game();
+        }
+        return instance;
     }
 
     /**
@@ -246,7 +249,9 @@ public class Game {
         }
         adjustVictoryPoints();
         battleArea = -1;
-        //testDecks();
+        // готовим карты домов и инициализируем колоды событий и одичалых
+        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
+        initializeDecks();
     }
 
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
@@ -347,9 +352,6 @@ public class Game {
         fillThronePlaceForPlayer();
         fillSwordPlaceForPlayer();
         fillRavenPlaceForPlayer();
-        // готовим карты домов и инициализируем колоды событий и одичалых
-        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
-        initializeDecks();
     }
 
     /**
@@ -591,7 +593,7 @@ public class Game {
         }
 
         // Если есть событие "Море штормов", то после ворона сразу переходим к походом, иначе сначала разыгрываем набеги
-        setNewGamePhase(event3 == Deck3Cards.seaOfStorms ? GamePhase.marchPhase : GamePhase.raidPhase);
+        setNewGamePhase(event[2] == Deck3Cards.seaOfStorms ? GamePhase.marchPhase : GamePhase.raidPhase);
     }
 
     /**
@@ -824,7 +826,7 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
-        setNewGamePhase(event3 == Deck3Cards.feastForCrows ? GamePhase.westerosPhase : GamePhase.consolidatePowerPhase);
+        setNewGamePhase(event[2] == Deck3Cards.feastForCrows ? GamePhase.westerosPhase : GamePhase.consolidatePowerPhase);
     }
 
     /**
@@ -1255,7 +1257,7 @@ public class Game {
         HashSet<Integer> supporters = new HashSet<>();
         ArrayList<Integer> areasOfSupport = new ArrayList<>();
         // Спрашиваем игроков, кого они поддержат. Не имеет смысла, если есть событие "Паутина лжи"
-        if (event3 != Deck3Cards.webOfLies) {
+        if (event[2] != Deck3Cards.webOfLies) {
             for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
                 if (orderInArea[adjacentArea] != null && orderInArea[adjacentArea].orderType() == OrderType.support &&
                         map.getAdjacencyType(adjacentArea, areaOfBattle) != AdjacencyType.landToSea &&
@@ -2100,20 +2102,8 @@ public class Game {
      * Метод инициализирует колоды событий, одичалых и домов
      */
     private void initializeDecks() {
-        for (Deck1Cards card: Deck1Cards.values()) {
-            for (int i = 0; i < card.getNumOfCards(); i++) {
-                deck1.add(card);
-            }
-        }
-        for (Deck2Cards card: Deck2Cards.values()) {
-            for (int i = 0; i < card.getNumOfCards(); i++) {
-                deck2.add(card);
-            }
-        }
-        for (Deck3Cards card: Deck3Cards.values()) {
-            for (int i = 0; i < card.getNumOfCards(); i++) {
-                deck3.add(card);
-            }
+        for (int i = 0; i < NUM_EVENT_DECKS; i++) {
+            fillDeck(i);
         }
         wildlingDeck.addAll(Arrays.asList(WildlingCard.values()));
         int curIndexForPlayer[] = new int[NUM_PLAYER];
@@ -2124,49 +2114,34 @@ public class Game {
                 curIndexForPlayer[house]++;
             }
         }
-        Collections.shuffle(deck1);
-        Collections.shuffle(deck2);
-        Collections.shuffle(deck3);
         Collections.shuffle(wildlingDeck);
+    }
+
+    private void fillDeck(int deckNumber) {
+        decks.get(deckNumber).clear();
+        for (Happenable card: deckNumber == 1 ? Deck1Cards.values() :
+                (deckNumber == 2 ? Deck2Cards.values() : Deck3Cards.values())) {
+            numRemainingCards.put(card, card.getNumOfCards());
+            for (int i = 0; i < card.getNumOfCards(); i++) {
+                decks.get(deckNumber).add(card);
+            }
+        }
+        Collections.shuffle(decks.get(deckNumber));
     }
 
     /**
      * Метод вытаскивает три новых события при наступлении фазы Вестероса
      */
     private void chooseNewEvents() {
-
-        if (event1 != null) {
-            deck1.addLast(event1);
-        }
-        event1 = deck1.pollFirst();
-        while (event1 == Deck1Cards.winterIsComing1) {
-            deck1.addLast(event1);
-            Collections.shuffle(deck1);
-            event1 = deck1.pollFirst();
-        }
-        if (event1.isWild()) {
-            wildlingsStrength += WILDLING_STRENGTH_INCREMENT;
-        }
-
-        if (event2 != null) {
-            deck2.addLast(event2);
-        }
-        event2 = deck2.pollFirst();
-        while (event2 == Deck2Cards.winterIsComing2) {
-            deck2.addLast(event2);
-            Collections.shuffle(deck2);
-            event2 = deck2.pollFirst();
-        }
-        if (event2.isWild()) {
-            wildlingsStrength += WILDLING_STRENGTH_INCREMENT;
-        }
-
-        if (event3 != null) {
-            deck3.addLast(event3);
-        }
-        event3 = deck3.pollFirst();
-        if (event3.isWild()) {
-            wildlingsStrength += WILDLING_STRENGTH_INCREMENT;
+        for (int i = 0; i < NUM_EVENT_DECKS; i++) {
+            event[i] = decks.get(i).pollFirst();
+            while (event[i] == Deck1Cards.winterIsComing1 || event[i] == Deck2Cards.winterIsComing2) {
+                fillDeck(i);
+                event[i] = decks.get(i).pollFirst();
+            }
+            if (event[i].isWild()) {
+                wildlingsStrength += WILDLING_STRENGTH_INCREMENT;
+            }
         }
     }
 
@@ -2184,27 +2159,6 @@ public class Game {
             wildlingsStrength = Math.max(0, wildlingsStrength - 2 * WILDLING_STRENGTH_INCREMENT);
         }
         System.out.println(" Карта одичалых: " + topWildlingCard);
-    }
-
-    // тестовый метод, проверяющий, что прокрутка колод событий и одичалых идёт правильно.
-    private void testDecks() {
-        while (time < LAST_TURN) {
-            time++;
-            chooseNewEvents();
-            System.out.println("Раунд № " + time + ". События - " + event1 + "; " + event2 + "; " + event3);
-            if (wildlingsStrength >= MAX_WILDLING_STRENGTH) {
-                wildlingsStrength = MAX_WILDLING_STRENGTH;
-                wildlingAttack();
-            }
-            if (event3 == Deck3Cards.wildlingsAttack) {
-                wildlingAttack();
-            }
-            System.out.println("Сила одичалых: " + wildlingsStrength + ". Колоды: ");
-            System.out.println(deck1);
-            System.out.println(deck2);
-            System.out.println(deck3);
-            System.out.println("***");
-        }
     }
 
     private void nullifyOrdersAndVariables() {
@@ -2299,6 +2253,19 @@ public class Game {
 
     public int getBattleArea() {
         return battleArea;
+    }
+
+    /**
+     * Возвращает текущее событие в определённой колоде
+     * @param deckNumber номер колоды от 1 до 3
+     * @return текущее событие этой колоды
+     */
+    public Happenable getEvent(int deckNumber) {
+        return event[deckNumber - 1];
+    }
+
+    public int getNumRemainingCards(Happenable h) {
+        return numRemainingCards.get(h);
     }
 
     /**

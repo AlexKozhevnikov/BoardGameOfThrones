@@ -6,13 +6,14 @@ import com.alexeus.logic.constants.TextErrors;
  * Created by alexeus on 03.01.2017.
  * Перечисление событий второй колоды
  */
-public enum Deck2Cards {
+public enum Deck2Cards implements Happenable {
     clashOfKings,
     gameOfThrones,
     darkWingsDarkWords,
     lastDayOfSummer2,
     winterIsComing2;
 
+    @Override
     public String getName() {
         switch(this) {
             case clashOfKings:
@@ -29,10 +30,12 @@ public enum Deck2Cards {
         return TextErrors.UNKNOWN_EVENT_ERROR;
     }
 
+    @Override
     public boolean isWild() {
         return (this == darkWingsDarkWords || this == lastDayOfSummer2);
     }
 
+    @Override
     public int getNumOfCards() {
         switch(this) {
             case clashOfKings:
@@ -42,5 +45,10 @@ public enum Deck2Cards {
                 return 2;
         }
         return 1;
+    }
+
+    @Override
+    public int getDeckNumber() {
+        return 2;
     }
 }

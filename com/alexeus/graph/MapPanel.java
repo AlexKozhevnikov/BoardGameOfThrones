@@ -1,6 +1,9 @@
 package com.alexeus.graph;
 
-import com.alexeus.graph.helper.UnitPackType;
+import com.alexeus.control.Controller;
+import com.alexeus.graph.util.ImageLoader;
+import com.alexeus.graph.util.PictureTormentor;
+import com.alexeus.graph.enums.UnitPackType;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.enums.Order;
@@ -9,17 +12,14 @@ import com.alexeus.logic.enums.UnitType;
 import com.alexeus.logic.struct.Army;
 import com.alexeus.logic.struct.Unit;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 
-import static com.alexeus.graph.Constants.*;
-import static com.alexeus.graph.helper.UnitPackType.*;
+import static com.alexeus.graph.constants.Constants.*;
+import static com.alexeus.graph.enums.UnitPackType.*;
 import static com.alexeus.logic.constants.MainConstants.*;
 import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
 
@@ -34,7 +34,7 @@ public class MapPanel extends JPanel{
 
     private final float MIN_SCALE = 0.3f;
 
-    private final float MAX_SCALE = 5f;
+    private final float MAX_SCALE = 4.8f;
 
     private float scale = 2.5f;
 
@@ -42,7 +42,7 @@ public class MapPanel extends JPanel{
     private int indent = 0;
 
     private int UNIT_IMAGE_SIZE, HORIZONTAL_UNIT_INDENT, VERTICAL_UNIT_INDENT, HORIZONTAL_SHIP_INDENT, DEGREE_INDENT;
-    private int DEFENCE_WIDTH, DEFENCE_HEIGHT, TOKEN_WIDTH, TOKEN_HEIGHT, INFLUENCE_SIZE, PORT_ORDER_INDENT,
+    private int DEFENCE_WIDTH, DEFENCE_HEIGHT, TOKEN_WIDTH, TOKEN_HEIGHT, INFLUENCE_SIZE,
             TRACK_VERTICAL_INDENT, TRACK_BEGIN_X[] = new int[NUM_TRACK], TRACK_BEGIN_Y,
             VICTORY_BEGIN_X, VICTORY_BEGIN_Y, VICTORY_VERTICAL_INDENT, VICTORY_SIZE,
             WILDLINGS_TOKEN_X, WILDLINGS_TOKEN_Y, WILDLINGS_TOKEN_WIDTH, WILDLINGS_TOKEN_HEIGHT, WILDLINGS_HORIZONTAL_INDENT,
@@ -53,35 +53,33 @@ public class MapPanel extends JPanel{
             trueDegreeIndent, trueDefenceWidth, trueDefenceHeight, trueInfluenceSize, trueTokenWidth, trueTokenHeight,
             trueOrderSize;
 
-    private Image mapImage;
+    private BufferedImage mapImage;
 
-    private Image[] tokenImage = new Image[NUM_PLAYER];
+    private BufferedImage[] tokenImage = new BufferedImage[NUM_PLAYER];
 
     private BufferedImage[][] unitImage = new BufferedImage[NUM_PLAYER][NUM_UNIT_TYPES];
 
     private BufferedImage[][] woundUnitImage = new BufferedImage[NUM_PLAYER][NUM_UNIT_TYPES];
 
-    private Image[] victoryImage = new Image[NUM_PLAYER];
+    private BufferedImage[] victoryImage = new BufferedImage[NUM_PLAYER];
 
-    private Image[] supplyImage = new Image[NUM_PLAYER];
+    private BufferedImage[] supplyImage = new BufferedImage[NUM_PLAYER];
 
-    private Image[] influenceImage = new Image[NUM_PLAYER];
+    private BufferedImage[] influenceImage = new BufferedImage[NUM_PLAYER];
 
-    private Image[] defenceImage = new Image[MAX_DEFENCE + 1];
+    private BufferedImage[] defenceImage = new BufferedImage[MAX_DEFENCE + 1];
 
-    private Image[] orderImage = new Image[NUM_DIFFERENT_ORDERS];
+    private BufferedImage[] orderImage = new BufferedImage[NUM_DIFFERENT_ORDERS];
 
     private BufferedImage[] areaFillImage = new BufferedImage[NUM_AREA];
 
     private BufferedImage[][] areaFillImagePlayer = new BufferedImage[NUM_AREA][NUM_PLAYER];
 
-    private Image wildlingTokenImage;
+    private BufferedImage wildlingTokenImage;
 
-    private Image timeImage;
+    private BufferedImage timeImage;
 
     private Dimension preferredSize;
-
-    private Game game;
 
     private AffineTransform heal, wound;
 
@@ -113,50 +111,32 @@ public class MapPanel extends JPanel{
     }
 
     private void loadPics() {
-        mapImage = loadPic(MAP_FILE);
-        wildlingTokenImage = loadPic(WILDLING_TOKEN);
-        timeImage = loadPic(TIME);
+        ImageLoader imageLoader = ImageLoader.getInstance();
+        mapImage = imageLoader.getImage(MAP_FILE);
+        wildlingTokenImage = imageLoader.getImage(WILDLING_TOKEN);
+        timeImage = imageLoader.getImage(TIME);
         for(int defence = MIN_DEFENCE; defence <= MAX_DEFENCE; defence++) {
-            defenceImage[defence] = loadPic(DEFENCE + defence + PNG);
+            defenceImage[defence] = imageLoader.getImage(DEFENCE + defence + PNG);
         }
         for(int orderCode = 0; orderCode < NUM_DIFFERENT_ORDERS; orderCode++) {
-            orderImage[orderCode] = loadPic(ORDER + orderCode + PNG);
+            orderImage[orderCode] = imageLoader.getImage(ORDER + orderCode + PNG);
         }
         for (int player = 0; player < NUM_PLAYER; player++) {
-            tokenImage[player] = loadPic(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
-            influenceImage[player] = loadPic(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
-            victoryImage[player] = loadPic(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + VICTORY);
-            supplyImage[player] = loadPic(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + SUPPLY);
+            tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
+            influenceImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
+            victoryImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + VICTORY);
+            supplyImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + SUPPLY);
             for (UnitType unitType: UnitType.values()) {
-                unitImage[player][unitType.getCode()] = (BufferedImage) loadPic(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + "_" +
-                        unitType.engName() + PNG);
-                woundUnitImage[player][unitType.getCode()] = rotatePicture(unitImage[player][unitType.getCode()]);
+                unitImage[player][unitType.getCode()] = imageLoader.getImage(HOUSE_ENG[player] + "\\" +
+                        HOUSE_ENG[player] + "_" + unitType.engName() + PNG);
+                woundUnitImage[player][unitType.getCode()] =
+                        PictureTormentor.getRotatedPicture(unitImage[player][unitType.getCode()]);
             }
         }
         for (int area = 0; area < NUM_AREA; area++) {
             if (area >= 12 && area < 20) continue;
-            areaFillImage[area] = (BufferedImage) loadPic(AREA + area + PNG);
+            areaFillImage[area] = imageLoader.getImage(AREA + area + PNG);
         }
-
-        UNIT_IMAGE_SIZE = unitImage[0][0].getWidth(null);
-        HORIZONTAL_SHIP_INDENT = (int) (UNIT_IMAGE_SIZE * 0.85);
-        HORIZONTAL_UNIT_INDENT = (int) (UNIT_IMAGE_SIZE * 0.7);
-        VERTICAL_UNIT_INDENT = (int) (UNIT_IMAGE_SIZE * 0.3);
-        DEGREE_INDENT = (int) (UNIT_IMAGE_SIZE * 0.6);
-    }
-
-    private Image loadPic(String path) {
-        File file = new File(WAY + path);
-        try {
-            return ImageIO.read(file);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public void setGame(Game game) {
-        this.game = game;
     }
 
     /**
@@ -165,8 +145,11 @@ public class MapPanel extends JPanel{
     @Override
     public void paintComponent(Graphics g) {
         System.out.println(++nPaint);
+        Game game = Controller.getInstance().getGame();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(Color.black);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
         // Рисуем карту
         if (scale > 2f) {
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
@@ -179,7 +162,8 @@ public class MapPanel extends JPanel{
             int areaOwner = game.getAreaOwner(area);
             if (areaFillImage[area] != null && areaOwner >= 0) {
                 if (areaFillImagePlayer[area][areaOwner] == null) {
-                    areaFillImagePlayer[area][areaOwner] = dye(areaFillImage[area], HOUSE_COLOR[areaOwner]);
+                    areaFillImagePlayer[area][areaOwner] =
+                            PictureTormentor.dye(areaFillImage[area], HOUSE_COLOR[areaOwner]);
                 }
                 g2d.drawImage(areaFillImagePlayer[area][areaOwner], indent + (int) (areaBeginX[area] / scale), (int) (areaBeginY[area] / scale),
                         (int) (areaFillImage[area].getWidth(null) / scale), (int) (areaFillImage[area].getHeight(null) / scale), null);
@@ -320,20 +304,11 @@ public class MapPanel extends JPanel{
         }
     }
 
-    private static BufferedImage dye(BufferedImage image, Color color)
-    {
-        int w = image.getWidth();
-        int h = image.getHeight();
-        BufferedImage dyed = new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = dyed.createGraphics();
-        g.drawImage(image, 0,0, null);
-        g.setComposite(AlphaComposite.SrcAtop);
-        g.setColor(color);
-        g.fillRect(0,0,w,h);
-        g.dispose();
-        return dyed;
-    }
-
+    /**
+     * Метод вызывается при изменении масштаба путём прокрутки мышиного колеса. Изменяет масштаб и текущую локацию.
+     * @param n количество квантов прокрутки мышиного колеса
+     * @param p точка в которой был курсор в момент прокрутки мышиного колеса (относительно него будем центрировать)
+     */
     void updatePreferredSize(int n, Point p) {
         double d = Math.pow(1.1, -n);
         double oldScale = scale;
@@ -347,6 +322,8 @@ public class MapPanel extends JPanel{
         int scorlPaneWidth = getParent().getWidth();
         if (mapImage.getWidth(null) / scale < scorlPaneWidth) {
             indent = (int) (scorlPaneWidth - (mapImage.getWidth(null)) / scale) / 2;
+        } else {
+            indent = 0;
         }
         int w = (int) (mapImage.getWidth(null) / scale)  + 2 * indent;
         int h = (int) (mapImage.getHeight(null) / scale);
@@ -359,6 +336,28 @@ public class MapPanel extends JPanel{
         getParent().doLayout();
     }
 
+    /**
+     * Метод заполняет настоящие размеры элементов на карте с учётом масштаба
+     */
+    private void setTrueSizes() {
+        trueUnitImageSize = (int) (UNIT_IMAGE_SIZE / scale);
+        trueHorizontalShipIndent = (int) (HORIZONTAL_SHIP_INDENT / scale);
+        trueHorizontalUnitIndent = (int) (HORIZONTAL_UNIT_INDENT / scale);
+        trueVerticalUnitIndent = (int) (VERTICAL_UNIT_INDENT / scale);
+        trueDegreeIndent = (int) (DEGREE_INDENT / scale);
+        trueDefenceWidth = (int) (DEFENCE_WIDTH / scale);
+        trueDefenceHeight = (int) (DEFENCE_HEIGHT / scale);
+        trueTokenWidth = (int) (TOKEN_WIDTH / scale);
+        trueTokenHeight = (int) (TOKEN_HEIGHT / scale);
+        trueInfluenceSize = (int) (INFLUENCE_SIZE * 1.31f / scale);
+        trueOrderSize = (int) (INFLUENCE_SIZE / scale);
+    }
+
+    /**
+     * Метод заполняет вспомогательные массивы xShift, yShift для вывода армии в обпределённой области
+     * @param army армия
+     * @param area номер области
+     */
     private void fillShifts(Army army, int area) {
         ArrayList<Unit> units = army.getUnits();
         int armySize = units.size();
@@ -408,24 +407,10 @@ public class MapPanel extends JPanel{
         }
     }
 
-    private static BufferedImage rotatePicture(BufferedImage image) {
-        int w = image.getWidth(null), h = image.getHeight(null);
-        GraphicsConfiguration gc = getDefaultConfiguration();
-        BufferedImage result = gc.createCompatibleImage(h, w, Transparency.TRANSLUCENT);
-        Graphics2D g = result.createGraphics();
-        g.rotate(Math.toRadians(90), w / 2, h / 2);
-        g.drawRenderedImage(image, null);
-        g.dispose();
-        return result;
-    }
 
-    private static GraphicsConfiguration getDefaultConfiguration() {
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        GraphicsDevice gd = ge.getDefaultScreenDevice();
-        return gd.getDefaultConfiguration();
-    }
 
     private void loadVariables() {
+        UNIT_IMAGE_SIZE = unitImage[0][0].getWidth(null);
         INFLUENCE_SIZE = influenceImage[0].getWidth(null);
         TOKEN_WIDTH = tokenImage[0].getWidth(null);
         TOKEN_HEIGHT = tokenImage[0].getHeight(null);
@@ -438,6 +423,10 @@ public class MapPanel extends JPanel{
         TIME_HEIGHT = timeImage.getHeight(null);
         DEFENCE_WIDTH = defenceImage[MIN_DEFENCE].getWidth(null);
         DEFENCE_HEIGHT = defenceImage[MIN_DEFENCE].getHeight(null);
+        HORIZONTAL_SHIP_INDENT = (int) (UNIT_IMAGE_SIZE * 0.85);
+        HORIZONTAL_UNIT_INDENT = (int) (UNIT_IMAGE_SIZE * 0.7);
+        VERTICAL_UNIT_INDENT = (int) (UNIT_IMAGE_SIZE * 0.3);
+        DEGREE_INDENT = (int) (UNIT_IMAGE_SIZE * 0.6);
 
         defenceX[21] = 822;
         defenceY[21] = 769;
@@ -472,7 +461,7 @@ public class MapPanel extends JPanel{
         SUPPLY_BEGIN_X = 1806;
         SUPPLY_BEGIN_Y = 2039;
         SUPPLY_VERTICAL_INDENT = 107;
-        PORT_ORDER_INDENT = (int) ((PORT_SIZE - INFLUENCE_SIZE) * 0.85);
+        int portOrderIndent = (int) ((PORT_SIZE - INFLUENCE_SIZE) * 0.85);
 
         armyX[0] = 110; armyY[0] = 583;
         attackerArmyX[0] = 107; attackerArmyY[0] = 1065;
@@ -556,8 +545,8 @@ public class MapPanel extends JPanel{
         armyX[19] = 946; armyY[19] = 1135;
         for (int area = 12; area < 20; area++) {
             unitPackType[area] = port;
-            orderX[area] = armyX[area] + PORT_ORDER_INDENT;
-            orderY[area] = armyY[area] + PORT_ORDER_INDENT;
+            orderX[area] = armyX[area] + portOrderIndent;
+            orderY[area] = armyY[area] + portOrderIndent;
         }
 
         armyX[20] = 106; armyY[20] = 3083;
@@ -690,7 +679,7 @@ public class MapPanel extends JPanel{
         attackerArmyX[38] = 855; attackerArmyY[38] = 1833;
         areaBeginX[38] = 747; areaBeginY[38] = 1800;
         unitPackType[38] = line;
-        orderX[38] = 883; orderY[38] = 1831;
+        orderX[38] = 873; orderY[38] = 1831;
         tokenX[38] = 908; tokenY[38] = 1990;
 
         armyX[39] = 746; armyY[39] = 2145;
@@ -842,19 +831,5 @@ public class MapPanel extends JPanel{
         wound = new AffineTransform();
         wound.rotate(Math.toRadians(90.0));
         heal.rotate(Math.toRadians(-90.0));
-    }
-
-    private void setTrueSizes() {
-        trueUnitImageSize = (int) (UNIT_IMAGE_SIZE / scale);
-        trueHorizontalShipIndent = (int) (HORIZONTAL_SHIP_INDENT / scale);
-        trueHorizontalUnitIndent = (int) (HORIZONTAL_UNIT_INDENT / scale);
-        trueVerticalUnitIndent = (int) (VERTICAL_UNIT_INDENT / scale);
-        trueDegreeIndent = (int) (DEGREE_INDENT / scale);
-        trueDefenceWidth = (int) (DEFENCE_WIDTH / scale);
-        trueDefenceHeight = (int) (DEFENCE_HEIGHT / scale);
-        trueTokenWidth = (int) (TOKEN_WIDTH / scale);
-        trueTokenHeight = (int) (TOKEN_HEIGHT / scale);
-        trueInfluenceSize = (int) (INFLUENCE_SIZE * 1.31f / scale);
-        trueOrderSize = (int) (INFLUENCE_SIZE / scale);
     }
 }
