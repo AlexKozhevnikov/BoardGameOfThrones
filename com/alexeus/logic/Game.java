@@ -55,11 +55,6 @@ public class Game {
     private HouseCard houseCardOfSide[] = new HouseCard[2];
 
     private int[] playerOnSide = new int[2];
-    private int[] swordsOnSide = new int[2];
-    private int[] towersOnSide = new int[2];
-    private int[] cardStrengthOnSide = new int[2];
-    private int[] bonusStrengthOnSide = new int[2];
-    private int[] numSupportsOnSide = new int[2];
 
     // состояние игры
     private GamePhase gamePhase;
@@ -137,8 +132,8 @@ public class Game {
      * **** Вспомогательные переменные для методов ****
      */
 
-    // Область, в которой был сыгран последний бой
-    private int battleArea;
+    // Информация о последнем случившемся бое
+    private BattleInfo battleInfo;
 
     // Количество разыгранных приказов с определённым кодом; нужно для валидации приказов каждого игрока
     private int[] nOrdersWithCode = new int[NUM_DIFFERENT_ORDERS];
@@ -240,6 +235,9 @@ public class Game {
             areasWithMarches.add(new HashSet<>());
             areasWithCPs.add(new HashSet<>());
         }
+        // готовим карты домов и инициализируем колоды событий и одичалых
+        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
+        initializeDecks();
         // Ставим начальные войска/гарнизоны и обновляем информацию во вспомогательных множествах
         setInitialPosition();
         renewHousesTroopsArea();
@@ -248,10 +246,7 @@ public class Game {
             printSupplyEaters(player);
         }
         adjustVictoryPoints();
-        battleArea = -1;
-        // готовим карты домов и инициализируем колоды событий и одичалых
-        houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
-        initializeDecks();
+        battleInfo = null;
     }
 
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
@@ -335,6 +330,11 @@ public class Game {
             }
             orderInArea[i] = Order.closed;
         }
+        /*for (int player = 0; player < NUM_PLAYER; player++) {
+            for (int card = 0; card < NUM_HOUSE_CARDS; card++) {
+                if (random.nextBoolean()) houseCardOfPlayer[player][card].setActive(false);
+            }
+        }*/
         time = 1;
         wildlingsStrength = 2;
         // Устанавливаем начальные количаства жетонов власти
@@ -804,7 +804,6 @@ public class Game {
                                         (attackingArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
                                         map.getAreaNameRusAccusative(areaWhereBattleBegins) +
                                         (attackingArmy.getSize() == 1 ? AND_FIGHTS : AND_FIGHT));
-                                battleArea = areaWhereBattleBegins;
                                 playFight(areaWhereBattleBegins, from, orderInArea[from].getModifier());
                             }
                             orderInArea[from] = null;
@@ -1241,16 +1240,19 @@ public class Game {
         }
         System.out.println(BATTLE_BEGINS_FOR + map.getAreaNameRusAccusative(areaOfBattle) + BETWEEN +
                 HOUSE_ABLATIVE[playerOnSide[0]] + " и " + HOUSE_ABLATIVE[playerOnSide[1]] + ".");
-        BattleInfo battleInfo = new BattleInfo(playerOnSide[0], playerOnSide[1], areaOfBattle, map.getNumCastle(areaOfBattle) > 0);
-        battleInfo.addStrength(SideOfBattle.attacker, marchModifier);
+        if (battleInfo == null) {
+            battleInfo = new BattleInfo();
+        }
+        battleInfo.setNewBattle(playerOnSide[0], playerOnSide[1], areaOfBattle, marchModifier,
+                map.getNumCastle(areaOfBattle) > 0);
         battleInfo.addArmyToSide(SideOfBattle.attacker, attackingArmy);
-        battleInfo.addStrength(SideOfBattle.defender, garrisonInArea[areaOfBattle]);
+        battleInfo.setGarrisonModifier(garrisonInArea[areaOfBattle]);
         if (!armyInArea[areaOfBattle].isEmpty()) {
             battleInfo.addArmyToSide(SideOfBattle.defender, armyInArea[areaOfBattle]);
         }
 
         if (orderInArea[areaOfBattle] != null && orderInArea[areaOfBattle].orderType() == OrderType.defence) {
-            battleInfo.addStrength(SideOfBattle.defender, orderInArea[areaOfBattle].getModifier());
+            battleInfo.setDefenceModifier(orderInArea[areaOfBattle].getModifier());
         }
         // Учитываем подмоги из соседних областей
         SideOfBattle[] supportOfPlayer = new SideOfBattle[NUM_PLAYER];
@@ -1308,24 +1310,17 @@ public class Game {
 
             // Добавляем боевую силу поддерживающих войск
             for (int areaOfSupport: areasOfSupport) {
-                battleInfo.addArmyToSide(supportOfPlayer[getTroopsOwner(areaOfSupport)], armyInArea[areaOfSupport]);
-                if (supportOfPlayer[getTroopsOwner(areaOfSupport)] == SideOfBattle.attacker) {
-                    numSupportsOnSide[0]++;
-                }
-                if (supportOfPlayer[getTroopsOwner(areaOfSupport)] == SideOfBattle.defender) {
-                    numSupportsOnSide[1]++;
-                }
+                battleInfo.addSupportingArmyToSide(supportOfPlayer[getTroopsOwner(areaOfSupport)],
+                        armyInArea[areaOfSupport]);
             }
         }
 
         // Выбираем карты дома
         System.out.println(HOUSES_CHOOSE_CARDS);
-        System.out.println(RELATION_OF_FORCES_IS + battleInfo.getAttackerStrength() + VERSUS +
-                battleInfo.getDefenderStrength() + ".");
         houseCardOfSide[0] = getHouseCard(battleInfo, playerOnSide[0]);
         houseCardOfSide[1] = getHouseCard(battleInfo, playerOnSide[1]);
 
-        countBattleVariables(battleInfo);
+        battleInfo.countBattleVariables();
 
         int firstSideOnThrone = thronePlaceForPlayer[playerOnSide[0]] < thronePlaceForPlayer[playerOnSide[1]] ? 0 : 1;
         HouseCard temporaryInactiveCard = null;
@@ -1334,21 +1329,23 @@ public class Game {
         for (int curSide = 0; curSide < 2; curSide++) {
             int heroSide = (curSide + firstSideOnThrone) % 2;
             if (houseCardOfSide[heroSide] == HouseCard.tyrionLannister) {
-                System.out.println(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD + houseCardOfSide[heroSide]);
+                System.out.println(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
+                        houseCardOfSide[heroSide].getName());
                 switch (houseCardOfSide[heroSide]) {
                     case tyrionLannister:
-                        boolean useTyrion = playerInterface[playerOnSide[heroSide]].useTyrion(battleInfo, houseCardOfSide[1 - heroSide]);
+                        boolean useTyrion = playerInterface[playerOnSide[heroSide]].useTyrion(battleInfo,
+                                houseCardOfSide[1 - heroSide]);
                         if (useTyrion) {
                             System.out.println(TYRION_CANCELS);
                             temporaryInactiveCard = houseCardOfSide[1 - heroSide];
                             houseCardOfSide[1 - heroSide].setActive(false);
                             numActiveHouseCardsOfPlayer[playerOnSide[1 - heroSide]]--;
                             houseCardOfSide[1 - heroSide] = null;
-                            countBattleVariables(battleInfo);
+                            battleInfo.countBattleVariables();
                             houseCardOfSide[1 - heroSide] = getHouseCard(battleInfo, playerOnSide[1 - heroSide]);
-                            countBattleVariables(battleInfo);
+                            battleInfo.countBattleVariables();
                         } else {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                 }
             }
@@ -1357,7 +1354,8 @@ public class Game {
         for (int curSide = 0; curSide < 2; curSide++) {
             int heroSide = (curSide + firstSideOnThrone) % 2;
             if (houseCardOfSide[heroSide].getCardInitiative() == CardInitiative.immediately) {
-                System.out.println(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD + houseCardOfSide[heroSide]);
+                System.out.println(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
+                        houseCardOfSide[heroSide].getName());
                 switch (houseCardOfSide[heroSide]) {
                     case maceTyrell:
                         // Чёрная Рыба защищает от свойства Мейса Тирелла
@@ -1371,9 +1369,9 @@ public class Game {
                             System.out.println(MACE_EATS_MAN + map.getAreaNameRusLocative(areaOfBattle));
                             battleInfo.deleteUnit(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker, victimOfMace);
                             armyToSearchForFootmen.killUnit(victimOfMace, KillingReason.mace);
-                            countBattleVariables(battleInfo);
+                            battleInfo.countBattleVariables();
                         } else {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case queenOfThorns:
@@ -1411,8 +1409,8 @@ public class Game {
                                             if (supportOfPlayer[playerOnSide[1 - heroSide]] != SideOfBattle.neutral) {
                                                 battleInfo.deleteArmy(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker,
                                                         armyInArea[area]);
-                                                numSupportsOnSide[1 - heroSide]--;
-                                                countBattleVariables(battleInfo);
+                                                battleInfo.deleteSupportOfPlayer(playerOnSide[1 - heroSide]);
+                                                battleInfo.countBattleVariables();
                                             }
                                     }
                                     orderInArea[area] = null;
@@ -1423,7 +1421,7 @@ public class Game {
                             }
                         }
                         if (!propertyUsed) {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case doranMartell:
@@ -1432,9 +1430,9 @@ public class Game {
                             System.out.println(DORAN_ABUSES + HOUSE_GENITIVE[playerOnSide[1 - heroSide]] +
                                     trackToPissOff.onTheTrack());
                             pissOffOnTrack(playerOnSide[1 - heroSide], trackToPissOff);
-                            countBattleVariables(battleInfo);
+                            battleInfo.countBattleVariables();
                         } else {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case aeronDamphair:
@@ -1448,28 +1446,25 @@ public class Game {
                                 houseCardOfSide[heroSide].setActive(false);
                                 numActiveHouseCardsOfPlayer[playerOnSide[heroSide]]--;
                                 houseCardOfSide[heroSide] = getHouseCard(battleInfo, playerOnSide[heroSide]);
-                                countBattleVariables(battleInfo);
+                                battleInfo.countBattleVariables();
                             }
                         }
                         if (!propertyUsed) {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                 }
             }
         }
 
-        battleInfo.addStrength(SideOfBattle.attacker, cardStrengthOnSide[0] + bonusStrengthOnSide[0]);
-        battleInfo.addStrength(SideOfBattle.defender, cardStrengthOnSide[1] + bonusStrengthOnSide[1]);
         // Валирийский меч
         int swordsMan = swordPlayerOnPlace[0];
         if (!swordUsed && (playerOnSide[0] == swordsMan || playerOnSide[1] == swordsMan)) {
             boolean useSword = playerInterface[swordsMan].useSword(battleInfo);
             if (useSword) {
-                battleInfo.addStrength(playerOnSide[0] == swordsMan ? SideOfBattle.attacker : SideOfBattle.defender, 1);
+                battleInfo.useSwordOnSide(playerOnSide[0] == swordsMan ? SideOfBattle.attacker : SideOfBattle.defender);
                 swordUsed = true;
                 System.out.println(HOUSE[swordsMan] + USES_SWORD);
-                printRelationOfForces(battleInfo, false);
             }
         }
         // Делаем неактивными карты, которые были сыграны, и возвращаем к жизни карту, отменённую Тирионом
@@ -1488,16 +1483,14 @@ public class Game {
             }
         }
         // Определяем победителя
-        int winnerSide = battleInfo.getAttackerStrength() > battleInfo.getDefenderStrength() ||
-                battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() &&
-                swordPlaceForPlayer[playerOnSide[0]] < swordPlaceForPlayer[playerOnSide[1]] ? 0 : 1;
+        int winnerSide = battleInfo.resolveFight().getCode();
         int winner = playerOnSide[winnerSide];
         int loser = playerOnSide[1 - winnerSide];
         System.out.println(HOUSE[winner] + WINS_THE_BATTLE);
         // Подсчитываем потери проигравшего
-        System.out.println("У " + HOUSE_GENITIVE[winner] + " " + swordsOnSide[winnerSide] +
-                SWORDS_U + HOUSE_GENITIVE[loser] + " " + towersOnSide[1 - winnerSide] + OF_TOWERS);
-        int numKilledUnits = Math.max(0, swordsOnSide[winnerSide] - towersOnSide[1 - winnerSide]);
+        System.out.println("У " + HOUSE_GENITIVE[winner] + " " + battleInfo.getSwordsOnSide(winnerSide) +
+                SWORDS_U + HOUSE_GENITIVE[loser] + " " + battleInfo.getTowersOnSide(1 - winnerSide) + OF_TOWERS);
+        int numKilledUnits = battleInfo.getNumKilled();
         if (numKilledUnits == 0) {
             System.out.println(HOUSE[loser] + HAS_NO_LOSSES);
         } else if (houseCardOfSide[1 - winnerSide] == HouseCard.theBlackfish) {
@@ -1736,7 +1729,7 @@ public class Game {
                             }
                         }
                         if (!propertyUsed) {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case cerseiLannister:
@@ -1779,7 +1772,7 @@ public class Game {
                             }
                         }
                         if (!propertyUsed) {
-                            System.out.println(houseCardOfSide[heroSide] + NO_EFFECT);
+                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case tywinLannister:
@@ -1819,7 +1812,7 @@ public class Game {
                     }
                 }
                 if (!propertyUsed) {
-                    System.out.println(houseCardOfSide[curSide] + NO_EFFECT);
+                    System.out.println(houseCardOfSide[curSide].getName() + NO_EFFECT);
                 }
             }
         }
@@ -1923,7 +1916,8 @@ public class Game {
         if (chosenCard == null) {
             chosenCard = getFirstActiveHouseCard(player);
         }
-        System.out.println(HOUSE[player] + PLAYS_HOUSE_CARD + chosenCard + "\".");
+        System.out.println(HOUSE[player] + PLAYS_HOUSE_CARD + chosenCard.getName() + "\".");
+        battleInfo.setHouseCardForPlayer(player, chosenCard);
         return chosenCard;
     }
 
@@ -1953,81 +1947,21 @@ public class Game {
         return null;
     }
 
-    /**
-     * Метод рассчитывает стандартные переменные боя - сила карты, мечи, башни и бонусы к боевой силе из-за свойств карт
-     * @param battleInfo информация о бое
-     */
-    private void countBattleVariables(BattleInfo battleInfo) {
-        for (int curSide = 0; curSide < 2; curSide++) {
-            cardStrengthOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getStrength();
-            swordsOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getNumSwords();
-            towersOnSide[curSide] = houseCardOfSide[curSide] == null ? 0 : houseCardOfSide[curSide].getNumTowers();
-            bonusStrengthOnSide[curSide] = 0;
-        }
+    public boolean isHigherOnThrone(int hero, int enemy) {
+        return thronePlaceForPlayer[hero] < thronePlaceForPlayer[enemy];
+    }
 
-        for (int side = 0; side < 2; side++) {
-            if (houseCardOfSide[side] == null) continue;
-            if (houseCardOfSide[side].getCardInitiative() == CardInitiative.bonus) {
-                switch (houseCardOfSide[side]) {
-                    case stannisBaratheon:
-                        if (thronePlaceForPlayer[playerOnSide[side]] > thronePlaceForPlayer[playerOnSide[1 - side]]) {
-                            bonusStrengthOnSide[side] = 1;
-                        }
-                        break;
-                    case serDevosSeaworth:
-                        if (!houseCardOfPlayer[0][0].isActive()) {
-                            bonusStrengthOnSide[side] = 1;
-                            swordsOnSide[side] = 1;
-                        }
-                        break;
-                    case salladhorSaan:
-                        if (numSupportsOnSide[side] > 0) {
-                            bonusStrengthOnSide[side] -= battleInfo.getNumEnemyShips(playerOnSide[side],
-                                    side == 0 ? SideOfBattle.attacker : SideOfBattle.defender);
-                            bonusStrengthOnSide[1 - side] -= battleInfo.getNumEnemyShips(playerOnSide[side],
-                                    side == 0 ? SideOfBattle.defender : SideOfBattle.attacker);
-                        }
-                        break;
-                    case serKevanLannister:
-                        if (side == 0) {
-                            bonusStrengthOnSide[side] += battleInfo.getNumFriendlyUnits(SideOfBattle.attacker, UnitType.pawn);
-                        }
-                        break;
-                    case catylynStark:
-                        break;
-                    case nymeriaSand:
-                        if (side == 0) {
-                            swordsOnSide[side]++;
-                        } else {
-                            towersOnSide[side]++;
-                        }
-                        break;
-                    case ashaGreyjoy:
-                        if (numSupportsOnSide[side] == 0) {
-                            swordsOnSide[side] += 2;
-                            towersOnSide[side]++;
-                        }
-                        break;
-                    case theonGreyjoy:
-                        if (side == 1 && map.getNumCastle(battleInfo.getAreaOfBattle()) > 0) {
-                            bonusStrengthOnSide[side] = 1;
-                            swordsOnSide[side] = 1;
-                        }
-                        break;
-                    case victarionGreyjoy:
-                        // Салладор Саан подавляет свойство Виктариона
-                        if (houseCardOfSide[1 - side] == HouseCard.salladhorSaan) break;
-                        if (side == 0) {
-                            bonusStrengthOnSide[side] += battleInfo.getNumFriendlyUnits(SideOfBattle.attacker, UnitType.ship);
-                        }
-                        break;
-                    case balonGreyjoy:
-                        cardStrengthOnSide[1 - side] = 0;
-                        break;
-                }
-            }
-        }
-        printRelationOfForces(battleInfo, true);
+    public boolean isHigherOnSword(int hero, int enemy) {
+        return swordPlaceForPlayer[hero] < swordPlaceForPlayer[enemy];
+    }
+
+    public boolean isStannisActive() {
+        return houseCardOfPlayer[0][0].isActive();
+    }
+
+    public int getDefenceBonusInArea(int area) {
+        return orderInArea[area] != null && orderInArea[area].orderType() == OrderType.defence ?
+                orderInArea[area].getModifier() : 0;
     }
 
     public void unitStoreIncreased(UnitType type, int player) {
@@ -2084,18 +2018,6 @@ public class Game {
                     trackType == TrackType.valyrianSword ? swordPlayerOnPlace[place] : ravenPlayerOnPlace[place]]);
         }
         System.out.println();
-    }
-
-    /**
-     * Выводит соотношение сил в сражении
-     * @param battleInfo     информация о сражении
-     * @param isAddStrengths нужно ли добавлять силы карт и бонусов карт
-     */
-    private void printRelationOfForces(BattleInfo battleInfo, boolean isAddStrengths) {
-        System.out.println(RELATION_OF_FORCES_IS +
-                (battleInfo.getAttackerStrength() + (isAddStrengths ? cardStrengthOnSide[0] + bonusStrengthOnSide[0] : 0)) +
-                VERSUS +
-                (battleInfo.getDefenderStrength() + (isAddStrengths ? cardStrengthOnSide[1] + bonusStrengthOnSide[1] : 0)) + ".");
     }
 
     /**
@@ -2251,8 +2173,20 @@ public class Game {
         return retreatingArmy;
     }
 
+    public BattleInfo getBattleInfo() {
+        return battleInfo;
+    }
+
     public int getBattleArea() {
-        return battleArea;
+        return battleInfo == null ? -1 : battleInfo.getAreaOfBattle();
+    }
+
+    public int getTokensOfPlayer(int player) {
+        return nPowerTokensHouse[player];
+    }
+
+    public int getMaxTokensOfPlayer(int player) {
+        return maxPowerTokensHouse[player];
     }
 
     /**

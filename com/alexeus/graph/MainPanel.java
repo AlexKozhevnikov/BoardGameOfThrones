@@ -19,7 +19,7 @@ public class MainPanel extends JPanel {
     private MapPanel mapPanel;
     private ImageIcon playIcon, playEndIcon;
     //private ImageIcon collapseIcon, returnIcon;
-    private JButton leftPanelCollapser;
+    //private JButton leftPanelCollapser;
 
     public MainPanel() {
         setLayout(new BorderLayout());

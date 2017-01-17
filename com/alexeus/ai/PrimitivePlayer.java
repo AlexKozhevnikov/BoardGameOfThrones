@@ -290,10 +290,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public boolean useSword(BattleInfo battleInfo) {
         if (battleInfo.getAttacker() == houseNumber) {
-            return battleInfo.getAttackerStrength() + 1 == battleInfo.getDefenderStrength();
+            return battleInfo.getStrengthOnSide(SideOfBattle.attacker) + 1 ==
+                   battleInfo.getStrengthOnSide(SideOfBattle.defender);
         } else {
             assert(battleInfo.getDefender() == houseNumber);
-            return battleInfo.getAttackerStrength() == battleInfo.getDefenderStrength() + 1;
+            return battleInfo.getStrengthOnSide(SideOfBattle.defender) + 1 ==
+                    battleInfo.getStrengthOnSide(SideOfBattle.attacker);
         }
     }
 

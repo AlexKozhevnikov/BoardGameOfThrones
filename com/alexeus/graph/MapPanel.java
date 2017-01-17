@@ -1,6 +1,5 @@
 package com.alexeus.graph;
 
-import com.alexeus.control.Controller;
 import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.graph.util.PictureTormentor;
 import com.alexeus.graph.enums.UnitPackType;
@@ -139,20 +138,17 @@ public class MapPanel extends JPanel{
         }
     }
 
-    /**
-     * Custom painting codes on this JPanel
-     */
     @Override
     public void paintComponent(Graphics g) {
         System.out.println(++nPaint);
-        Game game = Controller.getInstance().getGame();
+        Game game = Game.getInstance();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setColor(Color.black);
+        g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         // Рисуем карту
         if (scale > 2f) {
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
         g2d.drawImage(mapImage, indent, 0, (int) (mapImage.getWidth(null) / scale), (int) (mapImage.getHeight(null) / scale), null);
         // окраска областей в цвета их владельцев

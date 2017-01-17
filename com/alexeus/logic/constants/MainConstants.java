@@ -40,6 +40,8 @@ public class MainConstants {
                                                                             {1, 2, 3, 0, 5, 4}};
     public static final int[] NUM_OF_STARS_ON_PLACE = {3, 3, 2, 1, 0, 0};
 
+    public static final int[] CARD_STRENGTH_ON_INDEX = {4, 3, 2, 2, 1, 1, 0};
+
     public static final int[] MAX_NUM_OF_UNITS = {10, 5, 2, 6};
 
     public static final int[][] SUPPLY_NUM_GROUPS = {{2, 0, 0}, {1, 1, 0}, {2, 1, 0}, {3, 1, 0}, {2, 2, 0}, {2, 1, 1}, {3, 1, 1}};

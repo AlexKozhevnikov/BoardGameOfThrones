@@ -50,6 +50,9 @@ public class LeftTabPanel extends JTabbedPane {
             case 1:
                 setPreferredSize(new Dimension(HOUSE_TAB_WIDTH, TAB_PANEL_HEIGHT));
                 break;
+            case 2:
+                setPreferredSize(new Dimension(FIGHT_TAB_WIDTH, TAB_PANEL_HEIGHT));
+                break;
             default:
                 setPreferredSize(new Dimension(OTHER_TAB_WIDTH, TAB_PANEL_HEIGHT));
                 break;

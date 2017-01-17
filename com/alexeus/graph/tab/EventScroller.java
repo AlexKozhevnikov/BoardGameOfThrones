@@ -30,7 +30,7 @@ public class EventScroller extends JPanel {
         deckImages = new HashMap<>();
         this.deckNumber = deckNumber;
         loadPics();
-        setPreferredSize(new Dimension(getWidth(), TEXT_HEIGHT * (1 +
+        setPreferredSize(new Dimension(getWidth(), EVENT_TEXT_HEIGHT * (1 +
                 (deckNumber == 1 ? Deck1Cards.values().length : (deckNumber == 2 ? Deck2Cards.values().length :
                         Deck3Cards.values().length))) + EVENT_CARD_HEIGHT));
     }
@@ -42,15 +42,16 @@ public class EventScroller extends JPanel {
         Game game = Game.getInstance();
         int numRemainingCards;
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setColor(Color.black);
+        g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         Happenable curEvent = game.getEvent(deckNumber);
         g.drawImage(curEvent != null ? deckImages.get(curEvent) : deckClosedImage
                 , (getWidth() - EVENT_CARD_WIDTH) / 2, curHeight, EVENT_CARD_WIDTH, EVENT_CARD_HEIGHT, null);
-        curHeight += EVENT_CARD_HEIGHT + TEXT_HEIGHT;
+        curHeight += EVENT_CARD_HEIGHT + EVENT_TEXT_HEIGHT;
 
-        g2d.setColor(Color.white);
+        g2d.setColor(Color.WHITE);
         for (Happenable h : deckNumber == 1 ? Deck1Cards.values() :
                 (deckNumber == 2 ? Deck2Cards.values() : Deck3Cards.values())) {
             numRemainingCards = game.getNumRemainingCards(h);
@@ -58,7 +59,7 @@ public class EventScroller extends JPanel {
                 g.drawString(h.getName() + (numRemainingCards > 1 ?
                         ": " + game.getNumRemainingCards(h) : ""), 0, curHeight);
             }
-            curHeight += TEXT_HEIGHT;
+            curHeight += EVENT_TEXT_HEIGHT;
         }
     }
 
@@ -80,6 +81,6 @@ public class EventScroller extends JPanel {
                 numTextStrings++;
             }
         }
-        setPreferredSize(new Dimension(getWidth(), TEXT_HEIGHT * (1 + numTextStrings) + EVENT_CARD_HEIGHT));
+        setPreferredSize(new Dimension(getWidth(), EVENT_TEXT_HEIGHT * (1 + numTextStrings) + EVENT_CARD_HEIGHT));
     }
 }

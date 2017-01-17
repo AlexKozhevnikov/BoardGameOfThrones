@@ -2,7 +2,9 @@ package com.alexeus.graph.util;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
 
 /**
  * Created by alexeus on 17.01.2017.
@@ -53,13 +55,23 @@ public class PictureTormentor {
      * @param h      требуемая высота
      * @return измождённая превращением иконка
      */
-    static ImageIcon getIconOfImage(Image srcImg, int w, int h){
+    static ImageIcon getIconOfImage(Image srcImg, int w, int h) {
         BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = resizedImg.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2.drawImage(srcImg, 0, 0, w, h, null);
         g2.dispose();
         return new ImageIcon(resizedImg);
+    }
+
+    /**
+     * Метод возвращает новую картинку, полученную из исходной осерением.
+     * @param srcImg картинка для истязания
+     * @return ихмождённая осерением картинка
+     */
+    public static BufferedImage getGrayImage(BufferedImage srcImg) {
+        ColorConvertOp op = new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null);
+        return op.filter(srcImg, null);
     }
 
     private static GraphicsConfiguration getDefaultConfiguration() {

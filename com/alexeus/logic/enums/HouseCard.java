@@ -10,7 +10,7 @@ public enum HouseCard {
     // Баратеоновые
     stannisBaratheon,
     renlyBaratheon,
-    serDevosSeaworth,
+    serDavosSeaworth,
     brienneOfTarth,
     salladhorSaan,
     melisandre,
@@ -19,18 +19,18 @@ public enum HouseCard {
     tywinLannister,
     serGregorClegane,
     serJaimeLannister,
-    hound,
+    theHound,
     serKevanLannister,
     tyrionLannister,
     cerseiLannister,
-    // Старковские
+    // Старочьи
     eddardStark,
     robbStark,
     greationUmber,
     rooseBolton,
     theBlackfish,
-    serRoderickCassel,
-    catylynStark,
+    serRodrickCassel,
+    catelynStark,
     // Мартеллячьи
     theRedViper,
     areoHotah,
@@ -60,8 +60,7 @@ public enum HouseCard {
 
     private boolean isActive = true;
 
-    @Override
-    public String toString() {
+    public String getName() {
         switch (this) {
             case aeronDamphair:
                 return "Эйерон Мокровласый";
@@ -77,7 +76,7 @@ public enum HouseCard {
                 return "Бейлон Грейджой";
             case brienneOfTarth:
                 return "Бриенна Тартская";
-            case catylynStark:
+            case catelynStark:
                 return "Кейтилин Старк";
             case cerseiLannister:
                 return "Серсея Ланнистер";
@@ -93,7 +92,7 @@ public enum HouseCard {
                 return "Эурон Вороний Глаз";
             case greationUmber:
                 return "Большой Джон Амбер";
-            case hound:
+            case theHound:
                 return "Пёс";
             case maceTyrell:
                 return "Мейс Тирелл";
@@ -121,7 +120,7 @@ public enum HouseCard {
                 return "Русе Болтон";
             case salladhorSaan:
                 return "Салладор Саан";
-            case serDevosSeaworth:
+            case serDavosSeaworth:
                 return "Сер Давос";
             case serGarlanTyrell:
                 return "Сер Гарлан Тирелл";
@@ -133,7 +132,7 @@ public enum HouseCard {
                 return "Сер Киван Ланнистер";
             case serLorasTyrell:
                 return "Сер Лорас Тирелл";
-            case serRoderickCassel:
+            case serRodrickCassel:
                 return "Родерик Кассель";
             case stannisBaratheon:
                 return "Станнис Баратеон";
@@ -161,7 +160,7 @@ public enum HouseCard {
         switch (this) {
             case stannisBaratheon:
             case renlyBaratheon:
-            case serDevosSeaworth:
+            case serDavosSeaworth:
             case brienneOfTarth:
             case salladhorSaan:
             case melisandre:
@@ -170,7 +169,7 @@ public enum HouseCard {
             case tywinLannister:
             case serGregorClegane:
             case serJaimeLannister:
-            case hound:
+            case theHound:
             case serKevanLannister:
             case tyrionLannister:
             case cerseiLannister:
@@ -180,8 +179,8 @@ public enum HouseCard {
             case greationUmber:
             case rooseBolton:
             case theBlackfish:
-            case serRoderickCassel:
-            case catylynStark:
+            case serRodrickCassel:
+            case catelynStark:
                 return 2;
             case theRedViper:
             case areoHotah:
@@ -234,10 +233,10 @@ public enum HouseCard {
             case victarionGreyjoy:
             case serLorasTyrell:
                 return 3;
-            case serDevosSeaworth:
+            case serDavosSeaworth:
             case brienneOfTarth:
             case serJaimeLannister:
-            case hound:
+            case theHound:
             case greationUmber:
             case rooseBolton:
             case darkstar:
@@ -252,7 +251,7 @@ public enum HouseCard {
             case serKevanLannister:
             case tyrionLannister:
             case theBlackfish:
-            case serRoderickCassel:
+            case serRodrickCassel:
             case nymeriaSand:
             case arianneMartell:
             case dagmarCleftjaw:
@@ -262,7 +261,7 @@ public enum HouseCard {
                 return 1;
             case patchface:
             case cerseiLannister:
-            case catylynStark:
+            case catelynStark:
             case doranMartell:
             case aeronDamphair:
             case queenOfThorns:
@@ -306,8 +305,8 @@ public enum HouseCard {
      */
     public int getNumTowers() {
         switch (this) {
-            case hound:
-            case serRoderickCassel:
+            case theHound:
+            case serRodrickCassel:
                 return 2;
             case brienneOfTarth:
             case theRedViper:
@@ -335,10 +334,10 @@ public enum HouseCard {
             case queenOfThorns:
                 return CardInitiative.immediately;
             case stannisBaratheon:
-            case serDevosSeaworth:
+            case serDavosSeaworth:
             case salladhorSaan:
             case serKevanLannister:
-            case catylynStark:
+            case catelynStark:
             case nymeriaSand:
             case ashaGreyjoy:
             case theonGreyjoy:
