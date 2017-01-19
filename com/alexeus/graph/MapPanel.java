@@ -30,8 +30,6 @@ import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
 @SuppressWarnings("serial")
 public class MapPanel extends JPanel{
 
-    static int nPaint = 0;
-
     private final float MIN_SCALE = 0.3f;
 
     private final float MAX_SCALE = 4.8f;
@@ -116,16 +114,13 @@ public class MapPanel extends JPanel{
 
     @Override
     public void paintComponent(Graphics g) {
-        System.out.println(++nPaint);
         Game game = Game.getInstance();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         // Рисуем карту
-        if (scale > 2f) {
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        }
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2d.drawImage(mapImage, indent, 0, (int) (mapImage.getWidth(null) / scale), (int) (mapImage.getHeight(null) / scale), null);
         // окраска областей в цвета их владельцев
         Composite comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f);
@@ -145,6 +140,7 @@ public class MapPanel extends JPanel{
         comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
         g2d.setComposite(comp);
         boolean isPreviousWound = false;
+        GamePhase gamePhase = game.getGamePhase();
         for (int area = 0; area < NUM_AREA; area++) {
             int areaOwner = game.getAreaOwner(area);
             int garrison = game.getGarrisonInArea(area);
@@ -161,10 +157,10 @@ public class MapPanel extends JPanel{
             // Приказы
             Order order = game.getOrderInArea(area);
             if (order != null) {
-                if (order == Order.closed) {
+                if (order == Order.closed || gamePhase == GamePhase.planningPhase) {
                     g2d.drawImage(influenceImage[areaOwner], indent + (int) (orderX[area] / scale),
                             (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
-                } else if (order != null) {
+                } else {
                     g2d.drawImage(orderImage[order.getCode()], indent + (int) (orderX[area] / scale),
                             (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
                 }

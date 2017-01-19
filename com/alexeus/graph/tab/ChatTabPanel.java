@@ -5,7 +5,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 
-import static com.alexeus.graph.constants.Constants.OTHER_TAB_WIDTH;
+import static com.alexeus.graph.constants.Constants.CHAT_TAB_WIDTH;
 import static com.alexeus.graph.constants.Constants.TAB_PANEL_HEIGHT;
 
 /**
@@ -21,7 +21,7 @@ public class ChatTabPanel extends JPanel {
         chat = new JTextArea();
         chat.setEditable(false);
         JScrollPane sp = new JScrollPane(chat);
-        sp.setPreferredSize(new Dimension(OTHER_TAB_WIDTH - 10, TAB_PANEL_HEIGHT - 10));
+        sp.setPreferredSize(new Dimension(CHAT_TAB_WIDTH - 10, TAB_PANEL_HEIGHT - 10));
         /*chat.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void removeUpdate(DocumentEvent e) {

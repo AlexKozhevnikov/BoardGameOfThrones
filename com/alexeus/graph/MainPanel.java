@@ -106,6 +106,13 @@ public class MainPanel extends JPanel {
                 boolean isPlay = Settings.getInstance().isPlayRegime();
                 playButton.setIcon(isPlay ? playIcon: pauseIcon);
                 Settings.getInstance().setPlayRegime(!isPlay);
+                // Если раньше режим был выключен, то теперь мы его ВКЛЮЧИЛИ, и должны прервать ожидание.
+                if (!isPlay) {
+                    synchronized (Game.getInstance()) {
+                        Controller.getInstance().setTimer();
+                        Game.getInstance().notify();
+                    }
+                }
             }
         });
         JButton playEndButton = new JButton("", playEndIcon);

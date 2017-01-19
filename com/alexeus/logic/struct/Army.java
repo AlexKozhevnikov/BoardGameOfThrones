@@ -195,7 +195,7 @@ public class Army {
         // Оставшиеся в живых войска становятся ранеными
         for (Unit unit: units) {
             unit.setWounded(true);
-            System.out.println(unit.getUnitType() + TextInfo.IS_WOUNDED);
+            game.say(unit.getUnitType() + TextInfo.IS_WOUNDED);
         }
     }
 
@@ -344,8 +344,8 @@ public class Army {
         StringBuilder sb = new StringBuilder();
         int n = units.size();
         if (n > 0) {
-            for (int i = 0; i < n; i++) {
-                sb.append(units.get(i).getUnitType().getLetter());
+            for (Unit unit : units) {
+                sb.append(unit.getUnitType().getLetter());
             }
         } else {
             sb.append(TextInfo.NOBODY);

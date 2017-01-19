@@ -1,4 +1,4 @@
-package com.alexeus;
+package com.alexeus.graph;
 
 import com.alexeus.control.Controller;
 import com.alexeus.graph.MainPanel;

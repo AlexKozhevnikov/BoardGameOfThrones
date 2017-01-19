@@ -49,12 +49,12 @@ public class FightTabPanel extends JPanel {
         g2d.fillRect(0, 0, getWidth(), getHeight());
         BattleInfo battleInfo = game.getBattleInfo();
         if (battleInfo != null && battleInfo.getAreaOfBattle() >= 0) {
-            // TODO Не работает! Разобраться, почему
             int width = getWidth();
             int trueCardWidth = (int)((width - 3 * FIGHT_X_INDENT) / 2f);
             int trueCardHeight = (int)(trueCardWidth * 1.57f);
+            // Рисуем заголовок и карты домов
             g2d.setColor(Color.LIGHT_GRAY);
-            g2d.setFont(new Font("Liberation Mono", Font.BOLD, 20));
+            g2d.setFont(new Font("Liberation Mono", Font.BOLD, 25));
             g2d.drawString(FIGHT_FOR + game.getMap().getAreaNameRusAccusative(battleInfo.getAreaOfBattle()),
                     FIGHT_X_INDENT, FIGHT_TEXT_Y_INDENT);
             for (int side = 0; side < 2; side++) {
@@ -67,30 +67,42 @@ public class FightTabPanel extends JPanel {
             g2d.drawImage(houseCardImage.containsKey(card[1]) ?
                             houseCardImage.get(card[1]) : houseCardBackImage[playerOnSide[1]],
                     (int) ((width + FIGHT_X_INDENT) / 2f), FIGHT_AFTER_TEXT_Y, trueCardWidth, trueCardHeight, null);
-            int curHeight = FIGHT_AFTER_TEXT_Y + trueCardHeight;
-            if (!game.getIsSwordUsed()) {
-                int trueSwordWidth = (int) (1f * SWORD_ICON_HEIGHT * swordIconWidth / swordIconHeight);
-                g2d.drawImage(swordImage, (int) ((width - trueSwordWidth) / 2f), FIGHT_BEFORE_SWORD_Y_INDENT,
-                        trueSwordWidth, SWORD_ICON_HEIGHT, null);
-            }
-            curHeight += FIGHT_AFTER_SWORD_Y_INDENT + FIGHT_BEFORE_SWORD_Y_INDENT + SWORD_ICON_HEIGHT;
             if (battleInfo.getIsFightResolved()) {
                 int failTrueHeight = (int) (1f * failImage.getHeight() * trueCardWidth / failImage.getWidth());
                 int winTrueHeight = (int) (1f * winImage.getHeight() * trueCardWidth / winImage.getWidth());
                 g2d.drawImage(winImage, FIGHT_X_INDENT + battleInfo.getWinnerSide() * (width / 2 + FIGHT_X_INDENT),
-                        curHeight + trueCardHeight / 2, trueCardWidth, winTrueHeight, null);
+                        FIGHT_AFTER_TEXT_Y + (int) (trueCardHeight * CARD_TORSO_KOEF),
+                        trueCardWidth, winTrueHeight, null);
                 g2d.drawImage(failImage, FIGHT_X_INDENT + (1 - battleInfo.getWinnerSide()) * (width / 2 + FIGHT_X_INDENT),
-                        curHeight + trueCardHeight / 2, trueCardWidth, failTrueHeight, null);
+                        FIGHT_AFTER_TEXT_Y + (int) (trueCardHeight * CARD_TORSO_KOEF),
+                        trueCardWidth, failTrueHeight, null);
             }
+            int curHeight = FIGHT_AFTER_TEXT_Y + trueCardHeight;
+            if (!game.getIsSwordUsed()) {
+                int trueSwordWidth = (int) (1f * SWORD_ICON_HEIGHT * swordIconWidth / swordIconHeight);
+                g2d.drawImage(swordImage, (int) ((width - trueSwordWidth) / 2f), curHeight + FIGHT_BEFORE_SWORD_Y_INDENT,
+                        trueSwordWidth, SWORD_ICON_HEIGHT, null);
+            }
+            curHeight += FIGHT_AFTER_SWORD_Y_INDENT + FIGHT_BEFORE_SWORD_Y_INDENT + SWORD_ICON_HEIGHT;
 
+            // Рисуем слагаемые боевой силы сторон
+            // TODO реализовать более аккуратный вывод в 2 строчки, если позволяет место
+            g2d.setFont(new Font("Liberation Mono", Font.BOLD, 30));
             for (int side = 0; side < 2; side++) {
                 boolean firstFlag = true;
-                int pos = (int) (side * width / 2f + (width / 4f - calculateWidth(battleInfo, 0)) / 2f);
+                int calculatedWidth = calculateWidth(battleInfo, side);
+                float sizeMultiplier = 1f;
+                if (calculatedWidth > width / 2) {
+                    sizeMultiplier = width / 2f / calculatedWidth;
+                    calculatedWidth = width / 2;
+                }
+                int pos = (int) (side * width / 2f + width / 4f - calculatedWidth / 2f);
                 // Модификатор приказа
                 if (side == 0 && battleInfo.getMarchModifier() != 0) {
                     firstFlag = false;
-                    g2d.drawImage(marchImage[battleInfo.getMarchModifier() + 1],
-                            pos, curHeight, FIGHT_STRING_SIZE, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(marchImage[battleInfo.getMarchModifier() + 1], pos, curHeight,
+                            (int) (FIGHT_STRING_SIZE * sizeMultiplier), (int) (FIGHT_STRING_SIZE * sizeMultiplier),
+                            null);
                     pos += FIGHT_STRING_SIZE + FIGHT_X_INDENT;
 
                 }
@@ -98,8 +110,9 @@ public class FightTabPanel extends JPanel {
                 if (side == 1 && battleInfo.getGarrisonModifier() > 0) {
                     firstFlag = false;
                     trueGarrisonWidth = (int) (1f * garrisonWidth * FIGHT_STRING_SIZE / garrisonHeight);
-                    g2d.drawImage(garrisonImage[battleInfo.getGarrisonModifier()],
-                            pos, curHeight, trueGarrisonWidth, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(garrisonImage[battleInfo.getGarrisonModifier()], pos, curHeight,
+                            (int) (trueGarrisonWidth * sizeMultiplier), (int) (FIGHT_STRING_SIZE * sizeMultiplier),
+                            null);
                     pos += trueGarrisonWidth + FIGHT_X_INDENT;
                 }
                 // Модификатор защины
@@ -107,72 +120,78 @@ public class FightTabPanel extends JPanel {
                     if (firstFlag) {
                         firstFlag = false;
                     } else {
-                        g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                        g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                         pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                     }
-                    g2d.drawImage(defenceImage[battleInfo.getDefenceModifier() - 1],
-                            pos, curHeight, FIGHT_STRING_SIZE, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(defenceImage[battleInfo.getDefenceModifier() - 1], pos, curHeight,
+                            (int) (FIGHT_STRING_SIZE * sizeMultiplier), (int) (FIGHT_STRING_SIZE * sizeMultiplier),
+                            null);
                     pos += FIGHT_STRING_SIZE + FIGHT_X_INDENT;
                 }
                 // Основной участник боя - атакующий или защищающийся
                 if (!firstFlag) {
-                    g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                    g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                 }
-                g2d.drawImage(houseEmblemImage[playerOnSide[side]],
-                        pos, curHeight, houseEmblemImage[playerOnSide[side]].getWidth(), FIGHT_STRING_SIZE, null);
+                g2d.drawImage(houseEmblemImage[playerOnSide[side]], pos, curHeight,
+                        (int) (houseEmblemImage[playerOnSide[side]].getWidth() * sizeMultiplier),
+                        (int) (FIGHT_STRING_SIZE * sizeMultiplier), null);
                 pos += houseEmblemImage[playerOnSide[side]].getWidth() + FIGHT_X_INDENT;
                 g2d.drawString(String.valueOf(battleInfo.getPlayerStrength(playerOnSide[side])),
-                        pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                        pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                 pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                 // Остальные участники боя - помогающие
                 for (int player = 0; player < NUM_PLAYER; player++) {
                     if (battleInfo.getSupportOfPlayer(player) == side && player != playerOnSide[side]) {
-                        g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                        g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                         pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
-                        g2d.drawImage(houseEmblemImage[player],
-                                pos, curHeight, houseEmblemImage[player].getWidth(), FIGHT_STRING_SIZE, null);
+                        g2d.drawImage(houseEmblemImage[player], pos, curHeight,
+                                (int) (houseEmblemImage[player].getWidth() * sizeMultiplier),
+                                (int) (FIGHT_STRING_SIZE * sizeMultiplier), null);
                         pos += houseEmblemImage[player].getWidth() + FIGHT_X_INDENT;
                         g2d.drawString(String.valueOf(battleInfo.getPlayerStrength(player)),
-                                pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                                pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                         pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                     }
                 }
                 // Добавляем силу карт дома
                 if (houseCardImage.containsKey(card[side]) && battleInfo.getCardStrengthOnSide(side) > 0) {
-                    g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                    g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
-                    g2d.drawImage(houseCardBackImage[playerOnSide[side]],
-                            pos, curHeight, trueHouseCardBackImageWidth, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(houseCardBackImage[playerOnSide[side]], pos, curHeight,
+                            (int) (trueHouseCardBackImageWidth * sizeMultiplier),
+                            (int) (FIGHT_STRING_SIZE * sizeMultiplier), null);
                     pos += trueHouseCardBackImageWidth + FIGHT_X_INDENT;
                     g2d.drawString(String.valueOf(battleInfo.getCardStrengthOnSide(side)),
-                            pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                            pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                 }
                 // Добавляем бонусную силу карт дома
                 if (battleInfo.getBonusStrengthOnSide(side) > 0) {
-                    g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                    g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
-                    g2d.drawImage(bonusImage,
-                            pos, curHeight, FIGHT_STRING_SIZE, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(bonusImage, pos, curHeight,
+                            (int) (FIGHT_STRING_SIZE * sizeMultiplier), (int) (FIGHT_STRING_SIZE * sizeMultiplier),
+                            null);
                     pos += FIGHT_STRING_SIZE + FIGHT_X_INDENT;
                     g2d.drawString(String.valueOf(battleInfo.getBonusStrengthOnSide(side)),
-                            pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                            pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
                 }
                 // Добавляем валирийский меч
                 if (battleInfo.getSideWhereSwordUsed() == side) {
-                    g2d.drawString("+", pos, curHeight + FIGHT_TEXT_Y_INDENT);
+                    g2d.drawString("+", pos, curHeight + FIGHT_STRING_TEXT_Y_INDENT);
                     pos += FIGHT_X_INDENT + FIGHT_SYMBOL_INDENT;
-                    g2d.drawImage(swordImage,
-                            pos, curHeight, trueSwordImageWidth, FIGHT_STRING_SIZE, null);
+                    g2d.drawImage(swordImage, pos, curHeight, (int) (trueSwordImageWidth * sizeMultiplier),
+                            (int) (FIGHT_STRING_SIZE * sizeMultiplier), null);
                 }
             }
+            // Рисуем финальное соотношение сил
             curHeight += FIGHT_STRING_SIZE + 2 * FIGHT_AFTER_SWORD_Y_INDENT;
             g2d.drawString(String.valueOf(battleInfo.getStrengthOnSide(SideOfBattle.attacker)),
-                    (int) (width / 4f - FIGHT_SYMBOL_INDENT / 2f), curHeight + FIGHT_TEXT_Y_INDENT);
+                    (int) (width / 4f - FIGHT_SYMBOL_INDENT / 2f), curHeight + FIGHT_FINAL_TEXT_Y_INDENT);
             g2d.drawString(String.valueOf(battleInfo.getStrengthOnSide(SideOfBattle.defender)),
-                    (int) (3f * width / 4f - FIGHT_SYMBOL_INDENT / 2f), curHeight + FIGHT_TEXT_Y_INDENT);
+                    (int) (3f * width / 4f - FIGHT_SYMBOL_INDENT / 2f), curHeight + FIGHT_FINAL_TEXT_Y_INDENT);
         }
     }
 

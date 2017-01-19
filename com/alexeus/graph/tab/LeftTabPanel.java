@@ -47,6 +47,9 @@ public class LeftTabPanel extends JTabbedPane {
     private void setNewPreferredSize() {
         switch (getSelectedIndex()) {
             // Вкладка "Дома" широкая, ей нужно много места
+            case 0:
+                setPreferredSize(new Dimension(EVENT_TAB_WIDTH, TAB_PANEL_HEIGHT));
+                break;
             case 1:
                 setPreferredSize(new Dimension(HOUSE_TAB_WIDTH, TAB_PANEL_HEIGHT));
                 break;
@@ -54,7 +57,7 @@ public class LeftTabPanel extends JTabbedPane {
                 setPreferredSize(new Dimension(FIGHT_TAB_WIDTH, TAB_PANEL_HEIGHT));
                 break;
             default:
-                setPreferredSize(new Dimension(OTHER_TAB_WIDTH, TAB_PANEL_HEIGHT));
+                setPreferredSize(new Dimension(CHAT_TAB_WIDTH, TAB_PANEL_HEIGHT));
                 break;
         }
     }

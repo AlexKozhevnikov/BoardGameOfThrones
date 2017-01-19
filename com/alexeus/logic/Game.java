@@ -5,6 +5,7 @@ import com.alexeus.ai.PrimitivePlayer;
 import com.alexeus.control.Controller;
 import com.alexeus.control.Settings;
 import com.alexeus.graph.MapPanel;
+import com.alexeus.graph.enums.TabEnum;
 import com.alexeus.graph.tab.EventTabPanel;
 import com.alexeus.graph.tab.FightTabPanel;
 import com.alexeus.graph.tab.HouseTabPanel;
@@ -194,6 +195,8 @@ public class Game {
 
     private MapPanel mapPanel;
 
+    private LeftTabPanel tabPanel;
+
     private HouseTabPanel houseTabPanel;
 
     private FightTabPanel fightTabPanel;
@@ -207,21 +210,11 @@ public class Game {
      */
     private Game() {
         map = new GameOfThronesMap();
-        decks = new LinkedList<>();
-        for (int deckNumber = 1; deckNumber <= NUM_EVENT_DECKS; deckNumber++) {
-            decks.add(new LinkedList<>());
-        }
-        wildlingDeck = new LinkedList<>();
         random = new Random();
         addListener(new GamePhaseChangeListener());
         playerInterface = new PrimitivePlayer[NUM_PLAYER];
         for (int i = 0; i < NUM_PLAYER; i++) {
             playerInterface[i] = new PrimitivePlayer(this, i);
-        }
-        for (int area = 0; area < NUM_AREA; area++) {
-            powerTokenOnArea[area] = -1;
-            houseHomeLandInArea[area] = -1;
-            armyInArea[area] = new Army(this);
         }
     }
 
@@ -237,6 +230,16 @@ public class Game {
      * если таковой имелся, теряется.
      */
     public void prepareNewGame() {
+        for (int area = 0; area < NUM_AREA; area++) {
+            powerTokenOnArea[area] = -1;
+            houseHomeLandInArea[area] = -1;
+            armyInArea[area] = new Army(this);
+        }
+        decks = new LinkedList<>();
+        for (int deckNumber = 1; deckNumber <= NUM_EVENT_DECKS; deckNumber++) {
+            decks.add(new LinkedList<>());
+        }
+        wildlingDeck = new LinkedList<>();
 
         // тестовая распечатка полей карты
         // map.print();
@@ -449,9 +452,12 @@ public class Game {
                 supply[areaOwner] = Math.min(supply[areaOwner] + map.getNumBarrel(area), MAX_SUPPLY);
             }
         }
-        for (int player = 0; player < NUM_PLAYER; player++) {
-            System.out.println(SUPPLY_OF + HOUSE_GENITIVE[player] + EQUALS + supply[player] + ".");
+        if (time > 1) {
+            for (int player = 0; player < NUM_PLAYER; player++) {
+                say(SUPPLY_OF + HOUSE_GENITIVE[player] + EQUALS + supply[player] + ".");
+            }
         }
+        mapPanel.repaintSupply();
     }
 
     /**
@@ -470,16 +476,15 @@ public class Game {
     }
 
     private void getPlans() {
+        setClosedOrders();
+        if (Settings.getInstance().isAutoSwitchTabs()) {
+            tabPanel.setSelectedIndex(TabEnum.chat.getCode());
+        }
         HashMap<Integer, Order> orders;
         Order curOrder;
         for (int player = 0; player < NUM_PLAYER; player++) {
             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                 orders = playerInterface[player].giveOrders();
-                say(ORDERS + HOUSE_GENITIVE[player] + ":");
-                for (Map.Entry<Integer, Order> entry : orders.entrySet()) {
-                    say(AREA_NUMBER + entry.getKey() +
-                            " (" + map.getAreaNameRus(entry.getKey()) + ")" + ": " + entry.getValue());
-                }
                 if (validateOrders(orders, player)) {
                     // Успех: сохраняем приказы и заполняем вспомогательные множества
                     for (Integer area: orders.keySet()) {
@@ -589,6 +594,10 @@ public class Game {
      * поменять один свой приказ или посмотреть верхнюю карту одичалых
      */
     private void getRavenDecision() {
+        deleteVoidOrders();
+        if (Settings.getInstance().isAutoSwitchTabs() && tabPanel.getSelectedIndex() != TabEnum.chat.getCode()) {
+            tabPanel.setSelectedIndex(TabEnum.chat.getCode());
+        }
         if (!Settings.getInstance().isPassByRegime()) {
             mapPanel.repaint();
         }
@@ -704,7 +713,7 @@ public class Game {
                 }
                 // Если игрок не уложился в количество попыток, то удаляем все его приказы набегов
                 if (attempt >= MAX_TRIES_TO_GO) {
-                    System.out.println(HOUSE[player] + FAILED_TO_PLAY_RAID);
+                    say(HOUSE[player] + FAILED_TO_PLAY_RAID);
                     for (int area: areasWithRaids.get(player)) {
                         orderInArea[area] = null;
                         if (!Settings.getInstance().isPassByRegime()) {
@@ -732,36 +741,36 @@ public class Game {
 
         // Банальные проверки на валидность областей и наличие набега, происходят для всех вариантов набегов без исключения
         if (from < 0 || from >= NUM_AREA || to >= NUM_AREA) {
-            System.out.println(WRONG_AREAS_RAID_ERROR);
+            say(WRONG_AREAS_RAID_ERROR);
             return false;
         }
         if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.raid ||
                 armyInArea[from].getOwner() != player) {
-            System.out.println(NO_RAID_ERROR);
+            say(NO_RAID_ERROR);
             return false;
         }
 
         // Случай результативного набега
         if (to >= 0 && to < NUM_AREA && to != from) {
             if (map.getAdjacencyType(from, to) == AdjacencyType.noAdjacency) {
-                System.out.println(NO_ADJACENT_RAID_ERROR);
+                say(NO_ADJACENT_RAID_ERROR);
                 return false;
             }
             if (armyInArea[to].getOwner() == player) {
-                System.out.println(DONT_RAID_YOURSELF_ERROR);
+                say(DONT_RAID_YOURSELF_ERROR);
                 return false;
             }
             if (armyInArea[to].getOwner() < 0 || orderInArea[to] == null) {
-                System.out.println(NO_ONE_TO_RAID_THERE_ERROR);
+                say(NO_ONE_TO_RAID_THERE_ERROR);
                 return false;
             }
             if (map.getAdjacencyType(from, to) == AdjacencyType.landToSea) {
-                System.out.println(NO_RAID_FROM_LAND_TO_SEA_ERROR);
+                say(NO_RAID_FROM_LAND_TO_SEA_ERROR);
                 return false;
             }
             if (orderInArea[to].orderType() == OrderType.march ||
                     orderInArea[to].orderType() == OrderType.defence && orderInArea[from] == Order.raid) {
-                System.out.println(CANT_RAID_THIS_ORDER_ERROR);
+                say(CANT_RAID_THIS_ORDER_ERROR);
                 return false;
             }
         }
@@ -783,7 +792,7 @@ public class Game {
                 numNoMarchesPlayers++;
             } else {
                 numNoMarchesPlayers = 0;
-                System.out.println(HOUSE[player] + MUST_PLAY_MARCH);
+                say(HOUSE[player] + MUST_PLAY_MARCH);
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     MarchOrderPlayed march = playerInterface[player].playMarch();
                     // Проверяем вариант розыгрыша похода, полученный от игрока, на валидность
@@ -796,6 +805,10 @@ public class Game {
                             say(HOUSE[player] + DELETES_MARCH + map.getAreaNameRusGenitive(from));
                             orderInArea[from] = null;
                             areasWithMarches.get(player).remove(from);
+                            if (Settings.getInstance().isAutoSwitchTabs() &&
+                                    tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
+                                tabPanel.setSelectedIndex(TabEnum.chat.getCode());
+                            }
                         } else {
                             // Случай результативного похода: перемещаем юниты, если нужно, начинаем бой,
                             // и обновляем попутные переменные
@@ -868,6 +881,11 @@ public class Game {
                                     mapPanel.repaintArea(areaWhereBattleBegins);
                                 }
                                 playFight(areaWhereBattleBegins, from, orderInArea[from].getModifier());
+                            } else {
+                                if (Settings.getInstance().isAutoSwitchTabs() &&
+                                        tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
+                                    tabPanel.setSelectedIndex(TabEnum.chat.getCode());
+                                }
                             }
                             orderInArea[from] = null;
                             areasWithMarches.get(player).remove(from);
@@ -915,12 +933,12 @@ public class Game {
             }
         }
         if (wrongAreasFlag || from < 0 || from >= NUM_AREA) {
-            System.out.println(WRONG_AREAS_MARCH_ERROR);
+            say(WRONG_AREAS_MARCH_ERROR);
             return false;
         }
         if (orderInArea[from] == null || orderInArea[from].orderType() != OrderType.march ||
                 armyInArea[from].getOwner() != player) {
-            System.out.println(NO_MARCH_ERROR);
+            say(NO_MARCH_ERROR);
             return false;
         }
 
@@ -951,31 +969,31 @@ public class Game {
                 Army curArmy = entry.getValue();
                 // Проверяем, что в данную область назначения действительно можно пойти
                 if (map.getAreaType(from).isNaval() && !map.getAreaType(curDestination).isNaval()) {
-                    System.out.println(CANT_MARCH_FROM_SEA_TO_LAND_ERROR);
+                    say(CANT_MARCH_FROM_SEA_TO_LAND_ERROR);
                     return false;
                 }
                 if (map.getAreaType(from).isNaval() && map.getAdjacencyType(from, curDestination) == AdjacencyType.noAdjacency) {
-                    System.out.println(CANT_MARCH_THERE_ERROR);
+                    say(CANT_MARCH_THERE_ERROR);
                     return false;
                 }
                 if (map.getAreaType(from).isNaval() && map.getAreaType(curDestination) == AreaType.port) {
                     // Если замок, которому принадлежит порт, в который хочет зайти игрок, ему не принадлежит, то фейл
                     if (!canMoveInPort(curDestination, player)) {
-                        System.out.println(CANT_MARCH_IN_NOT_YOUR_PORT_ERROR);
+                        say(CANT_MARCH_IN_NOT_YOUR_PORT_ERROR);
                         return false;
                     }
                 }
                 if (!map.getAreaType(from).isNaval() && map.getAreaType(curDestination).isNaval()) {
-                    System.out.println(CANT_MARCH_FROM_LAND_TO_SEA_ERROR);
+                    say(CANT_MARCH_FROM_LAND_TO_SEA_ERROR);
                     return false;
                 }
                 if (!map.getAreaType(from).isNaval() && !accessibleAreas.contains(curDestination)) {
-                    System.out.println(NO_WAY_MARCH_ERROR);
+                    say(NO_WAY_MARCH_ERROR);
                     return false;
                 }
                 // Проверяем, что марширующая армия не пуста
                 if (curArmy.isEmpty()) {
-                    System.out.println(EMPTY_ARMY_MARCH_ERROR);
+                    say(EMPTY_ARMY_MARCH_ERROR);
                     return false;
                 }
 
@@ -988,14 +1006,14 @@ public class Game {
                             int playerStrength = calculatePowerOfPlayerVersusGarrison(player, curDestination, curArmy,
                                     orderInArea[from].getModifier());
                             if (playerStrength < garrisonInArea[curDestination]) {
-                                System.out.println(CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH + playerStrength +
+                                say(CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH + playerStrength +
                                         GARRISON_STRENGTH_IS + garrisonInArea[curDestination]);
                                 return false;
                             }
                         }
                         areaWhereBattleBegins = curDestination;
                     } else {
-                        System.out.println(CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR);
+                        say(CANT_BEGIN_TWO_BATTLES_BY_ONE_MARCH_ERROR);
                         return false;
                     }
                 }
@@ -1038,23 +1056,23 @@ public class Game {
                 }
             }
             if (nPawns > 0 || nKnights > 0 || nShips > 0 || nSiegeEngines > 0) {
-                System.out.println(LACK_OF_UNITS_ERROR);
+                say(LACK_OF_UNITS_ERROR);
                 return false;
             }
 
             // Проверка по снабжению
             if (!supplyTestForMarch(march)) {
-                System.out.println(SUPPLY_VIOLATION_ERROR);
+                say(SUPPLY_VIOLATION_ERROR);
                 return false;
             }
 
             // Проверки возможности оставить жетон власти
             if (march.isLeaveToken() && nPowerTokensHouse[player] == 0) {
-                System.out.println(NO_POWER_TOKENS_TO_LEAVE_ERROR);
+                say(NO_POWER_TOKENS_TO_LEAVE_ERROR);
                 return false;
             }
             if (march.isLeaveToken() && map.getAreaType(from).isNaval()) {
-                System.out.println(CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR);
+                say(CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR);
                 return false;
             }
         }
@@ -1091,6 +1109,10 @@ public class Game {
                     MusterPlayed musterVariant = playerInterface[player].playConsolidatePowerS(areaWithMuster[player]);
                     if (validateMuster(musterVariant, player)) {
                         Controller.getInstance().interruption();
+                        if (Settings.getInstance().isAutoSwitchTabs() &&
+                                tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
+                            tabPanel.setSelectedIndex(TabEnum.chat.getCode());
+                        }
                         int nMusteredObjects = musterVariant.getNumberMusterUnits();
                         if (nMusteredObjects > 0) {
                             for (int i = 0; i < nMusteredObjects; i++) {
@@ -1163,7 +1185,7 @@ public class Game {
     private boolean validateMuster(MusterPlayed muster, int player) {
         int from = muster.getCastleArea();
         if (!areasToMuster.contains(from) || getAreaOwner(from) != player) {
-            System.out.println(WRONG_AREAS_TO_MUSTER_ERROR);
+            say(WRONG_AREAS_TO_MUSTER_ERROR);
             return false;
         }
         int numNeededUnitsOfType[] = new int[NUM_UNIT_TYPES];
@@ -1176,7 +1198,7 @@ public class Game {
                     !map.getAreaType(muster.getArea(i)).isNaval() && from != muster.getArea(i) ||
                     map.getAreaType(muster.getArea(i)) == AreaType.sea &&
                     getTroopsOwner(muster.getArea(i)) >= 0 &&  getTroopsOwner(muster.getArea(i)) != player) {
-                System.out.println(CANT_MUSTER_HERE_ERROR);
+                say(CANT_MUSTER_HERE_ERROR);
                 return false;
             }
             if (muster.getMusterUnit(i) instanceof PawnPromotion) {
@@ -1190,16 +1212,16 @@ public class Game {
         }
 
         if (spentMusterPoints > map.getNumCastle(from)) {
-            System.out.println(MUSTER_POINTS_VIOLATED_ERROR);
+            say(MUSTER_POINTS_VIOLATED_ERROR);
             return false;
         }
         if (armyInArea[from].getNumUnitOfType(UnitType.pawn) < numNeededPawns) {
-            System.out.println(NO_PAWN_TO_PROMOTE_ERROR);
+            say(NO_PAWN_TO_PROMOTE_ERROR);
             return false;
         }
         for (UnitType unitType: UnitType.values()) {
             if (numNeededUnitsOfType[unitType.getCode()] > restingUnitsOfPlayerAndType[player][unitType.getCode()]) {
-                System.out.println(NO_UNITS_TO_PUT_ERROR + unitType);
+                say(NO_UNITS_TO_PUT_ERROR + unitType);
                 return false;
             }
         }
@@ -1219,7 +1241,7 @@ public class Game {
             }
         }
         if (!supplyTest(virtualAreasWithTroops, supply[player])) {
-            System.out.println(MUSTER_SUPPLY_VIOLATION_ERROR);
+            say(MUSTER_SUPPLY_VIOLATION_ERROR);
             return false;
         }
         return true;
@@ -1323,11 +1345,14 @@ public class Game {
         } else {
             // Предполагаем, что все области с гарнизонами, принадлежащие игрокам, также являются престольными землями.
             // Это верно для классической Игры престолов, но может быть неверно для дополнений.
-            System.out.println(NO_DEFENDER_ERROR);
+            say(NO_DEFENDER_ERROR);
             return;
         }
         say(BATTLE_BEGINS_FOR + map.getAreaNameRusAccusative(areaOfBattle) + BETWEEN +
                 HOUSE_ABLATIVE[playerOnSide[0]] + " и " + HOUSE_ABLATIVE[playerOnSide[1]] + ".");
+        if (Settings.getInstance().isAutoSwitchTabs()) {
+            tabPanel.setSelectedIndex(TabEnum.fight.getCode());
+        }
         if (battleInfo == null) {
             battleInfo = new BattleInfo();
         }
@@ -1413,7 +1438,6 @@ public class Game {
         }
 
         // Выбираем карты дома
-        System.out.println(HOUSES_CHOOSE_CARDS);
         houseCardOfSide[0] = getHouseCard(battleInfo, playerOnSide[0]);
         houseCardOfSide[1] = getHouseCard(battleInfo, playerOnSide[1]);
 
@@ -1462,7 +1486,7 @@ public class Game {
                         Army armyToSearchForFootmen = heroSide == 0 ? armyInArea[areaOfBattle] : attackingArmy;
                         Unit victimOfMace = armyToSearchForFootmen.getUnitOfType(UnitType.pawn);
                         if (victimOfMace != null) {
-                            System.out.println(MACE_EATS_MAN + map.getAreaNameRusLocative(areaOfBattle));
+                            say(MACE_EATS_MAN + map.getAreaNameRusLocative(areaOfBattle));
                             battleInfo.deleteUnit(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker, victimOfMace);
                             armyToSearchForFootmen.killUnit(victimOfMace, KillingReason.mace);
                             countBattleVariables();
@@ -1471,7 +1495,7 @@ public class Game {
                                 houseTabPanel.repaintHouse(playerOnSide[1 - heroSide]);
                             }
                         } else {
-                            System.out.println(houseCardOfSide[heroSide].getName() + NO_EFFECT);
+                            say(houseCardOfSide[heroSide].getName() + NO_EFFECT);
                         }
                         break;
                     case queenOfThorns:
@@ -1681,7 +1705,7 @@ public class Game {
                             int previousNumberOfUnits = virtualAreasWithTroops.get(area);
                             for (curLosses = 0; curLosses < numRetreatingUnits; curLosses++) {
                                 virtualAreasWithTroops.put(area, previousNumberOfUnits + numRetreatingUnits - curLosses);
-                                if (supplyTest(virtualAreasWithTroops, loser)) break;
+                                if (supplyTest(virtualAreasWithTroops, supply[loser])) break;
                             }
                             virtualAreasWithTroops.put(area, previousNumberOfUnits);
                         }
@@ -1724,7 +1748,7 @@ public class Game {
                             int player = houseCardOfSide[winnerSide] == HouseCard.robbStark ?
                                     playerOnSide[winnerSide] : loser;
                             boolean successFlag = false;
-                            System.out.println(HOUSE[loser] + MUST_RETREAT);
+                            say(HOUSE[loser] + MUST_RETREAT);
                             if (!Settings.getInstance().isPassByRegime()) {
                                 mapPanel.repaintArea(areaOfBattle);
                             }
@@ -1784,7 +1808,7 @@ public class Game {
                         for (minLosses = 0; minLosses < attackingArmy.getNumUnits(); minLosses++) {
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits + attackingArmy.getNumUnits()
                                     - minLosses);
-                            if (supplyTest(virtualAreasWithTroops, loser)) break;
+                            if (supplyTest(virtualAreasWithTroops, supply[loser])) break;
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits);
                         }
                     }
@@ -1859,7 +1883,7 @@ public class Game {
                                     }
                                     break;
                                 } else {
-                                    System.out.println(INVALID_AREA_ERROR);
+                                    say(INVALID_AREA_ERROR);
                                 }
                             }
                         }
@@ -1945,7 +1969,7 @@ public class Game {
                         if (numActiveHouseCardsOfPlayer[playerOnSide[1 - curSide]] == 0) {
                             renewHandExceptCard(playerOnSide[1 - curSide], houseCardOfPlayer[playerOnSide[1 - curSide]][card]);
                         }
-                        say(PATCHPACE_DELETES_CARD + houseCardOfPlayer[playerOnSide[1 - curSide]][card] + "\".");
+                        say(PATCHPACE_DELETES_CARD + houseCardOfPlayer[playerOnSide[1 - curSide]][card].getName() + ".");
                         if (!Settings.getInstance().isPassByRegime()) {
                             houseTabPanel.repaintHouse(playerOnSide[1 - curSide]);
                         }
@@ -1962,7 +1986,7 @@ public class Game {
     }
 
     private void renewHandExceptCard(int player, HouseCard card) {
-        System.out.println(HOUSE[player] + GETS_NEW_DECK);
+        say(HOUSE[player] + GETS_NEW_DECK);
         for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
             if (houseCardOfPlayer[player][i] != card) {
                 houseCardOfPlayer[player][i].setActive(true);
@@ -2239,15 +2263,15 @@ public class Game {
             wildlingDeck.addLast(topWildlingCard);
         }
         topWildlingCard = wildlingDeck.pollFirst();
-        System.out.println(WILDLINGS_ATTACK + WITH_STRENGTH + wildlingsStrength);
+        say(WILDLINGS_ATTACK + WITH_STRENGTH + wildlingsStrength);
         if (random.nextBoolean()) {
-            System.out.print(NIGHT_WATCH_VICTORY);
+            say(NIGHT_WATCH_VICTORY);
             wildlingsStrength = 0;
         } else {
-            System.out.print(NIGHT_WATCH_DEFEAT);
+            say(NIGHT_WATCH_DEFEAT);
             wildlingsStrength = Math.max(0, wildlingsStrength - 2 * WILDLING_STRENGTH_INCREMENT);
         }
-        System.out.println(" Карта одичалых: " + topWildlingCard);
+        say(" Карта одичалых: " + topWildlingCard);
     }
 
     private void nullifyOrdersAndVariables() {
@@ -2257,6 +2281,22 @@ public class Game {
         }
         prohibitedOrder = null;
         isSwordUsed = false;
+    }
+
+    private void setClosedOrders() {
+        for (int area = 0; area < NUM_AREA; area++) {
+            if (!armyInArea[area].isEmpty()) {
+                orderInArea[area] = Order.closed;
+            }
+        }
+    }
+
+    private void deleteVoidOrders() {
+        for (int area = 0; area < NUM_AREA; area++) {
+            if (orderInArea[area] == Order.closed) {
+                orderInArea[area] = null;
+            }
+        }
     }
 
     public GameOfThronesMap getMap() {
@@ -2602,6 +2642,7 @@ public class Game {
 
     public void receiveComponents(MapPanel mapPanel, LeftTabPanel tabPanel) {
         this.mapPanel = mapPanel;
+        this.tabPanel = tabPanel;
         this.chat = tabPanel.getChatTab().getChat();
         this.eventTabPanel = tabPanel.getEventTab();
         this.fightTabPanel = tabPanel.getFightTab();

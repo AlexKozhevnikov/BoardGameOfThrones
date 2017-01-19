@@ -33,6 +33,7 @@ public class Controller {
     private long timeFromLastInterrupt;
 
     private Controller() {
+        settings = Settings.getInstance();
     }
 
     public static Controller getInstance() {
@@ -57,6 +58,7 @@ public class Controller {
         try {
             if (Settings.getInstance().isPlayRegime()) {
                 Thread.sleep(timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis());
+                setTimer();
             } else {
                 synchronized (Game.getInstance()) {
                     game.wait();
@@ -66,5 +68,9 @@ public class Controller {
             System.err.println("Друзья, нечто ужасное случилось! Хватит это терпеть, давайте дебажить!");
             ex.printStackTrace();
         }
+    }
+
+    public void setTimer() {
+        timeFromLastInterrupt = System.currentTimeMillis();
     }
 }

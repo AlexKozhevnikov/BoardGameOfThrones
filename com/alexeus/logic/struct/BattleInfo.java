@@ -51,7 +51,7 @@ public class BattleInfo {
         playerOnSide[0] = attacker;
         playerOnSide[1] = defender;
         this.areaOfBattle = areaOfBattle;
-        marchModifier = 0;
+        this.marchModifier = marchModifier;
         defenceModifier = 0;
         garrisonModifier = 0;
         attackerUnits.clear();
@@ -94,19 +94,17 @@ public class BattleInfo {
     public void addArmyToSide (SideOfBattle side, Army army) {
         int house = army.getOwner();
         for (Unit unit: army.getUnits()) {
-            if (!unit.isWounded()) {
-                switch (side) {
-                    case attacker:
-                        attackerUnits.add(unit);
-                        break;
-                    case defender:
-                        defenderUnits.add(unit);
-                        break;
+            switch (side) {
+                case attacker:
+                    attackerUnits.add(unit);
+                    break;
+                case defender:
+                    defenderUnits.add(unit);
+                    break;
                 }
-                if (unit.getUnitType() != UnitType.siegeEngine || side == SideOfBattle.attacker && isThereACastle) {
-                    playerStrength[house] += unit.getStrength();
-                    playerStrength[house] += unit.getStrength();
-                }
+            if (!unit.isWounded() &&
+                    (unit.getUnitType() != UnitType.siegeEngine || side == SideOfBattle.attacker && isThereACastle)) {
+                playerStrength[house] += unit.getStrength();
             }
         }
     }

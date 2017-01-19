@@ -19,6 +19,12 @@ public class Settings {
     private boolean playRegime;
 
     /**
+     * Если да, то левая панель автоматически будет переключать вкладки при игре
+     * (начался бой -> вкладка "Бой", новые события -> вкладка "События", и т. д.)
+     */
+    private boolean autoSwitchTabs;
+
+    /**
      * Количество миллисекунд - задержка в режиме автоматического хода партии
      */
     private int timeoutMillis;
@@ -27,7 +33,8 @@ public class Settings {
         // TODO загрузка настроек по умолчанию из файла
         passByRegime = false;
         playRegime = false;
-        timeoutMillis = 5000;
+        autoSwitchTabs = true;
+        timeoutMillis = 2000;
     }
 
     public static Settings getInstance() {
@@ -59,5 +66,13 @@ public class Settings {
 
     public void setPlayRegime(boolean playRegime) {
         this.playRegime = playRegime;
+    }
+
+    public boolean isAutoSwitchTabs() {
+        return autoSwitchTabs;
+    }
+
+    public void setAutoSwitchTabs(boolean autoSwitchTabs) {
+        this.autoSwitchTabs = autoSwitchTabs;
     }
 }

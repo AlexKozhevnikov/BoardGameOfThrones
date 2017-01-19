@@ -56,14 +56,15 @@ public class Constants {
 
     public static final int FRAME_WIDTH = 1360;
     public static final int FRAME_HEIGHT = 670;
-    public static final int MAP_WIDTH = 900;
-    public static final int MAP_HEIGHT = FRAME_HEIGHT;
     public static final int BUTTON_PANEL_WIDTH = 300;
     public static final int BUTTON_PANEL_HEIGHT = 100;
+    public static final int EVENT_TAB_WIDTH = 350;
     public static final int HOUSE_TAB_WIDTH = 650;
     public static final int FIGHT_TAB_WIDTH = 500;
-    public static final int OTHER_TAB_WIDTH = 350;
+    public static final int CHAT_TAB_WIDTH = 450;
     public static final int TAB_PANEL_HEIGHT = FRAME_HEIGHT - BUTTON_PANEL_HEIGHT + 30;
+    public static final int MAP_WIDTH = FRAME_WIDTH - EVENT_TAB_WIDTH;
+    public static final int MAP_HEIGHT = FRAME_HEIGHT;
     public static final int BUTTON_ICON_SIZE = (int) (BUTTON_PANEL_HEIGHT * 0.8);
     public static final int TAB_ICON_SIZE = 60;
     //public static final int COLLAPSE_ICON_SIZE = 100;
@@ -80,11 +81,14 @@ public class Constants {
     public static final int HOUSE_GROUP_X_INDENT = 80;
     public static final int HOUSE_NAME_X_INDENT = 10;
     public static final int FIGHT_X_INDENT = 5;
-    public static final int FIGHT_TEXT_Y_INDENT = 15;
+    public static final int FIGHT_TEXT_Y_INDENT = 25;
+    public static final int FIGHT_STRING_TEXT_Y_INDENT = 30;
+    public static final int FIGHT_FINAL_TEXT_Y_INDENT = 25;
     public static final int FIGHT_AFTER_TEXT_Y = 30;
     public static final int FIGHT_BEFORE_SWORD_Y_INDENT = 3;
     public static final int FIGHT_AFTER_SWORD_Y_INDENT = 3;
     public static final int SWORD_ICON_HEIGHT = 31;
     public static final int FIGHT_STRING_SIZE = 41;
     public static final int FIGHT_SYMBOL_INDENT = 15;
+    public static final float CARD_TORSO_KOEF = 0.4f;
 }
