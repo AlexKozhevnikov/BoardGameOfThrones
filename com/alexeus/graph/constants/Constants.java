@@ -10,7 +10,7 @@ public class Constants {
     public static final String WAY = "C:\\Users\\Пользователь\\IdeaProjects\\BoardGameOfThrones\\img\\";
     public static final String MAP_FILE = "map.jpg";
     public static final String TABS = "TabMenuItems\\";
-    public static final String HOUSE = "card.png";
+    public static final String CARD = "card.png";
     public static final String EVENT = "event.png";
     public static final String CHAT = "chat.png";
     public static final String FIGHT = "fight.png";
@@ -30,7 +30,17 @@ public class Constants {
     public static final String AREA = "area\\";
     public static final String WESTEROS = "WesterosCard\\";
     public static final String HOUSE_CARD = "HouseCard\\";
+    public static final String BATTLE = "battle\\";
+    public static final String WIN = "win.png";
+    public static final String FAIL = "fail.png";
+    public static final String SWORD = "blade.png";
+    public static final String EMBLEM = "_emblem.png";
+    public static final String BONUS = "bonus.png";
+    public static final String NEXT = "next.png";
+    public static final String PAUSE = "pause.png";
     public static final String WILDLING_TOKEN = "wildlingToken.png";
+
+    public static final String FIGHT_FOR = "Бой за ";
 
     public static final Color[] HOUSE_COLOR = {Color.YELLOW, Color.RED, Color.WHITE,
             new Color(255, 128, 0), new Color(0x10, 0x10, 0x10), new Color(0, 180, 0)};
@@ -69,4 +79,12 @@ public class Constants {
     public static final int TEXT_HOUSE_UNITS_Y_INDENT = 17;
     public static final int HOUSE_GROUP_X_INDENT = 80;
     public static final int HOUSE_NAME_X_INDENT = 10;
+    public static final int FIGHT_X_INDENT = 5;
+    public static final int FIGHT_TEXT_Y_INDENT = 15;
+    public static final int FIGHT_AFTER_TEXT_Y = 30;
+    public static final int FIGHT_BEFORE_SWORD_Y_INDENT = 3;
+    public static final int FIGHT_AFTER_SWORD_Y_INDENT = 3;
+    public static final int SWORD_ICON_HEIGHT = 31;
+    public static final int FIGHT_STRING_SIZE = 41;
+    public static final int FIGHT_SYMBOL_INDENT = 15;
 }

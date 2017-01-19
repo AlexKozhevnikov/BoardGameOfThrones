@@ -11,12 +11,7 @@ import java.awt.event.ActionListener;
 public class Main {
 
     public static void main(String[] args) {
-        String fonts[] = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-
-        for ( int i = 0; i < fonts.length; i++ )
-        {
-            System.out.println(fonts[i]);
-        }
+        //printFonts();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 JFrame frame = new JFrame("Board Game of Thrones");
@@ -65,5 +60,13 @@ public class Main {
         menuBar.add(fileMenu);
 
         frame.setJMenuBar(menuBar);
+    }
+
+    private static void printFonts() {
+        String fonts[] = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+        for (String font: fonts)
+        {
+            System.out.println(font);
+        }
     }
 }

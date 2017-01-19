@@ -5,6 +5,7 @@ import com.alexeus.graph.util.PictureTormentor;
 import com.alexeus.graph.enums.UnitPackType;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.constants.MainConstants;
+import com.alexeus.logic.enums.GamePhase;
 import com.alexeus.logic.enums.Order;
 import com.alexeus.logic.enums.TrackType;
 import com.alexeus.logic.enums.UnitType;
@@ -46,7 +47,11 @@ public class MapPanel extends JPanel{
             VICTORY_BEGIN_X, VICTORY_BEGIN_Y, VICTORY_VERTICAL_INDENT, VICTORY_SIZE,
             WILDLINGS_TOKEN_X, WILDLINGS_TOKEN_Y, WILDLINGS_TOKEN_WIDTH, WILDLINGS_TOKEN_HEIGHT, WILDLINGS_HORIZONTAL_INDENT,
             SUPPLY_BEGIN_X, SUPPLY_BEGIN_Y, SUPPLY_VERTICAL_INDENT, SUPPLY_WIDTH, SUPPLY_HEIGHT,
-            TIME_BEGIN_X, TIME_BEGIN_Y, TIME_WIDTH, TIME_HEIGHT;
+            TIME_BEGIN_X, TIME_BEGIN_Y, TIME_WIDTH, TIME_HEIGHT,
+            TRACKS_AREA_X, TRACKS_AREA_Y, TRACKS_AREA_WIDTH, TRACKS_AREA_HEIGHT,
+            SUPPLY_AREA_X, SUPPLY_AREA_Y, SUPPLY_AREA_WIDTH, SUPPLY_AREA_HEIGHT,
+            VICTORY_AREA_X, VICTORY_AREA_Y, VICTORY_AREA_WIDTH, VICTORY_AREA_HEIGHT,
+            WILDLING_AREA_X, WILDLING_AREA_Y, WILDLING_AREA_WIDTH, WILDLING_AREA_HEIGHT;
     private float TIME_VERTICAL_INDENT;
     private int trueUnitImageSize, trueHorizontalUnitIndent, trueVerticalUnitIndent, trueHorizontalShipIndent,
             trueDegreeIndent, trueDefenceWidth, trueDefenceHeight, trueInfluenceSize, trueTokenWidth, trueTokenHeight,
@@ -109,35 +114,6 @@ public class MapPanel extends JPanel{
         setPreferredSize(preferredSize);
     }
 
-    private void loadPics() {
-        ImageLoader imageLoader = ImageLoader.getInstance();
-        mapImage = imageLoader.getImage(MAP_FILE);
-        wildlingTokenImage = imageLoader.getImage(WILDLING_TOKEN);
-        timeImage = imageLoader.getImage(TIME);
-        for(int defence = MIN_DEFENCE; defence <= MAX_DEFENCE; defence++) {
-            defenceImage[defence] = imageLoader.getImage(DEFENCE + defence + PNG);
-        }
-        for(int orderCode = 0; orderCode < NUM_DIFFERENT_ORDERS; orderCode++) {
-            orderImage[orderCode] = imageLoader.getImage(ORDER + orderCode + PNG);
-        }
-        for (int player = 0; player < NUM_PLAYER; player++) {
-            tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
-            influenceImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
-            victoryImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + VICTORY);
-            supplyImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + SUPPLY);
-            for (UnitType unitType: UnitType.values()) {
-                unitImage[player][unitType.getCode()] = imageLoader.getImage(HOUSE_ENG[player] + "\\" +
-                        HOUSE_ENG[player] + "_" + unitType.engName() + PNG);
-                woundUnitImage[player][unitType.getCode()] =
-                        PictureTormentor.getRotatedPicture(unitImage[player][unitType.getCode()]);
-            }
-        }
-        for (int area = 0; area < NUM_AREA; area++) {
-            if (area >= 12 && area < 20) continue;
-            areaFillImage[area] = imageLoader.getImage(AREA + area + PNG);
-        }
-    }
-
     @Override
     public void paintComponent(Graphics g) {
         System.out.println(++nPaint);
@@ -184,12 +160,14 @@ public class MapPanel extends JPanel{
             }
             // Приказы
             Order order = game.getOrderInArea(area);
-            if (order == Order.closed) {
-                g2d.drawImage(influenceImage[areaOwner], indent + (int) (orderX[area] / scale),
-                        (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
-            } else if (order != null) {
-                g2d.drawImage(orderImage[order.getCode()], indent + (int) (orderX[area] / scale),
-                        (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
+            if (order != null) {
+                if (order == Order.closed) {
+                    g2d.drawImage(influenceImage[areaOwner], indent + (int) (orderX[area] / scale),
+                            (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
+                } else if (order != null) {
+                    g2d.drawImage(orderImage[order.getCode()], indent + (int) (orderX[area] / scale),
+                            (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
+                }
             }
             // Войска
             Army army = game.getArmyInArea(area);
@@ -300,6 +278,35 @@ public class MapPanel extends JPanel{
         }
     }
 
+    public void repaintArea(int area) {
+        if (area >= 12 && area < 20) {
+            area = Game.getInstance().getCastleWithPort(area);
+        }
+        Game.getInstance().say("Обновилась область: " + Game.getInstance().getMap().getAreaNameRus(area));
+        repaint(new Rectangle((int) (indent + areaBeginX[area] / scale), (int) (areaBeginY[area] / scale),
+                (int) (areaFillImage[area].getWidth() / scale), (int) (areaFillImage[area].getHeight() / scale)));
+    }
+
+    public void repaintTracks() {
+        repaint(new Rectangle((int) (indent + TRACKS_AREA_X / scale), (int) (TRACKS_AREA_Y / scale),
+                (int) (TRACKS_AREA_WIDTH  / scale), (int) (TRACKS_AREA_HEIGHT / scale)));
+    }
+
+    public void repaintSupply() {
+        repaint(new Rectangle((int) (indent + SUPPLY_AREA_X / scale), (int) (SUPPLY_AREA_Y / scale),
+                (int) (SUPPLY_AREA_WIDTH  / scale), (int) (SUPPLY_AREA_HEIGHT / scale)));
+    }
+
+    public void repaintVictory() {
+        repaint(new Rectangle((int) (indent + VICTORY_AREA_X / scale), (int) (VICTORY_AREA_Y / scale),
+                (int) (VICTORY_AREA_WIDTH  / scale), (int) (VICTORY_AREA_HEIGHT / scale)));
+    }
+
+    public void repaintWildlings() {
+        repaint(new Rectangle((int) (indent + WILDLING_AREA_X / scale), (int) (WILDLING_AREA_Y / scale),
+                (int) (WILDLING_AREA_WIDTH  / scale), (int) (WILDLING_AREA_HEIGHT / scale)));
+    }
+
     /**
      * Метод вызывается при изменении масштаба путём прокрутки мышиного колеса. Изменяет масштаб и текущую локацию.
      * @param n количество квантов прокрутки мышиного колеса
@@ -403,7 +410,34 @@ public class MapPanel extends JPanel{
         }
     }
 
-
+    private void loadPics() {
+        ImageLoader imageLoader = ImageLoader.getInstance();
+        mapImage = imageLoader.getImage(MAP_FILE);
+        wildlingTokenImage = imageLoader.getImage(WILDLING_TOKEN);
+        timeImage = imageLoader.getImage(TIME);
+        for(int defence = MIN_DEFENCE; defence <= MAX_DEFENCE; defence++) {
+            defenceImage[defence] = imageLoader.getImage(DEFENCE + defence + PNG);
+        }
+        for(int orderCode = 0; orderCode < NUM_DIFFERENT_ORDERS; orderCode++) {
+            orderImage[orderCode] = imageLoader.getImage(ORDER + orderCode + PNG);
+        }
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
+            influenceImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
+            victoryImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + VICTORY);
+            supplyImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + SUPPLY);
+            for (UnitType unitType: UnitType.values()) {
+                unitImage[player][unitType.getCode()] = imageLoader.getImage(HOUSE_ENG[player] + "\\" +
+                        HOUSE_ENG[player] + "_" + unitType.engName() + PNG);
+                woundUnitImage[player][unitType.getCode()] =
+                        PictureTormentor.getRotatedPicture(unitImage[player][unitType.getCode()]);
+            }
+        }
+        for (int area = 0; area < NUM_AREA; area++) {
+            if (area >= 12 && area < 20) continue;
+            areaFillImage[area] = imageLoader.getImage(AREA + area + PNG);
+        }
+    }
 
     private void loadVariables() {
         UNIT_IMAGE_SIZE = unitImage[0][0].getWidth(null);
@@ -424,22 +458,6 @@ public class MapPanel extends JPanel{
         VERTICAL_UNIT_INDENT = (int) (UNIT_IMAGE_SIZE * 0.3);
         DEGREE_INDENT = (int) (UNIT_IMAGE_SIZE * 0.6);
 
-        defenceX[21] = 822;
-        defenceY[21] = 769;
-        defenceX[36] = 367;
-        defenceY[36] = 2073;
-        defenceX[56] = 1549;
-        defenceY[56] = 2000;
-        defenceX[57] = 306;
-        defenceY[57] = 1705;
-        defenceX[41] = 512;
-        defenceY[41] = 2532;
-        defenceX[48] = 1351;
-        defenceY[48] = 2969;
-        defenceX[54] = 1057;
-        defenceY[54] = 2161;
-        defenceX[31] = 1186;
-        defenceY[31] = 1736;
         TRACK_BEGIN_X[0] = 1710;
         TRACK_BEGIN_X[1] = 1875;
         TRACK_BEGIN_X[2] = 2037;
@@ -457,7 +475,41 @@ public class MapPanel extends JPanel{
         SUPPLY_BEGIN_X = 1806;
         SUPPLY_BEGIN_Y = 2039;
         SUPPLY_VERTICAL_INDENT = 107;
+
+        TRACKS_AREA_X = 1670;
+        TRACKS_AREA_Y = 0;
+        TRACKS_AREA_WIDTH = 520;
+        TRACKS_AREA_HEIGHT = 1070;
+        SUPPLY_AREA_X = 1680;
+        SUPPLY_AREA_Y = 1330;
+        SUPPLY_AREA_WIDTH = 510;
+        SUPPLY_AREA_HEIGHT = 850;
+        VICTORY_AREA_X = 1920;
+        VICTORY_AREA_Y = 2200;
+        VICTORY_AREA_WIDTH = 270;
+        VICTORY_AREA_HEIGHT = 1100;
+        WILDLING_AREA_X = 410;
+        WILDLING_AREA_Y = 70;
+        WILDLING_AREA_WIDTH = 820;
+        WILDLING_AREA_HEIGHT = 130;
         int portOrderIndent = (int) ((PORT_SIZE - INFLUENCE_SIZE) * 0.85);
+
+        defenceX[21] = 822;
+        defenceY[21] = 769;
+        defenceX[36] = 367;
+        defenceY[36] = 2073;
+        defenceX[56] = 1549;
+        defenceY[56] = 2000;
+        defenceX[57] = 306;
+        defenceY[57] = 1705;
+        defenceX[41] = 512;
+        defenceY[41] = 2532;
+        defenceX[48] = 1351;
+        defenceY[48] = 2969;
+        defenceX[54] = 1057;
+        defenceY[54] = 2161;
+        defenceX[31] = 1186;
+        defenceY[31] = 1736;
 
         armyX[0] = 110; armyY[0] = 583;
         attackerArmyX[0] = 107; attackerArmyY[0] = 1065;
@@ -497,7 +549,7 @@ public class MapPanel extends JPanel{
 
         armyX[6] = 1402; armyY[6] = 3113;
         attackerArmyX[6] = 1511; attackerArmyY[6] = 2654;
-        areaBeginX[6] = 763; areaBeginY[6] = 2541;
+        areaBeginX[6] = 762; areaBeginY[6] = 2541;
         unitPackType[6] = line;
         orderX[6] = 1317; orderY[6] = 3167;
 

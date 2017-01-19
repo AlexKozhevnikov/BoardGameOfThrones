@@ -1,9 +1,12 @@
 package com.alexeus.util;
 
 import com.alexeus.ai.math.BrownRobinsonSolver;
+import com.alexeus.logic.Game;
 import com.alexeus.logic.constants.MainConstants;
 
 import java.util.Random;
+
+import static com.alexeus.logic.constants.MainConstants.NUM_PLAYER;
 
 /**
  * Created by alexeus on 13.01.2017.
@@ -135,5 +138,40 @@ public class Garbage {
         BrownRobinsonSolver.primitiveSwordRestTokensEvaluation(money, priceStars, priceToken);
     }
 
+    // Начинаем новое дерьмо - для теста Контроллера
+    /*public void startNewShit() {
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                Game game = Game.getInstance();
+                int shittingPlayer = 0;
+                game.prepareNewGame();
+                game.prepareNewShit(shittingPlayer);
+                eventTabPanel.displayNewEvents();
+                while (true) {
+                    synchronized (Game.getInstance()) {
+                        try {
+                            shittingPlayer++;
+                            if (shittingPlayer >= NUM_PLAYER) {
+                                shittingPlayer = 0;
+                            }
+                            game.prepareNewShit(shittingPlayer);
+                            int area = random.nextInt(58);
+                            chat.append("Обновляется " + game.getMap().getAreaNameRus(area) + "\n");
+                            mapPanel.repaintArea(area);
+                            //mapPanel.repaint();
+                            houseTabPanel.repaintHouse(shittingPlayer);
+                            game.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
 
+                // Игра престолов началась.
+                //setNewGamePhase(GamePhase.planningPhase);
+            }
+        };
+        t.start();
+    }*/
 }

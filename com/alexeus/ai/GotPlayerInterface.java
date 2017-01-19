@@ -13,7 +13,7 @@ import java.util.HashSet;
 public interface GotPlayerInterface {
 
     // Представиться
-    String nameYourself();
+    void nameYourself();
 
     /**
      * Расстановка приказов

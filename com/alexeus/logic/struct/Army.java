@@ -217,7 +217,7 @@ public class Army {
      * @param reason причина убийства
      */
     public void killUnit(Unit unit, KillingReason reason) {
-        System.out.println(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
+        game.say(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
                 unit.isWounded() ? TextInfo.IS_FINISHED : (TextInfo.IS_DEFEATED_M  + " (" + reason + ")")));
         units.remove(unit);
         game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());

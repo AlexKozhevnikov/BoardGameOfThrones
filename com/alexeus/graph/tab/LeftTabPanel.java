@@ -61,7 +61,7 @@ public class LeftTabPanel extends JTabbedPane {
 
     private void loadPics() {
         ImageLoader imageLoader = ImageLoader.getInstance();
-        houseTabIcon = imageLoader.getIcon(TABS + HOUSE, TAB_ICON_SIZE, TAB_ICON_SIZE);
+        houseTabIcon = imageLoader.getIcon(TABS + CARD, TAB_ICON_SIZE, TAB_ICON_SIZE);
         fightTabIcon = imageLoader.getIcon(TABS + FIGHT, TAB_ICON_SIZE, TAB_ICON_SIZE);
         chatTabIcon = imageLoader.getIcon(TABS + CHAT, TAB_ICON_SIZE, TAB_ICON_SIZE);
         eventTabIcon = imageLoader.getIcon(TABS + EVENT, TAB_ICON_SIZE, TAB_ICON_SIZE);

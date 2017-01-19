@@ -18,9 +18,6 @@ public class TextInfo {
     public static final String ADJACENT = "Граничит с областями: ";
     public static final String SUPPLY_OF = "Снабжение ";
     public static final String EQUALS = " равно ";
-    public static final String OF_CASTLE = " замок";
-    public static final String OF_CASTLA = " замка";
-    public static final String OF_CASTLES = " замков";
     public static final String NO_TROOPS_OF = " нет войск ";
     public static final String NOBODY = "Никого";
     public static final String CHANGES_ORDER = " меняет приказ";
@@ -29,6 +26,8 @@ public class TextInfo {
     public static final String AND_BURIES = "... и закапывает её.";
     public static final String RAIDS = " совершает набег ";
     public static final String TO = " на ";
+    public static final String GAINS_POWER = " получает жетон власти.";
+    public static final String LOSES_POWER = " теряет жетон власти.";
     public static final String MUST_PLAY_RAID = " должен разыграть один свой приказ набега.";
     public static final String DELETES_RAID = " удаляет приказ набега ";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
@@ -50,7 +49,6 @@ public class TextInfo {
     public static final String SUPPORTS = " поддерживает ";
     public static final String SUPPORTS_NOBODY = " отказывается от поддержки.";
     public static final String HOUSES_CHOOSE_CARDS = "Воюющие дома выбирают карты.";
-    public static final String RELATION_OF_FORCES_IS = "Соотношение сил: ";
     public static final String VERSUS = " vs ";
     public static final String PLAYS_HOUSE_CARD = " играет карту Дома \"";
     public static final String CAN_USE_SPECIAL_PROPERTY_OF_CARD = " может использовать специальное свойство карты ";

@@ -22,7 +22,8 @@ public class BattleInfo {
 
     private SideOfBattle sideWhereSwordUsed;
 
-    private int[] playerStrength, playerNumSupports;
+    private int[] playerStrength = new int[NUM_PLAYER];
+    private int[] playerNumSupports = new int[NUM_PLAYER];
 
     private SideOfBattle[] supportOfPlayer = new SideOfBattle[NUM_PLAYER];
 
@@ -43,6 +44,7 @@ public class BattleInfo {
     private ArrayList<Unit> defenderUnits = new ArrayList<>();
 
     public BattleInfo() {
+        areaOfBattle = -1;
     }
 
     public void setNewBattle(int attacker, int defender, int areaOfBattle, int marchModifier, boolean isThereACastle) {
@@ -202,6 +204,26 @@ public class BattleInfo {
         return nUnits;
     }
 
+    public HouseCard getCardOnSide(int side) {
+        return houseCardOfSide[side];
+    }
+
+    public int getSupportOfPlayer(int player) {
+        return supportOfPlayer[player] == null ? -1: supportOfPlayer[player].getCode();
+    }
+
+    public int getPlayerOnSide(int side) {
+        return playerOnSide[side];
+    }
+
+    public int getPlayerStrength(int player) {
+        return playerStrength[player];
+    }
+
+    public int getWinnerSide() {
+        return winnerSide == null ? -1: winnerSide.getCode();
+    }
+
     /**
      * Метод рассчитывает стандартные переменные боя - сила карты, мечи, башни и бонусы к боевой силе из-за свойств карт
      */
@@ -295,7 +317,7 @@ public class BattleInfo {
     public int getNumSupportsOnSide(int side) {
         int n = 0;
         for (int player = 0; player < NUM_PLAYER; player++) {
-            if (supportOfPlayer[player].getCode() == side) {
+            if (supportOfPlayer[player] != null && supportOfPlayer[player].getCode() == side) {
                 n += playerNumSupports[player];
             }
         }
@@ -371,6 +393,18 @@ public class BattleInfo {
 
     public int getSwordsOnSide(int side) {
         return swordsOnSide[side];
+    }
+
+    public int getCardStrengthOnSide(int side) {
+        return cardStrengthOnSide[side];
+    }
+
+    public int getBonusStrengthOnSide(int side) {
+        return bonusStrengthOnSide[side];
+    }
+
+    public int getSideWhereSwordUsed() {
+        return sideWhereSwordUsed == null ? -1 : sideWhereSwordUsed.getCode();
     }
 
     public int getTowersOnSide(int side) {

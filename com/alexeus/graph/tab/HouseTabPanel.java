@@ -86,6 +86,13 @@ public class HouseTabPanel extends JPanel {
         }
     }
 
+    public void repaintHouse(int player) {
+        int width = getWidth();
+        int height = getHeight();
+        repaint(new Rectangle(0, (int) (1f * height / NUM_PLAYER * player),
+                width, (int) (1f * height / NUM_PLAYER)));
+    }
+
     private void loadPics() {
         ImageLoader imageLoader = ImageLoader.getInstance();
         int n = 0;
@@ -93,7 +100,7 @@ public class HouseTabPanel extends JPanel {
             if (card.house() < 0) continue;
             int player = n / NUM_HOUSE_CARDS;
             int cardNumber = n % NUM_HOUSE_CARDS;
-            String fileName = replaceLetters(card.toString());
+            String fileName = card.getFileName();
             houseCardImage[player][cardNumber] = imageLoader.getImage(HOUSE_CARD + fileName + PNG);
             greyHouseCardImage[player][cardNumber] = PictureTormentor.getGrayImage(houseCardImage[player][cardNumber]);
             n++;
@@ -105,19 +112,6 @@ public class HouseTabPanel extends JPanel {
             }
             tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
         }
-    }
-
-    private String replaceLetters(String source) {
-        StringBuilder sb = new StringBuilder();
-        int aADiff = 'a' - 'A';
-        for (char c: source.toCharArray()) {
-            if (c >= 'A' && c <= 'Z') {
-                sb.append('_').append((char) (c + aADiff));
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
     }
 
     private void loadVariables() {

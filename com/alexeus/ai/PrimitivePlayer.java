@@ -49,8 +49,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public String nameYourself() {
-        return "Примитивный игрок за " + MainConstants.HOUSE_GENITIVE[houseNumber];
+    public void nameYourself() {
+        say("Я - Примитивный игрок за " + MainConstants.HOUSE_GENITIVE[houseNumber] + "!");
     }
 
     @Override
@@ -61,8 +61,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
         switch (houseNumber) {
             case 0:
                 orderMap.put(8, Order.march);
-                orderMap.put(53, Order.consolidatePower);
-                orderMap.put(56, Order.consolidatePowerS);
+                orderMap.put(53, Order.marchB);
+                orderMap.put(56, Order.marchS);
                 break;
             case 1:
                 orderMap.put(3, Order.marchS);
@@ -104,7 +104,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public boolean leaveWildlingCardOnTop(WildlingCard card) {
         wildlingCardInfo = card;
-        System.out.println(MainConstants.HOUSE[houseNumber] + ": Пацаны, я узнал карту одичалых: " + card);
+        say("Пацаны, я узнал карту одичалых: " + card);
         return true;
     }
 
@@ -157,7 +157,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             }
             return new RaidOrderPlayed(areaOfRaid, bestAreaToRaid);
         } else {
-            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких набегов!");
+            say("Объявляю забастовку: нет у меня никаких набегов!");
             return null;
         }
     }
@@ -167,7 +167,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         areasWithMarchesOfPlayer = game.getAreasWithMarchesOfPlayer();
         int nMarches = areasWithMarchesOfPlayer.get(houseNumber).size();
         if (nMarches == 0) {
-            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: нет у него никаких походов!");
+            say("Объявляю забастовку: нет у меня никаких походов!");
             return null;
         }
         int indexMarchToPlay = random.nextInt(nMarches);
@@ -329,7 +329,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     public MusterPlayed playConsolidatePowerS(int castleArea) {
         int numMusterPoints = map.getNumCastle(castleArea);
         if (numMusterPoints == 0) {
-            System.out.println(MainConstants.HOUSE[houseNumber] + " объявляет забастовку: очков сбора войск нету!");
+            say("Объявляю забастовку: очков сбора войск нету у меня!");
             return null;
         }
         MusterPlayed muster = new MusterPlayed(castleArea);
@@ -436,6 +436,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public String preemptiveRaidBottomDecision() {
         return null;
+    }
+
+    protected void say(String text) {
+        game.say(MainConstants.HOUSE[houseNumber] + ": " + text);
     }
 
     /**

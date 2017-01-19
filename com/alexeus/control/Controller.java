@@ -25,16 +25,12 @@ public class Controller {
 
     private static Controller instance;
 
-    // Элементы графического интерфейса
-    private MapPanel mapPanel;
-    private JTextArea chat;
-    private ChatTabPanel chatTabPanel;
-    private EventTabPanel eventTabPanel;
-    private FightTabPanel fightTabPanel;
-    private HouseTabPanel houseTabPanel;
-
     // Игра
     private Game game;
+
+    private Settings settings;
+
+    private long timeFromLastInterrupt;
 
     private Controller() {
     }
@@ -47,51 +43,28 @@ public class Controller {
     }
 
     public void startNewGame() {
-        if (mapPanel == null) {
-            System.err.println("Контроллеру не дали грибов, и он обиделся!");
-            System.exit(0);
-        }
         game = Game.getInstance();
         game.prepareNewGame();
-        eventTabPanel.displayNewEvents();
-
-        //log.append(NEW_GAME_BEGINS);
-        //log.append(PLAYERS);
-        /*log.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                System.out.println("log removed!!");
-                log.repaint();
-            }
-
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                System.out.println("log inserted!");
-                log.repaint();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent arg0) {
-                System.out.println("log changed!");
-                log.repaint();
-            }
-        });*/
-        //mapPanel.repaint();
-
-        // Игра престолов началась.
-        //setNewGamePhase(GamePhase.planningPhase);
-    }
-
-    public void receiveComponents(MapPanel mapPanel, LeftTabPanel tabPanel) {
-        this.mapPanel = mapPanel;
-        this.chatTabPanel = tabPanel.getChatTab();
-        this.eventTabPanel = tabPanel.getEventTab();
-        this.fightTabPanel = tabPanel.getFightTab();
-        this.houseTabPanel = tabPanel.getHouseTab();
-        chat = null;
+        timeFromLastInterrupt = System.currentTimeMillis();
+        game.setNewGamePhase(GamePhase.planningPhase);
     }
 
     public Game getGame() {
         return game;
+    }
+
+    public void interruption() {
+        try {
+            if (Settings.getInstance().isPlayRegime()) {
+                Thread.sleep(timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis());
+            } else {
+                synchronized (Game.getInstance()) {
+                    game.wait();
+                }
+            }
+        } catch (InterruptedException ex) {
+            System.err.println("Друзья, нечто ужасное случилось! Хватит это терпеть, давайте дебажить!");
+            ex.printStackTrace();
+        }
     }
 }

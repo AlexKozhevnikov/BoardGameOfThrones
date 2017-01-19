@@ -368,4 +368,17 @@ public enum HouseCard {
     public void setActive(boolean active) {
         isActive = active;
     }
+
+    public String getFileName() {
+        StringBuilder sb = new StringBuilder();
+        int aADiff = 'a' - 'A';
+        for (char c: this.toString().toCharArray()) {
+            if (c >= 'A' && c <= 'Z') {
+                sb.append('_').append((char) (c + aADiff));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
 }
