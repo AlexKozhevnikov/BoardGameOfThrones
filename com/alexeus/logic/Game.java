@@ -276,14 +276,10 @@ public class Game {
     /* Метод устанавливает начальную позицию Игры престолов II редакции. */
     private void setInitialPosition() {
         // Баратеон
-        armyInArea[1].addUnit(UnitType.ship, 0);
-        armyInArea[4].addUnit(UnitType.ship, 0);
-        armyInArea[6].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[53].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.knight, 0);
-        armyInArea[56].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.pawn, 0);
 
         // Ланнистер
@@ -380,7 +376,7 @@ public class Game {
             }
         }
         for (int i = 12; i < 20; i++) {
-            int castleOwner = getAreaOwner(getCastleWithPort(i));
+            int castleOwner = getAreaOwner(map.getCastleWithPort(i));
             if (castleOwner >= 0) {
                 armyInArea[i].addUnit(UnitType.ship, castleOwner);
             }
@@ -1117,27 +1113,24 @@ public class Game {
                             for (int i = 0; i < nMusteredObjects; i++) {
                                 int area = musterVariant.getArea(i);
                                 Musterable musterObject = musterVariant.getMusterUnit(i);
-                                if (musterObject instanceof Unit) {
-                                    Unit unit = (Unit) musterObject;
-                                    say(HOUSE[player] + PUTS + unit.getUnitType().nameGenitive() + " " +
-                                            map.getAreaNameRusLocative(area));
+                                if (musterObject instanceof UnitType) {
+                                    Unit unit = new Unit (((UnitType) musterObject), player);
                                     armyInArea[area].addUnit(unit);
                                     restingUnitsOfPlayerAndType[player][unit.getUnitType().getCode()]--;
-                                    if (!Settings.getInstance().isPassByRegime()) {
-                                        mapPanel.repaintArea(area);
-                                        houseTabPanel.repaintHouse(player);
-                                    }
                                 } else {
-                                    say(HOUSE[player] + ((PawnPromotion) musterObject).getActionString() +
-                                            map.getAreaNameRusLocative(area));
-                                    armyInArea[area].changeType(UnitType.pawn,
-                                            ((PawnPromotion) musterObject).getTargetType());
+                                    UnitType targetType = ((PawnPromotion) musterObject).getTargetType();
+                                    armyInArea[area].changeType(UnitType.pawn, targetType);
                                     restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
-                                    restingUnitsOfPlayerAndType[player][((PawnPromotion) musterObject).getTargetType().getCode()]--;
-                                    if (!Settings.getInstance().isPassByRegime()) {
-                                        houseTabPanel.repaintHouse(player);
-                                    }
+                                    restingUnitsOfPlayerAndType[player][targetType.getCode()]--;
                                 }
+                                if (!Settings.getInstance().isPassByRegime()) {
+                                    mapPanel.repaintArea(area);
+                                }
+                                say(HOUSE[player] + musterObject.getActionString() +
+                                        map.getAreaNameRusLocative(area));
+                            }
+                            if (!Settings.getInstance().isPassByRegime()) {
+                                houseTabPanel.repaintHouse(player);
                             }
                         } else {
                             int earning = map.getNumCrown(areaWithMuster[player]);
@@ -1205,7 +1198,7 @@ public class Game {
                 numNeededUnitsOfType[UnitType.pawn.getCode()]--;
                 numNeededUnitsOfType[((PawnPromotion) muster.getMusterUnit(i)).getTargetType().getCode()]++;
             } else {
-                numNeededUnitsOfType[((Unit) muster.getMusterUnit(i)).getUnitType().getCode()]++;
+                numNeededUnitsOfType[muster.getMusterUnit(i).getCode()]++;
             }
             spentMusterPoints += muster.getMusterUnit(i).getNumMusterPoints();
         }
@@ -1229,7 +1222,7 @@ public class Game {
         virtualAreasWithTroops.clear();
         virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
         for (int i = 0; i < numUnits; i++) {
-            if (muster.getMusterUnit(i) instanceof Unit) {
+            if (muster.getMusterUnit(i) instanceof UnitType) {
                 if (virtualAreasWithTroops.containsKey(muster.getArea(i))) {
                     int armySize = virtualAreasWithTroops.get(muster.getArea(i));
                     virtualAreasWithTroops.put(muster.getArea(i), armySize + 1);
@@ -1239,7 +1232,7 @@ public class Game {
 
             }
         }
-        if (!supplyTest(virtualAreasWithTroops, supply[player])) {
+        if (!GameUtils.supplyTest(virtualAreasWithTroops, supply[player])) {
             say(MUSTER_SUPPLY_VIOLATION_ERROR);
             return false;
         }
@@ -1310,37 +1303,7 @@ public class Game {
      */
     private boolean canMoveInPort(int portArea, int player) {
         // Если замок, которому принадлежит порт, в который хочет зайти игрок, принадлежит ему, то всё хорошо
-        return getAreaOwner(getCastleWithPort(portArea)) == player;
-    }
-
-    /**
-     * Метод возвращает номер области с замком, которой принадлежит данная обасть с портом
-     * @param portArea портовая область
-     * @return номер области с замком
-     */
-    public int getCastleWithPort(int portArea) {
-        HashSet<Integer> adjacentAreas = map.getAdjacentAreas(portArea);
-        for (int curArea: adjacentAreas) {
-            if (map.getNumCastle(curArea) > 0) {
-                return curArea;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Метод возвращает номер морской области, граничащей с данным портом
-     * @param portArea портовая область
-     * @return номер соседней морской области
-     */
-    public int getSeaNearPort(int portArea) {
-        HashSet<Integer> adjacentAreas = map.getAdjacentAreas(portArea);
-        for (int curArea: adjacentAreas) {
-            if (map.getAreaType(curArea) == AreaType.sea) {
-                return curArea;
-            }
-        }
-        return -1;
+        return getAreaOwner(map.getCastleWithPort(portArea)) == player;
     }
 
     /**
@@ -1648,16 +1611,16 @@ public class Game {
         }
         say(HOUSE[winner] + WINS_THE_BATTLE);
         // Подсчитываем потери проигравшего
-        say("У " + HOUSE_GENITIVE[winner] + " " + battleInfo.getSwordsOnSide(winnerSide) +
+        System.out.println("У " + HOUSE_GENITIVE[winner] + " " + battleInfo.getSwordsOnSide(winnerSide) +
                 SWORDS_U + HOUSE_GENITIVE[loser] + " " + battleInfo.getTowersOnSide(1 - winnerSide) + OF_TOWERS);
         int numKilledUnits = battleInfo.getNumKilled();
         if (numKilledUnits == 0) {
-            say(HOUSE[loser] + HAS_NO_LOSSES);
+            System.out.println(HOUSE[loser] + HAS_NO_LOSSES);
         } else if (houseCardOfSide[1 - winnerSide] == HouseCard.theBlackfish) {
             say(BLACKFISH_SAVES + HOUSE_GENITIVE[loser] + FROM_LOSSES);
             numKilledUnits = 0;
         } else {
-            say(HOUSE[loser] + LOSES + numKilledUnits +
+            System.out.println(HOUSE[loser] + LOSES + numKilledUnits +
                     (numKilledUnits > 1 ? TROOPS : TROOP));
         }
         if (winnerSide == 0) {
@@ -1731,7 +1694,7 @@ public class Game {
                             int previousNumberOfUnits = virtualAreasWithTroops.get(area);
                             for (curLosses = 0; curLosses < numRetreatingUnits; curLosses++) {
                                 virtualAreasWithTroops.put(area, previousNumberOfUnits + numRetreatingUnits - curLosses);
-                                if (supplyTest(virtualAreasWithTroops, supply[loser])) break;
+                                if (GameUtils.supplyTest(virtualAreasWithTroops, supply[loser])) break;
                             }
                             virtualAreasWithTroops.put(area, previousNumberOfUnits);
                         }
@@ -1834,7 +1797,7 @@ public class Game {
                         for (minLosses = 0; minLosses < attackingArmy.getNumUnits(); minLosses++) {
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits + attackingArmy.getNumUnits()
                                     - minLosses);
-                            if (supplyTest(virtualAreasWithTroops, supply[loser])) break;
+                            if (GameUtils.supplyTest(virtualAreasWithTroops, supply[loser])) break;
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits);
                         }
                     }
@@ -2591,7 +2554,7 @@ public class Game {
                 virtualAreasWithTroops.remove(from);
             }
         }
-        return supplyTest(virtualAreasWithTroops, supply[player]);
+        return GameUtils.supplyTest(virtualAreasWithTroops, supply[player]);
     }
 
     /**
@@ -2608,7 +2571,7 @@ public class Game {
         for (int index = 0; index < muster.getNumberMusterUnits(); index++) {
             int area = muster.getArea(index);
             Musterable musterable = muster.getMusterUnit(index);
-            if (musterable instanceof Unit) {
+            if (musterable instanceof UnitType) {
                 if (virtualAreasWithTroops.containsKey(area)) {
                     int previousNumOfTroops = virtualAreasWithTroops.get(area);
                     virtualAreasWithTroops.put(area, previousNumOfTroops + 1);
@@ -2617,38 +2580,7 @@ public class Game {
                 }
             }
         }
-        return supplyTest(virtualAreasWithTroops, supply[player]);
-    }
-
-    /**
-     * Метод проверяет, нарушается ли предел снабжения при данном расположении войск игрока
-     * @param areasWithTroops карта с парами область-количество юнитов
-     * @param supplyLevel     уровень снабжения игрока
-     * @return true, если предел снабжения не нарушается
-     */
-    public boolean supplyTest(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
-        long time = System.currentTimeMillis();
-        int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
-        System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
-        for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {
-            int armySize = entry.getValue();
-            // Если это армия, то занимаем свободную ячейку. Если это не удаётся сделать, значит предел снабжения превышен.
-            if (armySize > 1) {
-                boolean isThereFreeCell = false;
-                for (int cellSize = armySize - 2; cellSize < MAX_TROOPS_IN_AREA - 1; cellSize++) {
-                    if (nFreeGroups[cellSize] > 0) {
-                        isThereFreeCell = true;
-                        nFreeGroups[cellSize]--;
-                        break;
-                    }
-                }
-                if (!isThereFreeCell) {
-                    return false;
-                }
-            }
-        }
-        System.out.println("supplyTest: " + (System.currentTimeMillis() - time) + "мс");
-        return true;
+        return GameUtils.supplyTest(virtualAreasWithTroops, supply[player]);
     }
 
     private PropertyChangeSupport gamePhaseChangeSupport = new PropertyChangeSupport(this);

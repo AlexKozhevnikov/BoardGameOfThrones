@@ -1,5 +1,7 @@
 package com.alexeus.logic.struct;
 
+import com.alexeus.logic.enums.Musterable;
+import com.alexeus.logic.enums.PawnPromotion;
 import com.alexeus.logic.enums.UnitType;
 
 import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
@@ -45,20 +47,18 @@ public class MusterPlayed {
     /**
      * Добавляет юнит или улучшение юнита в данный вариант сбора войск
      * @param area          область, где производится юнит или улучшение юнита
-     * @param newMusterUnit юнит или улучшение юнита
+     * @param newMusterable юнит или улучшение юнита
      */
-    public void addNewMusterUnit(int area, Musterable newMusterUnit) {
+    public void addNewMusterable(int area, Musterable newMusterable) {
         // повышение пехотинца + новый пехотинец = сразу повышенный юнит
-        if (numberMusterUnits == 1 && musterUnits[0] instanceof PawnPromotion && newMusterUnit instanceof Unit &&
-                ((Unit) newMusterUnit).getUnitType() == UnitType.pawn) {
-            musterUnits[0] = new Unit(((PawnPromotion) musterUnits[0]).getTargetType(),
-                    ((Unit) newMusterUnit).getHouse());
-        } else if (numberMusterUnits == 1 && newMusterUnit instanceof PawnPromotion &&
-                musterUnits[0] instanceof Unit && ((Unit) musterUnits[0]).getUnitType() == UnitType.pawn) {
-            musterUnits[0] = new Unit(((PawnPromotion) newMusterUnit).getTargetType(),
-                    ((Unit) musterUnits[0]).getHouse());
+        if (numberMusterUnits == 1 && musterUnits[0] instanceof PawnPromotion && newMusterable instanceof UnitType &&
+                newMusterable == UnitType.pawn) {
+            musterUnits[0] = ((PawnPromotion) musterUnits[0]).getTargetType();
+        } else if (numberMusterUnits == 1 && newMusterable instanceof PawnPromotion &&
+                musterUnits[0] instanceof UnitType && musterUnits[0] == UnitType.pawn) {
+            musterUnits[0] = ((PawnPromotion) newMusterable).getTargetType();
         } else {
-            musterUnits[numberMusterUnits] = newMusterUnit;
+            musterUnits[numberMusterUnits] = newMusterable;
             this.area[numberMusterUnits] = area;
             numberMusterUnits++;
         }
@@ -106,7 +106,7 @@ public class MusterPlayed {
     public int hashCode() {
         int x = castleArea;
         for (int i = 0; i < numberMusterUnits; i++) {
-            x += NUM_AREA * (area[i] + NUM_AREA * musterUnits[i].hashCode());
+            x += NUM_AREA * (area[i] + NUM_AREA * musterUnits[i].getCode());
         }
         return x;
     }

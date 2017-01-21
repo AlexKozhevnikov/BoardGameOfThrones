@@ -6,7 +6,7 @@ import com.alexeus.logic.constants.TextErrors;
  * Created by alexeus on 08.01.2017.
  * Перечисление типов юнитов в игре.
  */
-public enum UnitType {
+public enum UnitType implements Musterable {
     pawn,
     knight,
     siegeEngine,
@@ -69,24 +69,6 @@ public enum UnitType {
     }
 
     /**
-     * Возвращает код отряда
-     * @return код отряда
-     */
-    public int getCode() {
-        switch (this) {
-            case pawn:
-                return 0;
-            case knight:
-                return 1;
-            case siegeEngine:
-                return 2;
-            case ship:
-                return 3;
-        }
-        return -1;
-    }
-
-    /**
      * Возыращает символ отряда
      * @return символ отряда
      */
@@ -102,5 +84,34 @@ public enum UnitType {
                 return 'к';
         }
         return '?';
+    }
+
+    @Override
+    public int getNumMusterPoints() {
+        return this == UnitType.siegeEngine ? 2 : getStrength();
+    }
+
+    @Override
+    public String getActionString() {
+        return " строит " + nameGenitive() + " ";
+    }
+
+    /**
+     * Возвращает код отряда
+     * @return код отряда
+     */
+    @Override
+    public int getCode() {
+        switch (this) {
+            case pawn:
+                return 0;
+            case knight:
+                return 1;
+            case siegeEngine:
+                return 2;
+            case ship:
+                return 3;
+        }
+        return -1;
     }
 }

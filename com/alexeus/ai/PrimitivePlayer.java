@@ -62,7 +62,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         orderMap.clear();
         switch (houseNumber) {
             case 0:
-                orderMap.put(8, Order.support);
+                orderMap.put(8, Order.march);
                 orderMap.put(53, Order.consolidatePower);
                 orderMap.put(56, Order.consolidatePowerS);
                 break;
@@ -345,8 +345,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 } else if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) == houseNumber ||
                         map.getAreaType(area) == AreaType.port &&
                         (game.getTroopsOwner(area) < 0 ||
-                                game.getTroopsOwner(game.getSeaNearPort(area)) >= 0 &&
-                                game.getTroopsOwner(game.getSeaNearPort(area)) != houseNumber)){
+                                game.getTroopsOwner(map.getSeaNearPort(area)) >= 0 &&
+                                game.getTroopsOwner(map.getSeaNearPort(area)) != houseNumber)){
                     normNavalAreas.add(area);
                 }
             }
@@ -357,7 +357,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             if (numMusterPoints == 0 || curAvailableShips == 0) {
                 break;
             }
-            template.addNewMusterUnit(mustHaveArea, new Unit(UnitType.ship, houseNumber));
+            template.addNewMusterable(mustHaveArea, UnitType.ship);
             numMusterPoints--;
             curAvailableShips--;
         }
@@ -478,7 +478,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
                                                       MusterPlayed template, int musterPoints, int curAvailableShips) {
         HashSet<MusterPlayed> musterVariants = new HashSet<>();
         MusterPlayed muster;
-        // TODO Требуется рефакторинг! Замена создания новых юнитов и pawnpromotion на энумы; упрощение supply-тестов
         for (int restingPoints = musterPoints; restingPoints >= 0; restingPoints--) {
             switch (restingPoints) {
                 case 0:
@@ -493,19 +492,19 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     // Пешка
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.pawn) > 0) {
                         muster = new MusterPlayed(template);
-                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                        muster.addNewMusterable(castleArea, UnitType.pawn);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Апгрейд
                     if (game.getArmyInArea(castleArea).hasUnitOfType(UnitType.pawn)) {
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             musterVariants.add(muster);
                         }
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             musterVariants.add(muster);
                         }
                     }
@@ -513,7 +512,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     if (curAvailableShips > 0) {
                         for (int area : navalAreas) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                            muster.addNewMusterable(area, UnitType.ship);
                             addNewMusterVariant(musterVariants, muster);
                         }
                     }
@@ -522,41 +521,41 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     // Вариант "конь"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
                         muster = new MusterPlayed(template);
-                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.knight, houseNumber));
+                        muster.addNewMusterable(castleArea, UnitType.knight);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Вариант "башня"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0) {
                         muster = new MusterPlayed(template);
-                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.siegeEngine, houseNumber));
+                        muster.addNewMusterable(castleArea, UnitType.siegeEngine);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Вариант "Две пешки"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.pawn) > 1) {
                         muster = new MusterPlayed(template);
-                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
-                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                        muster.addNewMusterable(castleArea, UnitType.pawn);
+                        muster.addNewMusterable(castleArea, UnitType.pawn);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Варианты "два апгрейда"
                     if (game.getArmyInArea(castleArea).getNumUnitOfType(UnitType.pawn) > 1) {
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 1) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             musterVariants.add(muster);
                         }
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 1) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             musterVariants.add(muster);
                         }
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0 &&
                                 game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
-                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
+                            muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             musterVariants.add(muster);
                         }
                     }
@@ -565,8 +564,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
                             curAvailableShips > 0) {
                         for (int area : navalAreas) {
                             muster = new MusterPlayed(template);
-                            muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
-                            muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                            muster.addNewMusterable(castleArea, UnitType.pawn);
+                            muster.addNewMusterable(area, UnitType.ship);
                             addNewMusterVariant(musterVariants, muster);
                         }
                     }
@@ -575,16 +574,16 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0 && curAvailableShips > 0) {
                             for (int area : navalAreas) {
                                 muster = new MusterPlayed(template);
-                                muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
-                                muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                                muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
+                                muster.addNewMusterable(area, UnitType.ship);
                                 addNewMusterVariant(musterVariants, muster);
                             }
                         }
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0 && curAvailableShips > 0) {
                             for (int area : navalAreas) {
                                 muster = new MusterPlayed(template);
-                                muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
-                                muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                                muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
+                                muster.addNewMusterable(area, UnitType.ship);
                                 addNewMusterVariant(musterVariants, muster);
                             }
                         }
@@ -593,9 +592,14 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 1) {
                         for (int area1 : navalAreas) {
                             for (int area2: navalAreas) {
+                                // Если море рядом с портом наше, то нет смысла строить в порту 2 корабля
+                                if (map.getAreaType(area1) == AreaType.port && area1 == area2 &&
+                                        game.getTroopsOwner(map.getSeaNearPort(area1)) == houseNumber) {
+                                    continue;
+                                }
                                 muster = new MusterPlayed(template);
-                                muster.addNewMusterUnit(area1, new Unit(UnitType.ship, houseNumber));
-                                muster.addNewMusterUnit(area2, new Unit(UnitType.ship, houseNumber));
+                                muster.addNewMusterable(area1, UnitType.ship);
+                                muster.addNewMusterable(area2, UnitType.ship);
                                 addNewMusterVariant(musterVariants, muster);
                             }
                         }

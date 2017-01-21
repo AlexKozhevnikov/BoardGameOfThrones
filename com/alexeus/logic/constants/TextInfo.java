@@ -94,7 +94,6 @@ public class TextInfo {
     public static final String POWER_TOKENA = " жетона власти.";
     public static final String POWER_TOKENS = " жетонов власти.";
     public static final String CAN_MUSTER = " может собрать войска ";
-    public static final String PUTS = " ставит ";
     public static final String NOW_HE_HAS = " Теперь у него ";
 
     public static final String LINE_DELIMITER = "**************************************************";

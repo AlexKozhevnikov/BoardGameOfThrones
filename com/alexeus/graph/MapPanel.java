@@ -265,7 +265,7 @@ public class MapPanel extends JPanel{
 
     public void repaintArea(int area) {
         if (area >= 12 && area < 20) {
-            area = Game.getInstance().getCastleWithPort(area);
+            area = Game.getInstance().getMap().getCastleWithPort(area);
         }
         System.out.println("Обновилась область: " + Game.getInstance().getMap().getAreaNameRus(area));
         repaint(new Rectangle((int) (indent + areaBeginX[area] / scale), (int) (areaBeginY[area] / scale),

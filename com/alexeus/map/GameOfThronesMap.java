@@ -433,4 +433,34 @@ public class GameOfThronesMap {
     private void addAreaAccusative(int number, String nameRusAccusative) {
         areaNameRusAccusative[number] = nameRusAccusative;
     }
+
+    /**
+     * Метод возвращает номер области с замком, которой принадлежит данная обасть с портом
+     * @param portArea портовая область
+     * @return номер области с замком
+     */
+    public int getCastleWithPort(int portArea) {
+        HashSet<Integer> adjacentAreas = getAdjacentAreas(portArea);
+        for (int curArea: adjacentAreas) {
+            if (getNumCastle(curArea) > 0) {
+                return curArea;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Метод возвращает номер морской области, граничащей с данным портом
+     * @param portArea портовая область
+     * @return номер соседней морской области
+     */
+    public int getSeaNearPort(int portArea) {
+        HashSet<Integer> adjacentAreas = getAdjacentAreas(portArea);
+        for (int curArea: adjacentAreas) {
+            if (getAreaType(curArea) == AreaType.sea) {
+                return curArea;
+            }
+        }
+        return -1;
+    }
 }
