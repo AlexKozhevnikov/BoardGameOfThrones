@@ -2,6 +2,10 @@ package com.alexeus.graph;
 
 import com.alexeus.control.Controller;
 import com.alexeus.graph.MainPanel;
+import com.alexeus.logic.enums.UnitType;
+import com.alexeus.logic.struct.MusterPlayed;
+import com.alexeus.logic.struct.PawnPromotion;
+import com.alexeus.logic.struct.Unit;
 
 import javax.swing.*;
 import java.awt.*;

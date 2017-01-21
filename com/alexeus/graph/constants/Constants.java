@@ -54,10 +54,10 @@ public class Constants {
     public static final float[][] PORT_Y_KOEF = {{}, {0.1f}, {0.5f, -0.1f}, {0.8f, 0.1f, -0.2f}};
     public static final int PORT_SIZE = 134;
 
-    public static final int FRAME_WIDTH = 1360;
-    public static final int FRAME_HEIGHT = 670;
+    public static final int FRAME_WIDTH = 1350;
+    public static final int FRAME_HEIGHT = 660;
     public static final int BUTTON_PANEL_WIDTH = 300;
-    public static final int BUTTON_PANEL_HEIGHT = 100;
+    public static final int BUTTON_PANEL_HEIGHT = 80;
     public static final int EVENT_TAB_WIDTH = 350;
     public static final int HOUSE_TAB_WIDTH = 650;
     public static final int FIGHT_TAB_WIDTH = 500;
@@ -65,7 +65,7 @@ public class Constants {
     public static final int TAB_PANEL_HEIGHT = FRAME_HEIGHT - BUTTON_PANEL_HEIGHT + 30;
     public static final int MAP_WIDTH = FRAME_WIDTH - EVENT_TAB_WIDTH;
     public static final int MAP_HEIGHT = FRAME_HEIGHT;
-    public static final int BUTTON_ICON_SIZE = (int) (BUTTON_PANEL_HEIGHT * 0.8);
+    public static final int BUTTON_ICON_SIZE = (int) (BUTTON_PANEL_HEIGHT * 0.9);
     public static final int TAB_ICON_SIZE = 60;
     //public static final int COLLAPSE_ICON_SIZE = 100;
     public static final int EVENT_CARD_HEIGHT = TAB_PANEL_HEIGHT / 3 - 24;

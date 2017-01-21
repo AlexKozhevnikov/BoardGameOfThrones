@@ -1,6 +1,7 @@
 package com.alexeus.graph;
 
 import com.alexeus.control.Controller;
+import com.alexeus.control.PlayRegimeType;
 import com.alexeus.control.Settings;
 import com.alexeus.graph.tab.*;
 import com.alexeus.graph.util.ImageLoader;
@@ -103,11 +104,12 @@ public class MainPanel extends JPanel {
         playButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                boolean isPlay = Settings.getInstance().isPlayRegime();
-                playButton.setIcon(isPlay ? playIcon: pauseIcon);
-                Settings.getInstance().setPlayRegime(!isPlay);
+                PlayRegimeType playRegime = Settings.getInstance().getPlayRegime();
+                playButton.setIcon(playRegime == PlayRegimeType.timeout ? playIcon: pauseIcon);
+                Settings.getInstance().setPlayRegime(playRegime == PlayRegimeType.timeout ?
+                        PlayRegimeType.none : PlayRegimeType.timeout);
                 // Если раньше режим был выключен, то теперь мы его ВКЛЮЧИЛИ, и должны прервать ожидание.
-                if (!isPlay) {
+                if (playRegime == PlayRegimeType.none) {
                     synchronized (Game.getInstance()) {
                         Controller.getInstance().setTimer();
                         Game.getInstance().notify();
@@ -117,6 +119,15 @@ public class MainPanel extends JPanel {
         });
         JButton playEndButton = new JButton("", playEndIcon);
         playEndButton.setPreferredSize(new Dimension(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE));
+        playEndButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Settings.getInstance().setPlayRegime(PlayRegimeType.playEnd);
+                synchronized (Game.getInstance()) {
+                    Game.getInstance().notify();
+                }
+            }
+        });
         buttonsPanel.add(nextButton);
         buttonsPanel.add(playButton);
         buttonsPanel.add(playEndButton);

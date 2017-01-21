@@ -2,6 +2,8 @@ package com.alexeus.logic.struct;
 
 import com.alexeus.logic.enums.UnitType;
 
+import static com.alexeus.logic.constants.MainConstants.NUM_PLAYER;
+
 /**
  * Created by alexeus on 09.01.2017.
  * Класс представляет собой нормального, вещественного юнита на карте Вестероса
@@ -58,5 +60,16 @@ public class Unit implements Musterable {
     @Override
     public int getNumMusterPoints() {
         return unitType == UnitType.siegeEngine ? 2 : getStrength();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof Unit && ((Unit) object).getUnitType() == unitType &&
+                ((Unit) object).getHouse() == house && ((Unit) object).isWounded() == isWounded;
+    }
+
+    @Override
+    public int hashCode() {
+        return (isWounded ? 1: 2) * (getUnitType().getCode() * NUM_PLAYER + house);
     }
 }

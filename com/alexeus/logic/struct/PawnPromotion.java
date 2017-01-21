@@ -27,4 +27,14 @@ public class PawnPromotion implements Musterable {
     public String getActionString() {
         return targetType == UnitType.siegeEngine ? " улучшает пехотинца до осадной башни" : " улучшает пехотинца до рыцаря";
     }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof PawnPromotion && ((PawnPromotion) object).getTargetType() == targetType;
+    }
+
+    @Override
+    public int hashCode() {
+        return targetType.getCode();
+    }
 }

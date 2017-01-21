@@ -16,7 +16,7 @@ public class Settings {
      * Если да, то включается автоматический ход партии: наблюдателю не нужно нажимать на next, ход будет автоматически
      * совершаться по происшествии timeoutMillis миллисекунд.
      */
-    private boolean playRegime;
+    private PlayRegimeType playRegime;
 
     /**
      * Если да, то левая панель автоматически будет переключать вкладки при игре
@@ -31,8 +31,7 @@ public class Settings {
 
     private Settings() {
         // TODO загрузка настроек по умолчанию из файла
-        passByRegime = false;
-        playRegime = false;
+        playRegime = PlayRegimeType.none;
         autoSwitchTabs = true;
         timeoutMillis = 2000;
     }
@@ -42,6 +41,10 @@ public class Settings {
             instance = new Settings();
         }
         return instance;
+    }
+
+    public boolean isTrueAutoSwitchTabs() {
+        return autoSwitchTabs && playRegime != PlayRegimeType.playEnd;
     }
 
     public boolean isPassByRegime() {
@@ -60,11 +63,11 @@ public class Settings {
         this.timeoutMillis = timeoutMillis;
     }
 
-    public boolean isPlayRegime() {
+    public PlayRegimeType getPlayRegime() {
         return playRegime;
     }
 
-    public void setPlayRegime(boolean playRegime) {
+    public void setPlayRegime(PlayRegimeType playRegime) {
         this.playRegime = playRegime;
     }
 

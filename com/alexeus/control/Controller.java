@@ -56,13 +56,18 @@ public class Controller {
 
     public void interruption() {
         try {
-            if (Settings.getInstance().isPlayRegime()) {
-                Thread.sleep(timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis());
-                setTimer();
-            } else {
-                synchronized (Game.getInstance()) {
-                    game.wait();
-                }
+            switch (Settings.getInstance().getPlayRegime()) {
+                case none:
+                    synchronized (Game.getInstance()) {
+                        game.wait();
+                    }
+                    break;
+                case timeout:
+                    Thread.sleep(timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis());
+                    setTimer();
+                    break;
+                case playEnd:
+                    break;
             }
         } catch (InterruptedException ex) {
             System.err.println("Друзья, нечто ужасное случилось! Хватит это терпеть, давайте дебажить!");

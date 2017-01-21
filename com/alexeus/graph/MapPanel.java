@@ -139,7 +139,6 @@ public class MapPanel extends JPanel{
         // Рисуем гарнизоны, юниты, жетоны власти и приказы
         comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
         g2d.setComposite(comp);
-        boolean isPreviousWound = false;
         GamePhase gamePhase = game.getGamePhase();
         for (int area = 0; area < NUM_AREA; area++) {
             int areaOwner = game.getAreaOwner(area);
@@ -188,13 +187,6 @@ public class MapPanel extends JPanel{
             fillShifts(army, area);
             ArrayList<Unit> units = army.getUnits();
             for (int index = 0; index < army.getUnits().size(); index++) {
-                if (isPreviousWound && !units.get(index).isWounded()) {
-                    g2d.setTransform(heal);
-                    isPreviousWound = false;
-                } else if (!isPreviousWound && units.get(index).isWounded()) {
-                    g2d.setTransform(wound);
-                    isPreviousWound = true;
-                }
                 g2d.drawImage(units.get(index).isWounded() ?
                         woundUnitImage[army.getOwner()][units.get(index).getUnitType().getCode()]:
                         unitImage[army.getOwner()][units.get(index).getUnitType().getCode()],
@@ -202,9 +194,6 @@ public class MapPanel extends JPanel{
                         yShift[index] + (int) (attackerArmyY[area] / scale),
                         trueUnitImageSize, trueUnitImageSize, null);
             }
-        }
-        if (isPreviousWound) {
-            g2d.setTransform(heal);
         }
 
         // Рисуем жетон времени
@@ -278,7 +267,7 @@ public class MapPanel extends JPanel{
         if (area >= 12 && area < 20) {
             area = Game.getInstance().getCastleWithPort(area);
         }
-        Game.getInstance().say("Обновилась область: " + Game.getInstance().getMap().getAreaNameRus(area));
+        System.out.println("Обновилась область: " + Game.getInstance().getMap().getAreaNameRus(area));
         repaint(new Rectangle((int) (indent + areaBeginX[area] / scale), (int) (areaBeginY[area] / scale),
                 (int) (areaFillImage[area].getWidth() / scale), (int) (areaFillImage[area].getHeight() / scale)));
     }
@@ -533,7 +522,7 @@ public class MapPanel extends JPanel{
 
         armyX[4] = 391; armyY[4] = 3208;
         attackerArmyX[4] = 115; attackerArmyY[4] = 2374;
-        areaBeginX[4] = 0; areaBeginY[4] = 2273;
+        areaBeginX[4] = 0; areaBeginY[4] = 2275;
         unitPackType[4] = line;
         orderX[4] = 460; orderY[4] = 3114;
 
@@ -563,7 +552,7 @@ public class MapPanel extends JPanel{
 
         armyX[9] = 1226; armyY[9] = 2030;
         attackerArmyX[9] = 1216; attackerArmyY[9] = 2110;
-        areaBeginX[9] = 1064; areaBeginY[9] = 1962;
+        areaBeginX[9] = 1064; areaBeginY[9] = 1961;
         unitPackType[9] = triangleSquare;
         orderX[9] = 1160; orderY[9] = 2112;
 

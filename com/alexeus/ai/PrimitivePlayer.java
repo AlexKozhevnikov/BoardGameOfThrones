@@ -8,6 +8,8 @@ import com.alexeus.map.GameOfThronesMap;
 
 import java.util.*;
 
+import static com.alexeus.logic.constants.MainConstants.HOUSE_GENITIVE;
+
 /**
  * Created by alexeus on 03.01.2017.
  * Тупой, незамысловатый компьютерный игрок, который ничего не знает.
@@ -50,7 +52,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public void nameYourself() {
-        say("Я - Примитивный игрок за " + MainConstants.HOUSE_GENITIVE[houseNumber] + "!");
+        say("Я - Примитивный игрок за " + HOUSE_GENITIVE[houseNumber] + "!");
     }
 
     @Override
@@ -60,9 +62,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
         orderMap.clear();
         switch (houseNumber) {
             case 0:
-                orderMap.put(8, Order.march);
-                orderMap.put(53, Order.marchB);
-                orderMap.put(56, Order.marchS);
+                orderMap.put(8, Order.support);
+                orderMap.put(53, Order.consolidatePower);
+                orderMap.put(56, Order.consolidatePowerS);
                 break;
             case 1:
                 orderMap.put(3, Order.marchS);
@@ -104,7 +106,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public boolean leaveWildlingCardOnTop(WildlingCard card) {
         wildlingCardInfo = card;
-        say("Пацаны, я узнал карту одичалых: " + card);
+        System.out.println("Пацаны, я узнал карту одичалых: " + card);
         return true;
     }
 
@@ -283,7 +285,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaQueenOfThorns(HashSet<Integer> possibleAreas) {
-        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа");
+        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа бабкой");
         return getRandomElementOfSet(possibleAreas);
     }
 
@@ -311,7 +313,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
-        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа");
+        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа Серсеей");
         return getRandomElementOfSet(possibleAreas);
     }
 
@@ -327,12 +329,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public MusterPlayed playConsolidatePowerS(int castleArea) {
+        long time = System.currentTimeMillis();
         int numMusterPoints = map.getNumCastle(castleArea);
         if (numMusterPoints == 0) {
             say("Объявляю забастовку: очков сбора войск нету у меня!");
             return null;
         }
-        MusterPlayed muster = new MusterPlayed(castleArea);
         HashSet<Integer> normNavalAreas = new HashSet<>();
         HashSet<Integer> mustHaveNavalAreas = new HashSet<>();
         if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 0) {
@@ -341,24 +343,35 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) < 0) {
                     mustHaveNavalAreas.add(area);
                 } else if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) == houseNumber ||
-                        map.getAreaType(area) == AreaType.port && game.getTroopsOwner(area) < 0){
+                        map.getAreaType(area) == AreaType.port &&
+                        (game.getTroopsOwner(area) < 0 ||
+                                game.getTroopsOwner(game.getSeaNearPort(area)) >= 0 &&
+                                game.getTroopsOwner(game.getSeaNearPort(area)) != houseNumber)){
                     normNavalAreas.add(area);
                 }
             }
         }
-        if (mustHaveNavalAreas.size() > 0) {
-            for (int mustHaveArea: mustHaveNavalAreas) {
-                muster.addNewMusterUnit(mustHaveArea, new Unit(UnitType.ship, houseNumber));
-                numMusterPoints--;
-                if (numMusterPoints == 0) {
-                    break;
-                }
+        MusterPlayed template = new MusterPlayed(castleArea);
+        int curAvailableShips = game.getRestingUnitsOfType(houseNumber, UnitType.ship);
+        for (int mustHaveArea: mustHaveNavalAreas) {
+            if (numMusterPoints == 0 || curAvailableShips == 0) {
+                break;
             }
+            template.addNewMusterUnit(mustHaveArea, new Unit(UnitType.ship, houseNumber));
+            numMusterPoints--;
+            curAvailableShips--;
         }
-        if (numMusterPoints > 0) {
-            muster.addNewMusterUnit(castleArea, new Unit(numMusterPoints == 1 ? UnitType.pawn : UnitType.knight, houseNumber));
+        // После того, как мы поставили корабли в стратегически важные моря, считаем, остались ли у нас очки сбора
+        // Если не остались, то возвращаем единственно возможный план сбора войск
+        if (numMusterPoints == 0) {
+            return template;
         }
-        return muster;
+        normNavalAreas.addAll(mustHaveNavalAreas);
+        // Если остались, то пробуем использовать оставшиеся очки сбора и выбираем случайный сбор из допустимых
+        HashSet<MusterPlayed> musterVariants = getMusterVariants(castleArea, normNavalAreas,
+                template, numMusterPoints, curAvailableShips);
+        System.out.println("Сбор " + HOUSE_GENITIVE[houseNumber] + ": " + (System.currentTimeMillis() - time) + " мс");
+        return getRandomElementOfSet(musterVariants);
     }
 
     @Override
@@ -459,5 +472,143 @@ public class PrimitivePlayer implements GotPlayerInterface{
             }
         }
         return null;
+    }
+
+    protected HashSet<MusterPlayed> getMusterVariants(int castleArea, HashSet<Integer> navalAreas,
+                                                      MusterPlayed template, int musterPoints, int curAvailableShips) {
+        HashSet<MusterPlayed> musterVariants = new HashSet<>();
+        MusterPlayed muster;
+        // TODO Требуется рефакторинг! Замена создания новых юнитов и pawnpromotion на энумы; упрощение supply-тестов
+        for (int restingPoints = musterPoints; restingPoints >= 0; restingPoints--) {
+            switch (restingPoints) {
+                case 0:
+                    if (musterVariants.isEmpty()) {
+                        musterVariants.add(template);
+                    }
+                    break;
+                case 1:
+                    if (!musterVariants.isEmpty()) {
+                        break;
+                    }
+                    // Пешка
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.pawn) > 0) {
+                        muster = new MusterPlayed(template);
+                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                        addNewMusterVariant(musterVariants, muster);
+                    }
+                    // Апгрейд
+                    if (game.getArmyInArea(castleArea).hasUnitOfType(UnitType.pawn)) {
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            musterVariants.add(muster);
+                        }
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            musterVariants.add(muster);
+                        }
+                    }
+                    // Корабль
+                    if (curAvailableShips > 0) {
+                        for (int area : navalAreas) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                            addNewMusterVariant(musterVariants, muster);
+                        }
+                    }
+                    break;
+                case 2:
+                    // Вариант "конь"
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
+                        muster = new MusterPlayed(template);
+                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.knight, houseNumber));
+                        addNewMusterVariant(musterVariants, muster);
+                    }
+                    // Вариант "башня"
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0) {
+                        muster = new MusterPlayed(template);
+                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.siegeEngine, houseNumber));
+                        addNewMusterVariant(musterVariants, muster);
+                    }
+                    // Вариант "Две пешки"
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.pawn) > 1) {
+                        muster = new MusterPlayed(template);
+                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                        muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                        addNewMusterVariant(musterVariants, muster);
+                    }
+                    // Варианты "два апгрейда"
+                    if (game.getArmyInArea(castleArea).getNumUnitOfType(UnitType.pawn) > 1) {
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 1) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            musterVariants.add(muster);
+                        }
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 1) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            musterVariants.add(muster);
+                        }
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0 &&
+                                game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                            muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                            musterVariants.add(muster);
+                        }
+                    }
+                    // Вариант "Пешка + корабль"
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.pawn) > 0 &&
+                            curAvailableShips > 0) {
+                        for (int area : navalAreas) {
+                            muster = new MusterPlayed(template);
+                            muster.addNewMusterUnit(castleArea, new Unit(UnitType.pawn, houseNumber));
+                            muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                            addNewMusterVariant(musterVariants, muster);
+                        }
+                    }
+                    // Варианты "Апгрейд + корабль"
+                    if (game.getArmyInArea(castleArea).hasUnitOfType(UnitType.pawn)) {
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0 && curAvailableShips > 0) {
+                            for (int area : navalAreas) {
+                                muster = new MusterPlayed(template);
+                                muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.knight));
+                                muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                                addNewMusterVariant(musterVariants, muster);
+                            }
+                        }
+                        if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0 && curAvailableShips > 0) {
+                            for (int area : navalAreas) {
+                                muster = new MusterPlayed(template);
+                                muster.addNewMusterUnit(castleArea, new PawnPromotion(UnitType.siegeEngine));
+                                muster.addNewMusterUnit(area, new Unit(UnitType.ship, houseNumber));
+                                addNewMusterVariant(musterVariants, muster);
+                            }
+                        }
+                    }
+                    // Варианты "2 корабля"
+                    if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 1) {
+                        for (int area1 : navalAreas) {
+                            for (int area2: navalAreas) {
+                                muster = new MusterPlayed(template);
+                                muster.addNewMusterUnit(area1, new Unit(UnitType.ship, houseNumber));
+                                muster.addNewMusterUnit(area2, new Unit(UnitType.ship, houseNumber));
+                                addNewMusterVariant(musterVariants, muster);
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+        return musterVariants;
+    }
+
+    protected void addNewMusterVariant(HashSet<MusterPlayed> set, MusterPlayed muster) {
+        if (game.supplyTestForMuster(muster)) {
+            set.add(muster);
+        }
     }
 }

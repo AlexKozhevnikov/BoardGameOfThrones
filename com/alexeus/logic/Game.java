@@ -280,11 +280,10 @@ public class Game {
         armyInArea[4].addUnit(UnitType.ship, 0);
         armyInArea[6].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
-        armyInArea[0].addUnit(UnitType.ship, 0);
         armyInArea[8].addUnit(UnitType.ship, 0);
         armyInArea[53].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.knight, 0);
-        armyInArea[56].addUnit(UnitType.knight, 0);
+        armyInArea[56].addUnit(UnitType.pawn, 0);
         armyInArea[56].addUnit(UnitType.pawn, 0);
 
         // Ланнистер
@@ -477,7 +476,7 @@ public class Game {
 
     private void getPlans() {
         setClosedOrders();
-        if (Settings.getInstance().isAutoSwitchTabs()) {
+        if (Settings.getInstance().isTrueAutoSwitchTabs()) {
             tabPanel.setSelectedIndex(TabEnum.chat.getCode());
         }
         HashMap<Integer, Order> orders;
@@ -595,7 +594,7 @@ public class Game {
      */
     private void getRavenDecision() {
         deleteVoidOrders();
-        if (Settings.getInstance().isAutoSwitchTabs() && tabPanel.getSelectedIndex() != TabEnum.chat.getCode()) {
+        if (Settings.getInstance().isTrueAutoSwitchTabs() && tabPanel.getSelectedIndex() != TabEnum.chat.getCode()) {
             tabPanel.setSelectedIndex(TabEnum.chat.getCode());
         }
         if (!Settings.getInstance().isPassByRegime()) {
@@ -805,7 +804,7 @@ public class Game {
                             say(HOUSE[player] + DELETES_MARCH + map.getAreaNameRusGenitive(from));
                             orderInArea[from] = null;
                             areasWithMarches.get(player).remove(from);
-                            if (Settings.getInstance().isAutoSwitchTabs() &&
+                            if (Settings.getInstance().isTrueAutoSwitchTabs() &&
                                     tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
                                 tabPanel.setSelectedIndex(TabEnum.chat.getCode());
                             }
@@ -882,7 +881,7 @@ public class Game {
                                 }
                                 playFight(areaWhereBattleBegins, from, orderInArea[from].getModifier());
                             } else {
-                                if (Settings.getInstance().isAutoSwitchTabs() &&
+                                if (Settings.getInstance().isTrueAutoSwitchTabs() &&
                                         tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
                                     tabPanel.setSelectedIndex(TabEnum.chat.getCode());
                                 }
@@ -1109,7 +1108,7 @@ public class Game {
                     MusterPlayed musterVariant = playerInterface[player].playConsolidatePowerS(areaWithMuster[player]);
                     if (validateMuster(musterVariant, player)) {
                         Controller.getInstance().interruption();
-                        if (Settings.getInstance().isAutoSwitchTabs() &&
+                        if (Settings.getInstance().isTrueAutoSwitchTabs() &&
                                 tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
                             tabPanel.setSelectedIndex(TabEnum.chat.getCode());
                         }
@@ -1330,6 +1329,21 @@ public class Game {
     }
 
     /**
+     * Метод возвращает номер морской области, граничащей с данным портом
+     * @param portArea портовая область
+     * @return номер соседней морской области
+     */
+    public int getSeaNearPort(int portArea) {
+        HashSet<Integer> adjacentAreas = map.getAdjacentAreas(portArea);
+        for (int curArea: adjacentAreas) {
+            if (map.getAreaType(curArea) == AreaType.sea) {
+                return curArea;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Метод разыгрывает одно сражение за определённую область. На данный момент атакующая армия должна быть сохранена
      * в attackingArmy, а нападающий игрок может быть определён посредоством attackingArmy.getOwner();
      * @param areaOfBattle  область, в которой происходит сражение
@@ -1350,7 +1364,7 @@ public class Game {
         }
         say(BATTLE_BEGINS_FOR + map.getAreaNameRusAccusative(areaOfBattle) + BETWEEN +
                 HOUSE_ABLATIVE[playerOnSide[0]] + " и " + HOUSE_ABLATIVE[playerOnSide[1]] + ".");
-        if (Settings.getInstance().isAutoSwitchTabs()) {
+        if (Settings.getInstance().isTrueAutoSwitchTabs()) {
             tabPanel.setSelectedIndex(TabEnum.fight.getCode());
         }
         if (battleInfo == null) {
@@ -1461,6 +1475,9 @@ public class Game {
                             temporaryInactiveCard = houseCardOfSide[1 - heroSide];
                             battleInfo.setHouseCardForPlayer(playerOnSide[1 - heroSide], null);
                             countBattleVariables();
+                            if (Settings.getInstance().isTrueAutoSwitchTabs()) {
+                                tabPanel.setSelectedIndex(TabEnum.fight.getCode());
+                            }
                             Controller.getInstance().interruption();
                             houseCardOfSide[1 - heroSide] = getHouseCard(battleInfo, playerOnSide[1 - heroSide]);
                             countBattleVariables();
@@ -1515,6 +1532,9 @@ public class Game {
                                 }
                                 if (area >= NUM_AREA) {
                                     say(INVALID_AREA_ERROR);
+                                }
+                                if (Settings.getInstance().isTrueAutoSwitchTabs()) {
+                                    tabPanel.setSelectedIndex(TabEnum.fight.getCode());
                                 }
                                 Controller.getInstance().interruption();
                                 say(QUEEN_OF_THORNS_REMOVES_ORDER + map.getAreaNameRusGenitive(area));
@@ -1575,6 +1595,9 @@ public class Game {
                                 propertyUsed = true;
                                 battleInfo.setHouseCardForPlayer(playerOnSide[heroSide], null);
                                 countBattleVariables();
+                                if (Settings.getInstance().isTrueAutoSwitchTabs()) {
+                                    tabPanel.setSelectedIndex(TabEnum.fight.getCode());
+                                }
                                 Controller.getInstance().interruption();
                                 houseCardOfSide[heroSide] = getHouseCard(battleInfo, playerOnSide[heroSide]);
                                 countBattleVariables();
@@ -1592,6 +1615,9 @@ public class Game {
         int swordsMan = swordPlayerOnPlace[0];
         if (!isSwordUsed && (playerOnSide[0] == swordsMan || playerOnSide[1] == swordsMan)) {
             boolean useSword = playerInterface[swordsMan].useSword(battleInfo);
+            if (Settings.getInstance().isTrueAutoSwitchTabs()) {
+                tabPanel.setSelectedIndex(TabEnum.fight.getCode());
+            }
             Controller.getInstance().interruption();
             if (useSword) {
                 battleInfo.useSwordOnSide(playerOnSide[0] == swordsMan ? SideOfBattle.attacker : SideOfBattle.defender);
@@ -2569,12 +2595,39 @@ public class Game {
     }
 
     /**
+     * Для данного варианта сбора войск в области проверяет, нарушается ли предел снабжения.
+     * Вынесено в отдельный метод, чтобы игроки тоже могли проверять свои сборы войск на снабжение.
+     * @param muster вариант сбора войск
+     * @return true, если всё нормально
+     */
+    public boolean supplyTestForMuster(MusterPlayed muster) {
+        int areaOfCastle = muster.getCastleArea();
+        int player = getAreaOwner(areaOfCastle);
+        virtualAreasWithTroops.clear();
+        virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
+        for (int index = 0; index < muster.getNumberMusterUnits(); index++) {
+            int area = muster.getArea(index);
+            Musterable musterable = muster.getMusterUnit(index);
+            if (musterable instanceof Unit) {
+                if (virtualAreasWithTroops.containsKey(area)) {
+                    int previousNumOfTroops = virtualAreasWithTroops.get(area);
+                    virtualAreasWithTroops.put(area, previousNumOfTroops + 1);
+                } else {
+                    virtualAreasWithTroops.put(area, 1);
+                }
+            }
+        }
+        return supplyTest(virtualAreasWithTroops, supply[player]);
+    }
+
+    /**
      * Метод проверяет, нарушается ли предел снабжения при данном расположении войск игрока
      * @param areasWithTroops карта с парами область-количество юнитов
      * @param supplyLevel     уровень снабжения игрока
      * @return true, если предел снабжения не нарушается
      */
     public boolean supplyTest(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+        long time = System.currentTimeMillis();
         int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
         System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
         for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {
@@ -2594,6 +2647,7 @@ public class Game {
                 }
             }
         }
+        System.out.println("supplyTest: " + (System.currentTimeMillis() - time) + "мс");
         return true;
     }
 
