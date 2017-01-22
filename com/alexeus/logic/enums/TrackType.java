@@ -35,4 +35,28 @@ public enum TrackType {
         }
         return TextErrors.UNKNOWN_UFO_ERROR;
     }
+
+    public int getCode() {
+        switch (this) {
+            case ironThrone:
+                return 0;
+            case valyrianSword:
+                return 1;
+            case raven:
+                return 2;
+        }
+        return -1;
+    }
+
+    public static TrackType getTrack(int index) {
+        switch (index) {
+            case 0:
+                return ironThrone;
+            case 1:
+                return valyrianSword;
+            case 2:
+                return raven;
+        }
+        return null;
+    }
 }

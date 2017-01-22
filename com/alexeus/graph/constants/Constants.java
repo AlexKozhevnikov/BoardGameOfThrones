@@ -91,4 +91,6 @@ public class Constants {
     public static final int FIGHT_STRING_SIZE = 41;
     public static final int FIGHT_SYMBOL_INDENT = 15;
     public static final float CARD_TORSO_KOEF = 0.4f;
+    public static final int BID_TEXT_X_INDENT = 25;
+    public static final int BID_TEXT_Y_INDENT = 30;
 }

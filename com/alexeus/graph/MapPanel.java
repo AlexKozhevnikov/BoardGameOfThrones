@@ -241,24 +241,22 @@ public class MapPanel extends JPanel{
             }
         }
         // Рисуем треки влияния
-        int playerOnPlace[] = null;
-        for (int i = 0; i < NUM_TRACK; i++) {
-            switch (i) {
-                case 0:
-                    playerOnPlace = game.getInfluenceTrackPlayerOnPlace(TrackType.ironThrone);
-                    break;
-                case 1:
-                    playerOnPlace = game.getInfluenceTrackPlayerOnPlace(TrackType.valyrianSword);
-                    break;
-                case 2:
-                    playerOnPlace = game.getInfluenceTrackPlayerOnPlace(TrackType.raven);
-                    break;
-            }
+        int playerOnPlace[];
+        int curBiddingTrack = game.getCurrentBiddingTrack();
+        g2d.setFont(new Font("Liberation Mono", Font.BOLD, (int) (70 / scale)));
+        for (int track = 0; track < NUM_TRACK; track++) {
+            playerOnPlace = game.getInfluenceTrackPlayerOnPlace(track);
             for (int place = 0; place < NUM_PLAYER; place++) {
                 g2d.drawImage(influenceImage[playerOnPlace[place]],
-                        indent + (int) (TRACK_BEGIN_X[i] / scale),
+                        indent + (int) (TRACK_BEGIN_X[track] / scale),
                         (int) ((TRACK_BEGIN_Y - place * TRACK_VERTICAL_INDENT) / scale),
                         trueInfluenceSize, trueInfluenceSize, null);
+                if (curBiddingTrack == track) {
+                    int bid = game.getCurrentBidOfPlayer(playerOnPlace[place]);
+                    g2d.drawString(String.valueOf(bid),
+                            indent + (int) ((TRACK_BEGIN_X[track] - bid < 10 ? BID_TEXT_X_INDENT : 2 * BID_TEXT_X_INDENT) / scale + trueInfluenceSize / 2f),
+                            (int) ((TRACK_BEGIN_Y - place * TRACK_VERTICAL_INDENT + BID_TEXT_Y_INDENT) / scale + trueInfluenceSize / 2f));
+                }
             }
         }
     }
@@ -552,7 +550,7 @@ public class MapPanel extends JPanel{
 
         armyX[9] = 1226; armyY[9] = 2030;
         attackerArmyX[9] = 1216; attackerArmyY[9] = 2110;
-        areaBeginX[9] = 1064; areaBeginY[9] = 1961;
+        areaBeginX[9] = 1066; areaBeginY[9] = 1962;
         unitPackType[9] = triangleSquare;
         orderX[9] = 1160; orderY[9] = 2112;
 

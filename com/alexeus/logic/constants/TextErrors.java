@@ -62,4 +62,8 @@ public class TextErrors {
     public static final String NO_UNITS_TO_PUT_ERROR = "Ошибка сбора войск: в запасе недостаточно юнитов типа ";
     public static final String MUSTER_SUPPLY_VIOLATION_ERROR = "Ошибка сбора войск: нарушен предел снабжения.";
     public static final String MUSTER_POINTS_VIOLATED_ERROR = "Ошибка сбора войск: превышено число очков сбора.";
+    public static final String WRONG_EVENT_CHOICE_ERROR = "Неверный выбор события!";
+    public static final String WRONG_BID_ERROR = "Неверная ставка!";
+    public static final String WRONG_TRACK_ORDER_ERROR = "Ошибка королевского решения: порядок по ставкам нарушен.";
+    public static final String PLAYER_COUNTED_TWICE_ERROR = "Ошибка королевского решения: игрок выбран дважды.";
 }

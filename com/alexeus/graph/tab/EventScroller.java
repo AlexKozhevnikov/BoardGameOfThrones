@@ -58,8 +58,8 @@ public class EventScroller extends JPanel {
             if (numRemainingCards > 0) {
                 g.drawString(h.getName() + (numRemainingCards > 1 ?
                         ": " + game.getNumRemainingCards(h) : ""), 0, curHeight);
+                curHeight += EVENT_TEXT_HEIGHT;
             }
-            curHeight += EVENT_TEXT_HEIGHT;
         }
     }
 

@@ -1,11 +1,15 @@
 package com.alexeus.graph;
 
+import com.alexeus.ai.PrimitivePlayer;
 import com.alexeus.control.Controller;
+import com.alexeus.control.Settings;
+import com.alexeus.logic.Game;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Set;
 
 public class Main {
 
@@ -67,5 +71,12 @@ public class Main {
         {
             System.out.println(font);
         }
+    }
+
+    private static void testBids() {
+        Settings.getInstance().setPassByRegime(true);
+        Game game = Game.getInstance();
+        game.prepareNewGame();
+        game.forceBid();
     }
 }

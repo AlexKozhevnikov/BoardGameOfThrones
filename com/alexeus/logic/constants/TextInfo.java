@@ -1,5 +1,7 @@
 package com.alexeus.logic.constants;
 
+import com.alexeus.logic.enums.TrackType;
+
 /**
  * Created by alexeus on 11.01.2017.
  * Текстовые константы, использующиеся в информационных сообщениях
@@ -93,8 +95,27 @@ public class TextInfo {
     public static final String POWER_TOKEN = " жетон власти.";
     public static final String POWER_TOKENA = " жетона власти.";
     public static final String POWER_TOKENS = " жетонов власти.";
-    public static final String CAN_MUSTER = " может собрать войска ";
     public static final String NOW_HE_HAS = " Теперь у него ";
+    public static final String CAN_MUSTER = " может собрать войска ";
+    public static final String CAN_MUSTER_TROOPS = " может собрать войска.";
+    public static final String FAILED_TO_PLAY_MUSTER = " не смог собрать войска, и его сбор войск завершается.";
+    public static final String NEW_EVENTS = "Новые события: ";
+    public static final String MUST_CHOOSE_EVENT = " должен выбрать событие!";
+    public static final String MUSTER_HAPPENS = "Все дома собирают новые войска в подвластных замках.";
+    public static final String SUPPLY_HAPPENS = "Все дома изменяют снабжение и состав войск.";
+    public static final String CLASH_HAPPENS = "Все дома вступают в борьбу за влияние.";
+    public static final String CLASH_FOR = "Битва за ";
+    public static final String PLAYERS_MAKE_BIDS = ". Игроки делают свои ставки.";
+    public static final String FAILED_TO_BID = " не смог сделать ставку, поэтому она приравнивается к нулю.";
+    public static final String FAILED_TO_KING = " не смог принять королевское решение.";
+    public static final String GAME_OF_THRONES_HAPPENS = "Все дома собирают жетоны власти с подвластных земель.";
+    public static final String RELAX_NOTHING_HAPPENS = "Расслабляемся, ничего не происходит.";
+    public static final String SEA_OF_STORMS = "Запрещены приказы набегов.";
+    public static final String RAIN_OF_AUTUMN = "Запрещены приказы похода+1.";
+    public static final String FEAST_FOR_CROWS = "Запрещены приказы сбора власти.";
+    public static final String WEB_OF_LIES = "Запрещены приказы подмоги.";
+    public static final String STORM_OF_SWORDS = "Запрещены приказы обороны.";
+    public static final String WILDLINGS_ARE = "Карта одичалых: ";
 
     public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";

@@ -9,6 +9,8 @@ import com.alexeus.map.GameOfThronesMap;
 import java.util.*;
 
 import static com.alexeus.logic.constants.MainConstants.HOUSE_GENITIVE;
+import static com.alexeus.logic.constants.MainConstants.NUM_PLAYER;
+import static com.alexeus.logic.constants.MainConstants.NUM_TRACK;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -262,20 +264,19 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
 
     @Override
-    public TrackType chooseInfluenceTrackDoran(BattleInfo battleInfo) {
+    public int chooseInfluenceTrackDoran(BattleInfo battleInfo) {
         int enemy = battleInfo.getAttacker() == houseNumber ? battleInfo.getDefender() : battleInfo.getAttacker();
-        int[] pos = new int[3];
-        pos[0] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.ironThrone);
-        pos[1] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.valyrianSword);
-        pos[2] = game.getInfluenceTrackPlaceForPlayer(enemy, TrackType.raven);
-        int bestPos = Math.min(Math.min(pos[0], pos[1]), pos[2]);
-        if (bestPos == pos[2]) {
-            return TrackType.raven;
-        } else if (bestPos == pos[1]) {
-            return TrackType.valyrianSword;
-        } else {
-            return TrackType.ironThrone;
+        int[] pos = new int[NUM_TRACK];
+        int bestPos = NUM_PLAYER;
+        int bestTrack = TrackType.raven.getCode();
+        for (int track = NUM_TRACK - 1; track >= 0; track--) {
+            pos[track] = game.getInfluenceTrackPlaceForPlayer(enemy, track);
+            if (pos[track] < bestPos) {
+                bestPos = pos[track];
+                bestTrack = track;
+            }
         }
+        return bestTrack;
     }
 
     @Override
@@ -329,54 +330,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public MusterPlayed playConsolidatePowerS(int castleArea) {
-        long time = System.currentTimeMillis();
-        int numMusterPoints = map.getNumCastle(castleArea);
-        if (numMusterPoints == 0) {
-            say("Объявляю забастовку: очков сбора войск нету у меня!");
-            return null;
-        }
-        HashSet<Integer> normNavalAreas = new HashSet<>();
-        HashSet<Integer> mustHaveNavalAreas = new HashSet<>();
-        if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 0) {
-            HashSet<Integer> adjacentAreas = map.getAdjacentAreas(castleArea);
-            for (int area: adjacentAreas) {
-                if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) < 0) {
-                    mustHaveNavalAreas.add(area);
-                } else if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) == houseNumber ||
-                        map.getAreaType(area) == AreaType.port &&
-                        (game.getTroopsOwner(area) < 0 ||
-                                game.getTroopsOwner(map.getSeaNearPort(area)) >= 0 &&
-                                game.getTroopsOwner(map.getSeaNearPort(area)) != houseNumber)){
-                    normNavalAreas.add(area);
-                }
-            }
-        }
-        MusterPlayed template = new MusterPlayed(castleArea);
-        int curAvailableShips = game.getRestingUnitsOfType(houseNumber, UnitType.ship);
-        for (int mustHaveArea: mustHaveNavalAreas) {
-            if (numMusterPoints == 0 || curAvailableShips == 0) {
-                break;
-            }
-            template.addNewMusterable(mustHaveArea, UnitType.ship);
-            numMusterPoints--;
-            curAvailableShips--;
-        }
-        // После того, как мы поставили корабли в стратегически важные моря, считаем, остались ли у нас очки сбора
-        // Если не остались, то возвращаем единственно возможный план сбора войск
-        if (numMusterPoints == 0) {
-            return template;
-        }
-        normNavalAreas.addAll(mustHaveNavalAreas);
-        // Если остались, то пробуем использовать оставшиеся очки сбора и выбираем случайный сбор из допустимых
-        HashSet<MusterPlayed> musterVariants = getMusterVariants(castleArea, normNavalAreas,
-                template, numMusterPoints, curAvailableShips);
-        System.out.println("Сбор " + HOUSE_GENITIVE[houseNumber] + ": " + (System.currentTimeMillis() - time) + " мс");
-        return getRandomElementOfSet(musterVariants);
+        return musterInArea(castleArea);
     }
 
     @Override
     public MusterPlayed muster(HashSet<Integer> castleAreas) {
-        return null;
+        return musterInArea(getRandomElementOfSet(castleAreas));
     }
 
     @Override
@@ -386,7 +345,23 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int bid(int track) {
-        return 0;
+        // считаем количество всевозможных комбинаций ставок на (3 - track) треков и выбираем случайную из них!
+        int numTokens = game.getNumPowerTokensHouse(houseNumber);
+        int totalCombinations = (int) (numCombinations(NUM_TRACK - track, numTokens + NUM_TRACK - track));
+        int chosenCombination = random.nextInt(totalCombinations);
+        int threshold = 0;
+        for (int curBid = 0; curBid < numTokens; curBid++) {
+            threshold += (int) (numCombinations(NUM_TRACK - track - 1, numTokens + NUM_TRACK - track - curBid - 1));
+            if (chosenCombination < threshold) {
+                return curBid;
+            }
+        }
+        return numTokens;
+    }
+
+    @Override
+    public int[] kingChoiceInfluenceTrack(int track, int[] bids) {
+        return new int[]{0, 1, 2, 3, 4, 5};
     }
 
     @Override
@@ -404,11 +379,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int kingChoiceBottom(int pretenders) {
         return 0;
-    }
-
-    @Override
-    public String kingChoiceInfluenceTrack(int track, int[] bids) {
-        return null;
     }
 
     @Override
@@ -474,6 +444,52 @@ public class PrimitivePlayer implements GotPlayerInterface{
         return null;
     }
 
+    protected MusterPlayed musterInArea(int castleArea) {
+        long time = System.currentTimeMillis();
+        int numMusterPoints = map.getNumCastle(castleArea);
+        if (numMusterPoints == 0) {
+            say("Объявляю забастовку: очков сбора войск нету у меня!");
+            return null;
+        }
+        HashSet<Integer> normNavalAreas = new HashSet<>();
+        HashSet<Integer> mustHaveNavalAreas = new HashSet<>();
+        if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 0) {
+            HashSet<Integer> adjacentAreas = map.getAdjacentAreas(castleArea);
+            for (int area: adjacentAreas) {
+                if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) < 0) {
+                    mustHaveNavalAreas.add(area);
+                } else if (map.getAreaType(area) == AreaType.sea && game.getTroopsOwner(area) == houseNumber ||
+                        map.getAreaType(area) == AreaType.port &&
+                                (game.getTroopsOwner(area) < 0 ||
+                                        game.getTroopsOwner(map.getSeaNearPort(area)) >= 0 &&
+                                                game.getTroopsOwner(map.getSeaNearPort(area)) != houseNumber)){
+                    normNavalAreas.add(area);
+                }
+            }
+        }
+        MusterPlayed template = new MusterPlayed(castleArea);
+        int curAvailableShips = game.getRestingUnitsOfType(houseNumber, UnitType.ship);
+        for (int mustHaveArea: mustHaveNavalAreas) {
+            if (numMusterPoints == 0 || curAvailableShips == 0) {
+                break;
+            }
+            template.addNewMusterable(mustHaveArea, UnitType.ship);
+            numMusterPoints--;
+            curAvailableShips--;
+        }
+        // После того, как мы поставили корабли в стратегически важные моря, считаем, остались ли у нас очки сбора
+        // Если не остались, то возвращаем единственно возможный план сбора войск
+        if (numMusterPoints == 0) {
+            return template;
+        }
+        normNavalAreas.addAll(mustHaveNavalAreas);
+        // Если остались, то пробуем использовать оставшиеся очки сбора и выбираем случайный сбор из допустимых
+        HashSet<MusterPlayed> musterVariants = getMusterVariants(castleArea, normNavalAreas,
+                template, numMusterPoints, curAvailableShips);
+        System.out.println("Сбор " + HOUSE_GENITIVE[houseNumber] + ": " + (System.currentTimeMillis() - time) + " мс");
+        return getRandomElementOfSet(musterVariants);
+    }
+
     protected HashSet<MusterPlayed> getMusterVariants(int castleArea, HashSet<Integer> navalAreas,
                                                       MusterPlayed template, int musterPoints, int curAvailableShips) {
         HashSet<MusterPlayed> musterVariants = new HashSet<>();
@@ -518,13 +534,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     }
                     break;
                 case 2:
-                    // Вариант "конь"
+                    // Вариант "Конь"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.knight) > 0) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.knight);
                         addNewMusterVariant(musterVariants, muster);
                     }
-                    // Вариант "башня"
+                    // Вариант "Башня"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 0) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.siegeEngine);
@@ -537,7 +553,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         muster.addNewMusterable(castleArea, UnitType.pawn);
                         addNewMusterVariant(musterVariants, muster);
                     }
-                    // Варианты "два апгрейда"
+                    // Варианты "Два апгрейда"
                     if (game.getArmyInArea(castleArea).getNumUnitOfType(UnitType.pawn) > 1) {
                         if (game.getRestingUnitsOfType(houseNumber, UnitType.siegeEngine) > 1) {
                             muster = new MusterPlayed(template);
@@ -588,7 +604,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                             }
                         }
                     }
-                    // Варианты "2 корабля"
+                    // Варианты "Два корабля"
                     if (game.getRestingUnitsOfType(houseNumber, UnitType.ship) > 1) {
                         for (int area1 : navalAreas) {
                             for (int area2: navalAreas) {
@@ -614,5 +630,15 @@ public class PrimitivePlayer implements GotPlayerInterface{
         if (game.supplyTestForMuster(muster)) {
             set.add(muster);
         }
+    }
+
+    /**
+     * Метод считает число комбинаций из n по k
+     * @param k кэ
+     * @param n нэ
+     * @return число комбинаций
+     */
+    private double numCombinations(int k, int n){
+        return k == n ? 1 : 1. * n / (n - k) * numCombinations(k, n - 1);
     }
 }
