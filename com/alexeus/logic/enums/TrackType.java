@@ -29,7 +29,7 @@ public enum TrackType {
             case ironThrone:
                 return " по треку трона";
             case valyrianSword:
-                return " по треку вотчин";
+                return " по треку меча";
             case raven:
                 return " по треку ворона";
         }

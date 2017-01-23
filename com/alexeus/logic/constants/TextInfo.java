@@ -8,6 +8,7 @@ import com.alexeus.logic.enums.TrackType;
  */
 public class TextInfo {
 
+    /************** Бессмысленная болтовня ******************/
     public static final String NEW_GAME_BEGINS = "Начинается новая партия в Игру престолов!";
     public static final String AREA_NUMBER = "Область №";
     public static final String IN_AREA_NUMBER = "В области №";
@@ -21,11 +22,17 @@ public class TextInfo {
     public static final String SUPPLY_OF = "Снабжение ";
     public static final String EQUALS = " равно ";
     public static final String NO_TROOPS_OF = " нет войск ";
+    public static final String AREAS_WITH_TROOPS_OF = "    Области с войсками ";
+    public static final String ARMIES = "Армии ";
     public static final String NOBODY = "Никого";
+
+    /************** Ворононосец принимает решение ******************/
     public static final String CHANGES_ORDER = " меняет приказ";
     public static final String SEES_WILDLINGS_CARD = " смотрит верхнюю карту одичалых...";
     public static final String AND_LEAVES = "... и оставляет её наверху.";
     public static final String AND_BURIES = "... и закапывает её.";
+
+    /************** Набеги ******************/
     public static final String RAIDS = " совершает набег ";
     public static final String TO = " на ";
     public static final String GAINS_POWER = " получает жетон власти.";
@@ -33,6 +40,8 @@ public class TextInfo {
     public static final String MUST_PLAY_RAID = " должен разыграть один свой приказ набега.";
     public static final String DELETES_RAID = " удаляет приказ набега ";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
+
+    /************** Походы ******************/
     public static final String MARCH_VALIDATION = "Проверка корректности следующего похода: ";
     public static final String MUST_PLAY_MARCH = " должен разыграть один свой приказ похода.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
@@ -88,9 +97,8 @@ public class TextInfo {
     public static final String CERSEI_REMOVES_ORDER = "Серсея Ланнистер снимает приказ ";
     public static final String PATCHPACE_CAN_DELETE_ANY_CARD = "Пестряк может сбросить карту противника.";
     public static final String PATCHPACE_DELETES_CARD = "Пестряк сбрасывает карту ";
-    public static final String AREAS_WITH_TROOPS_OF = "    Области с войсками ";
-    public static final String ARMIES = "Армии ";
-    public static final String NEW_ORDER_ON_TRACK = "Новый порядок игроков на треке влияния ";
+    public static final String RETURNS_ALL_CARDS = " возвращает весь сброс карт Дома себе на руку.";
+    public static final String RETURNS_CARD = " возвращает карту Дома ";
     public static final String EARNS = " получает ";
     public static final String POWER_TOKEN = " жетон власти.";
     public static final String POWER_TOKENA = " жетона власти.";
@@ -99,6 +107,8 @@ public class TextInfo {
     public static final String CAN_MUSTER = " может собрать войска ";
     public static final String CAN_MUSTER_TROOPS = " может собрать войска.";
     public static final String FAILED_TO_PLAY_MUSTER = " не смог собрать войска, и его сбор войск завершается.";
+
+    /************** События ******************/
     public static final String NEW_EVENTS = "Новые события: ";
     public static final String MUST_CHOOSE_EVENT = " должен выбрать событие!";
     public static final String MUSTER_HAPPENS = "Все дома собирают новые войска в подвластных замках.";
@@ -106,17 +116,51 @@ public class TextInfo {
     public static final String CLASH_HAPPENS = "Все дома вступают в борьбу за влияние.";
     public static final String CLASH_FOR = "Битва за ";
     public static final String PLAYERS_MAKE_BIDS = ". Игроки делают свои ставки.";
+    public static final String NEW_ORDER_ON_TRACK = "Новый порядок игроков на треке влияния ";
     public static final String FAILED_TO_BID = " не смог сделать ставку, поэтому она приравнивается к нулю.";
     public static final String FAILED_TO_KING = " не смог принять королевское решение.";
     public static final String GAME_OF_THRONES_HAPPENS = "Все дома собирают жетоны власти с подвластных земель.";
     public static final String RELAX_NOTHING_HAPPENS = "Расслабляемся, ничего не происходит.";
     public static final String SEA_OF_STORMS = "Запрещены приказы набегов.";
-    public static final String RAIN_OF_AUTUMN = "Запрещены приказы похода+1.";
+    public static final String RAIN_OF_AUTUMN = "Запрещены приказы похода +1.";
     public static final String FEAST_FOR_CROWS = "Запрещены приказы сбора власти.";
     public static final String WEB_OF_LIES = "Запрещены приказы подмоги.";
     public static final String STORM_OF_SWORDS = "Запрещены приказы обороны.";
-    public static final String WILDLINGS_ARE = "Карта одичалых: ";
 
+    /************** Одичалые ******************/
+    public static final String WILDLINGS_ATTACK_WITH_STRENGTH = "Нашествие одичалых с силой ";
+    public static final String BIDS_ARE = "Ставки игроков: ";
+    public static final String NIGHT_WATCH_VICTORY = "Победа ночного дозора!";
+    public static final String NIGHT_WATCH_DEFEAT = "Победа одичалых!";
+    public static final String KING = "Король ";
+    public static final String CHOOSES = " выбирает";
+    public static final String TOP_BID = " высшую ставку.";
+    public static final String BOTTOM_BID = " низшую ставку.";
+    public static final String TOP_BID_IS = "Высшая ставка - ";
+    public static final String BOTTOM_BID_IS = "Низшая ставка - ";
+    public static final String WILDLINGS_ARE = "Карта одичалых: ";
+    public static final String SILENCE_AT_THE_WALL = "Ничего не происходит.";
+    public static final String SKINCHANGER_SCOUT_WIN = " возвращает ставку, потраченную на отражение атаки одичалых.";
+    public static final String LOSES_ALL_MONEY = " теряет все доступные жетоны власти.";
+    public static final String LOSES_MONEY = " теряет ";
+    public static final String LOSES_CARD = " теряет карту Дома ";
+    public static final String CAN_RETURN_CARD = " может вернуть на руку одну карту Дома.";
+    public static final String CAN_ENLIGHTEN_ON_TRACK = " может подняться на верхнюю позицию любого трека влияния!";
+    public static final String ENLIGHTENS_ON_TRACK = " поднимается ";
+    public static final String DESCENDS_ON_ALL_TRACKS = " опускается на нижние позиции по всем трекам влияния!";
+    public static final String MUST_DESCEND_ON_TRACK = " должен опуститься на нижнюю позицию трека меча или ворона.";
+    public static final String DESCENDS_ON_TRACK = " опускается ";
+    public static final String CAN_MUSTER_IN_ONE_CASTLE = " может собрать войска в одном из своих замков/крепостей!";
+    public static final String MUST_DISBAND_TROOPS = " должен распустить войска!";
+    public static final String FAILED_TO_DISBAND = " не смог распустить войска, поэтому его войска будут распущены случайным образом.";
+    public static final String CAN_BEKNIGHT_PAWNS = " может улучшить пехотинцев до рыцарей!";
+    public static final String MUST_DISBAND_SOME_KNIGHTS = " должен распустить часть своих рыцарей!";
+    public static final String MUST_DOWNGRADE_SOME_KNIGHTS = " должен превратить часть своих рыцарей в пехотинцев!";
+    public static final String PREEMPTIVE_RAID_TRACK = " решил опуститься на два деления ";
+    public static final String PREEMPTIVE_RAID_DISBAND = " решил распустить войска.";
+    public static final String FAILED_TO_WILD = " не смог принять одичальническое решение!";
+
+    /*************** Фазы игры ****************/
     public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";
     public static final String PLANNING_PHASE = "Фаза замыслов.";
@@ -126,8 +170,4 @@ public class TextInfo {
     public static final String CONSOLIDATE_POWER_PHASE = "Фаза действий. Сбор власти.";
     public static final String END_OF_GAME = "Конец игры";
     public static final String ROUND_NUMBER = "Раунд №";
-    public static final String WILDLINGS_ATTACK = "Нашествие одичалых";
-    public static final String WITH_STRENGTH = " с силой ";
-    public static final String NIGHT_WATCH_VICTORY = "Победа ночного дозора!";
-    public static final String NIGHT_WATCH_DEFEAT = "Победа одичалых!";
 }

@@ -5,10 +5,7 @@ import com.alexeus.graph.util.PictureTormentor;
 import com.alexeus.graph.enums.UnitPackType;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.constants.MainConstants;
-import com.alexeus.logic.enums.GamePhase;
-import com.alexeus.logic.enums.Order;
-import com.alexeus.logic.enums.TrackType;
-import com.alexeus.logic.enums.UnitType;
+import com.alexeus.logic.enums.*;
 import com.alexeus.logic.struct.Army;
 import com.alexeus.logic.struct.Unit;
 
@@ -44,6 +41,7 @@ public class MapPanel extends JPanel{
             TRACK_VERTICAL_INDENT, TRACK_BEGIN_X[] = new int[NUM_TRACK], TRACK_BEGIN_Y,
             VICTORY_BEGIN_X, VICTORY_BEGIN_Y, VICTORY_VERTICAL_INDENT, VICTORY_SIZE,
             WILDLINGS_TOKEN_X, WILDLINGS_TOKEN_Y, WILDLINGS_TOKEN_WIDTH, WILDLINGS_TOKEN_HEIGHT, WILDLINGS_HORIZONTAL_INDENT,
+            WILDLINGS_CARD_BEGIN_X, WILDLINGS_CARD_BEGIN_Y, WILDLINGS_CARD_WIDTH, WILDLINGS_CARD_HEIGHT,
             SUPPLY_BEGIN_X, SUPPLY_BEGIN_Y, SUPPLY_VERTICAL_INDENT, SUPPLY_WIDTH, SUPPLY_HEIGHT,
             TIME_BEGIN_X, TIME_BEGIN_Y, TIME_WIDTH, TIME_HEIGHT,
             TRACKS_AREA_X, TRACKS_AREA_Y, TRACKS_AREA_WIDTH, TRACKS_AREA_HEIGHT,
@@ -72,6 +70,8 @@ public class MapPanel extends JPanel{
     private BufferedImage[] defenceImage = new BufferedImage[MAX_DEFENCE + 1];
 
     private BufferedImage[] orderImage = new BufferedImage[NUM_DIFFERENT_ORDERS];
+
+    private BufferedImage[] wildlingCardImage = new BufferedImage[WildlingCard.values().length];
 
     private BufferedImage[] areaFillImage = new BufferedImage[NUM_AREA];
 
@@ -166,7 +166,7 @@ public class MapPanel extends JPanel{
             }
             // Войска
             Army army = game.getArmyInArea(area);
-            int armySize = army.getNumUnits();
+            int armySize = army.getSize();
             if (armySize > 0) {
                 fillShifts(army, area);
                 ArrayList<Unit> units = army.getUnits();
@@ -201,11 +201,17 @@ public class MapPanel extends JPanel{
                 indent + (int) (TIME_BEGIN_X / scale),
                 (int) ((TIME_BEGIN_Y - game.getTime() * TIME_VERTICAL_INDENT) / scale),
                 (int) (TIME_WIDTH / scale), (int) (TIME_HEIGHT / scale), null);
-        // Рисуем жетон одичалых
+        // Рисуем жетон одичалых и карту одичалых
         g2d.drawImage(wildlingTokenImage,
                 indent + (int) ((WILDLINGS_TOKEN_X +WILDLINGS_HORIZONTAL_INDENT * game.getWildlingsStrength() /
                         MainConstants.WILDLING_STRENGTH_INCREMENT) / scale), (int) ((WILDLINGS_TOKEN_Y) / scale),
                 (int) (WILDLINGS_TOKEN_WIDTH / scale), (int) (WILDLINGS_TOKEN_HEIGHT / scale), null);
+        int wildCard = game.getTopWildlingsCardCode();
+        if (wildCard >= 0) {
+            g2d.drawImage(wildlingCardImage[wildCard],
+                    indent + (int) (WILDLINGS_CARD_BEGIN_X / scale), (int) (WILDLINGS_CARD_BEGIN_Y / scale),
+                    (int) (WILDLINGS_CARD_WIDTH / scale), (int) (WILDLINGS_CARD_HEIGHT / scale), null);
+        }
         // Рисуем победные очки
         int[] victoryPoints = game.getVictoryPoints();
         for (int victory = 1; victory <= MainConstants.NUM_CASTLES_TO_WIN; victory++) {
@@ -243,7 +249,7 @@ public class MapPanel extends JPanel{
         // Рисуем треки влияния
         int playerOnPlace[];
         int curBiddingTrack = game.getCurrentBiddingTrack();
-        g2d.setFont(new Font("Liberation Mono", Font.BOLD, (int) (70 / scale)));
+        g2d.setFont(new Font("Liberation Mono", Font.BOLD, (int) (BID_TEXT_SIZE / scale)));
         for (int track = 0; track < NUM_TRACK; track++) {
             playerOnPlace = game.getInfluenceTrackPlayerOnPlace(track);
             for (int place = 0; place < NUM_PLAYER; place++) {
@@ -254,7 +260,7 @@ public class MapPanel extends JPanel{
                 if (curBiddingTrack == track) {
                     int bid = game.getCurrentBidOfPlayer(playerOnPlace[place]);
                     g2d.drawString(String.valueOf(bid),
-                            indent + (int) ((TRACK_BEGIN_X[track] - bid < 10 ? BID_TEXT_X_INDENT : 2 * BID_TEXT_X_INDENT) / scale + trueInfluenceSize / 2f),
+                            indent + (int) ((TRACK_BEGIN_X[track] - (bid < 10 ? BID_TEXT_X_INDENT : 2 * BID_TEXT_X_INDENT)) / scale + trueInfluenceSize / 2f),
                             (int) ((TRACK_BEGIN_Y - place * TRACK_VERTICAL_INDENT + BID_TEXT_Y_INDENT) / scale + trueInfluenceSize / 2f));
                 }
             }
@@ -288,6 +294,11 @@ public class MapPanel extends JPanel{
     public void repaintWildlings() {
         repaint(new Rectangle((int) (indent + WILDLING_AREA_X / scale), (int) (WILDLING_AREA_Y / scale),
                 (int) (WILDLING_AREA_WIDTH  / scale), (int) (WILDLING_AREA_HEIGHT / scale)));
+    }
+
+    public void repaintWildlingsCard() {
+        repaint(new Rectangle((int) (indent + WILDLINGS_CARD_BEGIN_X / scale), (int) (WILDLINGS_CARD_BEGIN_Y / scale),
+                (int) (WILDLINGS_CARD_WIDTH  / scale), (int) (WILDLINGS_CARD_HEIGHT / scale)));
     }
 
     /**
@@ -404,6 +415,9 @@ public class MapPanel extends JPanel{
         for(int orderCode = 0; orderCode < NUM_DIFFERENT_ORDERS; orderCode++) {
             orderImage[orderCode] = imageLoader.getImage(ORDER + orderCode + PNG);
         }
+        for (WildlingCard card: WildlingCard.values()) {
+            wildlingCardImage[card.getCode()] = imageLoader.getImage(WESTEROS + card.name() + PNG);
+        }
         for (int player = 0; player < NUM_PLAYER; player++) {
             tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
             influenceImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
@@ -422,6 +436,7 @@ public class MapPanel extends JPanel{
         }
     }
 
+    // TODO Хардкод детектед! Заменить на загрузку из файла
     private void loadVariables() {
         UNIT_IMAGE_SIZE = unitImage[0][0].getWidth(null);
         INFLUENCE_SIZE = influenceImage[0].getWidth(null);
@@ -458,6 +473,10 @@ public class MapPanel extends JPanel{
         SUPPLY_BEGIN_X = 1806;
         SUPPLY_BEGIN_Y = 2039;
         SUPPLY_VERTICAL_INDENT = 107;
+        WILDLINGS_CARD_BEGIN_X = 1281;
+        WILDLINGS_CARD_BEGIN_Y = 21;
+        WILDLINGS_CARD_WIDTH = 352;
+        WILDLINGS_CARD_HEIGHT = 223;
 
         TRACKS_AREA_X = 1670;
         TRACKS_AREA_Y = 0;
@@ -538,7 +557,7 @@ public class MapPanel extends JPanel{
 
         armyX[7] = 1200; armyY[7] = 2748;
         attackerArmyX[7] = 1281; attackerArmyY[7] = 2722;
-        areaBeginX[7] = 859; areaBeginY[7] = 2629;
+        areaBeginX[7] = 859; areaBeginY[7] = 2630;
         unitPackType[7] = line;
         orderX[7] = 977; orderY[7] = 2747;
 
@@ -556,13 +575,13 @@ public class MapPanel extends JPanel{
 
         armyX[10] = 1471; armyY[10] = 1225;
         attackerArmyX[10] = 1475; attackerArmyY[10] = 1305;
-        areaBeginX[10] = 795; areaBeginY[10] = 1003;
+        areaBeginX[10] = 795; areaBeginY[10] = 1005;
         unitPackType[10] = line;
         orderX[10] = 1488; orderY[10] = 1382;
 
         armyX[11] = 1455; armyY[11] = 717;
         attackerArmyX[11] = 1455; attackerArmyY[11] = 917;
-        areaBeginX[11] = 1146; areaBeginY[11] = 205;
+        areaBeginX[11] = 1146; areaBeginY[11] = 206;
         unitPackType[11] = line;
         orderX[11] = 1354; orderY[11] = 783;
 
@@ -589,7 +608,7 @@ public class MapPanel extends JPanel{
 
         armyX[21] = 698; armyY[21] = 933;
         attackerArmyX[21] = 837; attackerArmyY[21] = 612;
-        areaBeginX[21] = 307; areaBeginY[21] = 430;
+        areaBeginX[21] = 308; areaBeginY[21] = 430;
         unitPackType[21] = line;
         orderX[21] = 627; orderY[21] = 780;
         tokenX[21] = 681; tokenY[21] = 678;
@@ -813,7 +832,7 @@ public class MapPanel extends JPanel{
 
         armyX[53] = 1151; armyY[53] = 2315;
         attackerArmyX[53] = 1025; attackerArmyY[53] = 2411;
-        areaBeginX[53] = 945; areaBeginY[53] = 2093;
+        areaBeginX[53] = 946; areaBeginY[53] = 2093;
         unitPackType[53] = triangleSquare;
         orderX[53] = 1057; orderY[53] = 2385;
         tokenX[53] = 1268; tokenY[53] = 2274;

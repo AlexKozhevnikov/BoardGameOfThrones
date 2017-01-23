@@ -11,7 +11,7 @@ public enum WildlingCard {
     rattleShirtRaiders,
     preemptiveRaid,
     massingOnTheMilkwater,
-    skinchangerScout,
+    shapechangerScout,
     crowKillers,
     hordeDescends,
     mammothRiders,
@@ -28,7 +28,7 @@ public enum WildlingCard {
                 return "Передовой отряд";
             case massingOnTheMilkwater:
                 return "Сбор на Молоководной";
-            case skinchangerScout:
+            case shapechangerScout:
                 return "Разведчик-оборотень";
             case crowKillers:
                 return "Убийцы ворон";
@@ -40,5 +40,29 @@ public enum WildlingCard {
                 return "Король за стеной";
         }
         return TextErrors.UNKNOWN_EVENT_ERROR;
+    }
+
+    public int getCode() {
+        switch(this) {
+            case silenceAtTheWall:
+                return 0;
+            case rattleShirtRaiders:
+                return 1;
+            case preemptiveRaid:
+                return 2;
+            case massingOnTheMilkwater:
+                return 3;
+            case shapechangerScout:
+                return 4;
+            case crowKillers:
+                return 5;
+            case hordeDescends:
+                return 6;
+            case mammothRiders:
+                return 7;
+            case aKingBeyondTheWall:
+                return 8;
+        }
+        return -1;
     }
 }

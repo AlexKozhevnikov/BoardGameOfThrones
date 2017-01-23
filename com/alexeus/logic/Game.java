@@ -15,6 +15,7 @@ import com.alexeus.logic.struct.*;
 import com.alexeus.map.*;
 import com.alexeus.util.LittleThings;
 
+import javax.sound.midi.Track;
 import javax.swing.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -52,6 +53,8 @@ public class Game {
 
     // текущая сила одичалых
     private int wildlingsStrength;
+
+    private int preemptiveRaidCheater = -1;
 
     // события текущего раунда
     private Happenable[] event = new Happenable[NUM_EVENT_DECKS];
@@ -395,7 +398,7 @@ public class Game {
         for (int area = 0; area < NUM_AREA; area++) {
             int troopsOwner = armyInArea[area].getOwner();
             if(troopsOwner >= 0) {
-                areasWithTroopsOfPlayer.get(troopsOwner).put(area, armyInArea[area].getNumUnits());
+                areasWithTroopsOfPlayer.get(troopsOwner).put(area, armyInArea[area].getSize());
                 for (UnitType unitType: UnitType.values()) {
                     restingUnitsOfPlayerAndType[troopsOwner][unitType.getCode()] -= armyInArea[area].getNumUnitOfType(unitType);
                 }
@@ -409,7 +412,7 @@ public class Game {
      */
     private void renewHouseTroopsInArea(int area) {
         if (armyInArea[area].getOwner() >= 0) {
-            areasWithTroopsOfPlayer.get(armyInArea[area].getOwner()).put(area, armyInArea[area].getNumUnits());
+            areasWithTroopsOfPlayer.get(armyInArea[area].getOwner()).put(area, armyInArea[area].getSize());
         }
     }
 
@@ -1084,7 +1087,7 @@ public class Game {
                         if (nMusteredObjects > 0) {
                             doMuster(musterVariant, player);
                         } else {
-                            int earning = map.getNumCrown(areaWithMuster[player]);
+                            int earning = map.getNumCrown(areaWithMuster[player]) + 1;
                             earnTokens(player, earning);
                         }
                         break;
@@ -1141,9 +1144,10 @@ public class Game {
      * @param earning заработок
      */
     private void earnTokens(int player, int earning) {
-        nPowerTokensHouse[player] = Math.min(maxPowerTokensHouse[player], nPowerTokensHouse[player] + earning);
-        say(HOUSE[player] + EARNS + earning +
-                (earning == 1 ? POWER_TOKEN : earning < 5 ? POWER_TOKENA : POWER_TOKENS) +
+        nPowerTokensHouse[player] = Math.max(Math.min(maxPowerTokensHouse[player], nPowerTokensHouse[player] + earning), 0);
+        int absSum = Math.abs(earning);
+        say(HOUSE[player] + (earning >= 0 ? EARNS: LOSES_MONEY) + absSum +
+                (absSum == 1 ? POWER_TOKEN : absSum < 5 ? POWER_TOKENA : POWER_TOKENS) +
                 NOW_HE_HAS + nPowerTokensHouse[player] +
                 (nPowerTokensHouse[player] == 1 ? POWER_TOKEN : nPowerTokensHouse[player] < 5 ? POWER_TOKENA : POWER_TOKENS));
         if (!Settings.getInstance().isPassByRegime()) {
@@ -1657,8 +1661,8 @@ public class Game {
             }
             attackingArmy = null;
             // Отступление
-            if (retreatingArmy.getNumUnits() > 0) {
-                int numRetreatingUnits = retreatingArmy.getNumUnits();
+            if (retreatingArmy.getSize() > 0) {
+                int numRetreatingUnits = retreatingArmy.getSize();
                 HashSet<Integer> areasToRetreat = getAccessibleAreas(areaOfBattle, loser);
                 HashSet<Integer> trueAreasToRetreat = new HashSet<>();
                 int minLosses = numRetreatingUnits;
@@ -1778,8 +1782,8 @@ public class Game {
                         minLosses = 0;
                     } else {
                         int previousNumberOfUnits = virtualAreasWithTroops.get(areaOfMarch);
-                        for (minLosses = 0; minLosses < attackingArmy.getNumUnits(); minLosses++) {
-                            virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits + attackingArmy.getNumUnits()
+                        for (minLosses = 0; minLosses < attackingArmy.getSize(); minLosses++) {
+                            virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits + attackingArmy.getSize()
                                     - minLosses);
                             if (GameUtils.supplyTest(virtualAreasWithTroops, supply[loser])) break;
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits);
@@ -1789,7 +1793,7 @@ public class Game {
                     if (minLosses > 0) {
                         attackingArmy.killSomeUnits(minLosses);
                     }
-                    if (attackingArmy.getNumUnits() > 0) {
+                    if (attackingArmy.getSize() > 0) {
                         say(HOUSE[loser] + RETREATS_IN +
                                 map.getAreaNameRusAccusative(areaOfMarch));
                         armyInArea[areaOfMarch].addSubArmy(attackingArmy);
@@ -1956,12 +1960,17 @@ public class Game {
                 }
             }
         }
+        System.out.print("Количество оставшихся карт домов: ");
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            System.out.print((player > 0 ? ", ": "") + HOUSE[player] + ": " + numActiveHouseCardsOfPlayer[player]);
+        }
+        System.out.println();
     }
 
     private void renewHandExceptCard(int player, HouseCard card) {
         say(HOUSE[player] + GETS_NEW_DECK);
         for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
-            if (houseCardOfPlayer[player][i] != card) {
+            if (houseCardOfPlayer[player][i] != card && !houseCardOfPlayer[player][i].isActive()) {
                 houseCardOfPlayer[player][i].setActive(true);
                 numActiveHouseCardsOfPlayer[player]++;
             }
@@ -2058,6 +2067,8 @@ public class Game {
                 houseCardOfPlayer[player][card].setActive(true);
             }
         }
+        numActiveHouseCardsOfPlayer[player] = NUM_HOUSE_CARDS;
+        say (HOUSE[player] + RETURNS_ALL_CARDS);
         if (!Settings.getInstance().isPassByRegime()) {
             houseTabPanel.repaintHouse(player);
         }
@@ -2099,17 +2110,49 @@ public class Game {
     }
 
     /**
-     * Спускает игрока в самых конец по одному из треков влияния
+     * Спускает игрока в самый конец по одному из треков влияния
      * @param player опускаемый игрок
      * @param track  номер трека влияния
      */
     private void pissOffOnTrack(int player, int track) {
+        int place = trackPlaceForPlayer[track][player];
+        System.arraycopy(trackPlayerOnPlace[track], place + 1, trackPlayerOnPlace[track], place, NUM_PLAYER - 1 - place);
+        trackPlayerOnPlace[track][NUM_PLAYER - 1] = player;
+        fillTrackPlaceForPlayer(track);
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintTracks();
+        }
+        printOrderOnTrack(track);
+    }
+
+    /**
+     * Метод понижает игрока на определённое число позиций по одному из треков влияния
+     * @param player        номер игрока
+     * @param track         номер трека
+     * @param positionDecay количество позиций, которые сдаёт игрок по треку
+     */
+    private void descendOnTrack(int player, int track, int positionDecay) {
+        int place = trackPlaceForPlayer[track][player];
+        int newPlace = Math.min(place + positionDecay, NUM_PLAYER - 1);
+        System.arraycopy(trackPlayerOnPlace[track], place + 1, trackPlayerOnPlace[track], place, newPlace - place);
+        trackPlayerOnPlace[track][newPlace] = player;
+        fillTrackPlaceForPlayer(track);
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintTracks();
+        }
+        printOrderOnTrack(track);
+    }
+
+    /**
+     * Поднимает игрока на верхнюю позицию по одному из треков влияния
+     * @param player поднимаемый игрок
+     * @param track  номер трека влияния
+     */
+    private void enlightenOnTrack(int player, int track) {
         int place;
         place = trackPlaceForPlayer[track][player];
-        for (int curPlace = place; curPlace < NUM_PLAYER - 1; curPlace++) {
-            trackPlayerOnPlace[track][curPlace] = trackPlayerOnPlace[track][curPlace + 1];
-        }
-        trackPlayerOnPlace[track][NUM_PLAYER - 1] = player;
+        System.arraycopy(trackPlayerOnPlace[track], 0, trackPlayerOnPlace[track], 1, place);
+        trackPlayerOnPlace[track][0] = player;
         fillTrackPlaceForPlayer(track);
         if (!Settings.getInstance().isPassByRegime()) {
             mapPanel.repaintTracks();
@@ -2168,6 +2211,24 @@ public class Game {
     }
 
     /**
+     * Метод изменяет снабжение игрока на определённую величину. Используется при нашествии разбойников гремучей рубашки.
+     * @param player   номер игрока
+     * @param modifier модификатор снабжения
+     */
+    private void changeSupply(int player, int modifier) {
+        supply[player] += modifier;
+        if (supply[player] < 0) {
+            supply[player] = 0;
+        } else if (supply[player] > MAX_SUPPLY) {
+            supply[player] = MAX_SUPPLY;
+        }
+        say(SUPPLY_OF + HOUSE_GENITIVE[player] + EQUALS + supply[player] + ".");
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintSupply();
+        }
+    }
+
+    /**
      * Метод обнуляет все приказы, использованный меч и лечит всех юнитов в начале нового раунда
      */
     private void nullifyOrdersAndVariables() {
@@ -2190,7 +2251,7 @@ public class Game {
                 fillDeck(i);
                 event[i] = decks.get(i).pollFirst();
             }
-            if (event[i].isWild()) {
+            if (event[i].isWild() && wildlingsStrength < MAX_WILDLING_STRENGTH) {
                 wildlingsStrength += WILDLING_STRENGTH_INCREMENT;
             }
             numRemainingCards.put(event[i], numRemainingCards.get(event[i]) - 1);
@@ -2211,8 +2272,7 @@ public class Game {
      * Метод разыгрывает новые события Вестероса
      */
     private void playNewEvents() {
-        if (wildlingsStrength >= MAX_WILDLING_STRENGTH) {
-            wildlingsStrength = MAX_WILDLING_STRENGTH;
+        if (wildlingsStrength == MAX_WILDLING_STRENGTH) {
             wildlingAttack();
         }
         // Событие №1
@@ -2366,7 +2426,6 @@ public class Game {
                 supply[areaOwner] = Math.min(supply[areaOwner] + map.getNumBarrel(area), MAX_SUPPLY);
             }
         }
-        // TODO реализовать роспуск войск, если игрок не вписывается в снабжение
         if (time > 1) {
             for (int player = 0; player < NUM_PLAYER; player++) {
                 say(SUPPLY_OF + HOUSE_GENITIVE[player] + EQUALS + supply[player] + ".");
@@ -2375,6 +2434,7 @@ public class Game {
         if (!Settings.getInstance().isPassByRegime()) {
             mapPanel.repaintSupply();
         }
+        verifyNewSupplyLimits();
     }
 
     /**
@@ -2430,6 +2490,46 @@ public class Game {
     }
 
     /**
+     * Метод разыгрывает сбор войск в одном из замков игрока
+     * @param player номер игрока
+     */
+    private void playOneMuster(int player) {
+        HashSet<Integer> areasWithMuster = new HashSet<>();
+        for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
+            if (map.getNumCastle(area) > 0) {
+                areasWithMuster.add(area);
+                orderInArea[area] = Order.consolidatePowerS;
+                mapPanel.repaintArea(area);
+            }
+        }
+        if (areasWithMuster.size() == 0) return;
+        say(HOUSE[player] + CAN_MUSTER_IN_ONE_CASTLE);
+        int attempt;
+        for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+            MusterPlayed musterVariant = playerInterface[player].muster(areasWithMuster);
+            if (validateMuster(musterVariant, player)) {
+                Controller.getInstance().interruption();
+                int nMusteredObjects = musterVariant.getNumberMusterUnits();
+                if (nMusteredObjects > 0) {
+                    doMuster(musterVariant, player);
+                }
+                if (!Settings.getInstance().isPassByRegime()) {
+                    houseTabPanel.repaintHouse(player);
+                }
+                break;
+            }
+        }
+        if (attempt >= MAX_TRIES_TO_GO) {
+            say(HOUSE[player] + FAILED_TO_PLAY_MUSTER);
+        }
+
+        for (int area: areasWithMuster) {
+            orderInArea[area] = null;
+            mapPanel.repaintArea(area);
+        }
+    }
+
+    /**
      * Метод разыгрывает событие "Битва королей"
      */
     private void playClash() {
@@ -2465,8 +2565,11 @@ public class Game {
             for (int player = 0; player < NUM_PLAYER; player++) {
                 nPowerTokensHouse[player] -= currentBids[player];
             }
-            mapPanel.repaintTracks();
-            houseTabPanel.repaint();
+            trackPreArrange(track);
+            if (!Settings.getInstance().isPassByRegime()) {
+                mapPanel.repaintTracks();
+                houseTabPanel.repaint();
+            }
             // решение королём ничьих
             int king = getInfluenceTrackPlayerOnPlace(TrackType.ironThrone.getCode(), 0);
             for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
@@ -2526,6 +2629,30 @@ public class Game {
     }
 
     /**
+     * Метод располагает игроков на определённом треке в порядке их ставок, сразу после вскрытия этих ставок
+     * @param track номер трека
+     */
+    private void trackPreArrange(int track) {
+        boolean isPlayerCounted[] = new boolean[NUM_PLAYER];
+        int newTrackPlayerOnPlace[] = new int[NUM_PLAYER];
+        for (int place = 0; place < NUM_PLAYER; place++) {
+            int curMaxBid = -1;
+            int curMaxBidder = -1;
+            for (int player = 0; player < NUM_PLAYER; player++) {
+                if (!isPlayerCounted[player] && (currentBids[player] > curMaxBid || currentBids[player] == curMaxBid &&
+                        trackPlaceForPlayer[0][player] < trackPlaceForPlayer[0][curMaxBidder])) {
+                    curMaxBidder = player;
+                    curMaxBid = currentBids[player];
+                }
+            }
+            newTrackPlayerOnPlace[curMaxBidder] = place;
+            isPlayerCounted[curMaxBidder] = true;
+        }
+        trackPlayerOnPlace[track] = newTrackPlayerOnPlace;
+        fillTrackPlaceForPlayer(track);
+    }
+
+    /**
      * Метод разыгрывает событие "Игра престолов"
      */
     private void playGameOfThrones() {
@@ -2549,24 +2676,791 @@ public class Game {
     }
 
     /**
+     * Метод проверяет, укладываются ли игроки в новый лимит по снабжению, и если нет, то требует от них распустить
+     * лишние войска. Вызывается после события "Снабжение" и после поражения от одичальнических охотников на снабжение
+     */
+    private void verifyNewSupplyLimits() {
+        // TODO реализовать роспуск войск, если игрок не вписывается в снабжение
+    }
+
+    /**
      * Метод разыгрывает нападение одичалых
      */
     private void wildlingAttack() {
+        say(WILDLINGS_ATTACK_WITH_STRENGTH + wildlingsStrength + "!");
         if (topWildlingCard != null) {
             wildlingDeck.addLast(topWildlingCard);
         }
-        topWildlingCard = wildlingDeck.pollFirst();
-        say(WILDLINGS_ATTACK + WITH_STRENGTH + wildlingsStrength);
-        if (random.nextBoolean()) {
+        topWildlingCard = null;
+        mapPanel.repaintWildlingsCard();
+        // получаем от игроков ставки
+        int[] tempBids = new int[NUM_PLAYER];
+        int attempt;
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (player == preemptiveRaidCheater) continue;
+            if (nPowerTokensHouse[player] == 0) {
+                tempBids[player] = 0;
+                continue;
+            }
+            for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                tempBids[player] = playerInterface[player].wildlingBid(wildlingsStrength);
+                if (tempBids[player] >= 0 && tempBids[player] <= nPowerTokensHouse[player]) {
+                    break;
+                }
+                say(WRONG_BID_ERROR);
+            }
+            if (attempt >= MAX_TRIES_TO_GO) {
+                say(HOUSE[player] + FAILED_TO_BID);
+                tempBids[player] = 0;
+            }
+        }
+        Controller.getInstance().interruption();
+        currentBids = tempBids;
+        currentBidTrack = -1;
+        wildlingDeck.pollFirst();
+        StringBuilder sb = new StringBuilder(BIDS_ARE);
+        boolean firstFlag = true;
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (player == preemptiveRaidCheater) continue;
+            if (firstFlag) {
+                firstFlag = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append(HOUSE[player]).append(": ").append(currentBids[player]);
+        }
+        say(sb.toString());
+        say(WILDLINGS_ARE + topWildlingCard);
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintTracks();
+            mapPanel.repaintWildlingsCard();
+        }
+        int nightWatchStrength = 0;
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (player == preemptiveRaidCheater) continue;
+            nPowerTokensHouse[player] -= currentBids[player];
+            nightWatchStrength += nightWatchStrength;
+        }
+        houseTabPanel.repaint();
+
+        boolean isNightWatchWon = nightWatchStrength >= wildlingsStrength;
+        if (isNightWatchWon) {
+            // Победа ночного дозора
             say(NIGHT_WATCH_VICTORY);
             wildlingsStrength = 0;
         } else {
+            // Победа одичалых
             say(NIGHT_WATCH_DEFEAT);
             wildlingsStrength = Math.max(0, wildlingsStrength - 2 * WILDLING_STRENGTH_INCREMENT);
         }
-        say(WILDLINGS_ARE + topWildlingCard);
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintWildlings();
+        }
+        // Тишина за стеной - находить высшую/низшую ставку не имеет смысла
+        if (topWildlingCard == WildlingCard.silenceAtTheWall) {
+            say(SILENCE_AT_THE_WALL);
+            return;
+        }
+        // Находим высшую или низшую ставку
+        int exclusiveBidder = -1;
+        int exclusiveBid = -1;
+        ArrayList<Integer> curExBidders = new ArrayList<>();
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (player == preemptiveRaidCheater) continue;
+            if (isNightWatchWon && currentBids[player] > exclusiveBid ||
+                    !isNightWatchWon && currentBids[player] < exclusiveBid) {
+                exclusiveBid = currentBids[player];
+                curExBidders.clear();
+                curExBidders.add(player);
+            } else if (currentBids[player] == exclusiveBid) {
+                curExBidders.add(player);
+            }
+        }
+        if (curExBidders.size() == 1) {
+            exclusiveBidder = curExBidders.get(0);
+        } else {
+            int king = getInfluenceTrackPlayerOnPlace(TrackType.ironThrone.getCode(), 0);
+            say(KING + HOUSE[king] + CHOOSES + (isNightWatchWon ? TOP_BID : BOTTOM_BID));
+            Controller.getInstance().interruption();
+            for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                exclusiveBidder = playerInterface[king].kingChoiceWildlings(topWildlingCard, curExBidders, isNightWatchWon);
+                if (curExBidders.contains(exclusiveBidder)) {
+                    break;
+                }
+            }
+            // Король не шмог, поэтому случайно выбираем высшую/низшую ставку
+            if (attempt >= MAX_TRIES_TO_GO) {
+                say(HOUSE[king] + FAILED_TO_KING);
+                int exclusiveBidIndex = random.nextInt(curExBidders.size());
+                exclusiveBidder = curExBidders.get(exclusiveBidIndex);
+            }
+        }
+        say((isNightWatchWon ? TOP_BID_IS : BOTTOM_BID_IS) + HOUSE[exclusiveBidder] + "!");
+        // Разыгрываем эффекты карт одичалых
+        switch (topWildlingCard) {
+            // Охотники на снабжение
+            case rattleShirtRaiders:
+                if (isNightWatchWon) {
+                    changeSupply(exclusiveBidder, 1);
+                } else {
+                    changeSupply(exclusiveBidder, -2);
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
+                        changeSupply(player, -1);
+                    }
+                    verifyNewSupplyLimits();
+                }
+                if (!Settings.getInstance().isPassByRegime()) {
+                    mapPanel.repaintSupply();
+                }
+                break;
+            // Разведчик-оборотень
+            case shapechangerScout:
+                if (isNightWatchWon) {
+                    nPowerTokensHouse[exclusiveBidder] += currentBids[exclusiveBidder];
+                    say(HOUSE[exclusiveBidder] + SKINCHANGER_SCOUT_WIN);
+                } else {
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == preemptiveRaidCheater) continue;
+                        if (player == exclusiveBidder) {
+                            nPowerTokensHouse[player] = 0;
+                            say(HOUSE[player] + LOSES_ALL_MONEY);
+                            if (!Settings.getInstance().isPassByRegime()) {
+                                houseTabPanel.repaintHouse(exclusiveBidder);
+                            }
+                        } else {
+                            earnTokens(player, -2);
+                        }
+                    }
+                }
+                break;
+            // Сбор на молоководной
+            case massingOnTheMilkwater:
+                if (isNightWatchWon) {
+                    returnAllCards(exclusiveBidder);
+                } else {
+                    // Низшая ставка
+                    if (numActiveHouseCardsOfPlayer[exclusiveBidder] > 1) {
+                        int maxCardStrength = -1;
+                        int lastLostCard = -1;
+                        for (int card = 0; card < NUM_HOUSE_CARDS; card++) {
+                            if (houseCardOfPlayer[exclusiveBidder][card].isActive() &&
+                                    houseCardOfPlayer[exclusiveBidder][card].getStrength() > maxCardStrength) {
+                                maxCardStrength = houseCardOfPlayer[exclusiveBidder][card].getStrength();
+                            }
+                        }
+                        for (int card = 0; card < NUM_HOUSE_CARDS; card++) {
+                            if (houseCardOfPlayer[exclusiveBidder][card].isActive() &&
+                                    houseCardOfPlayer[exclusiveBidder][card].getStrength() == maxCardStrength) {
+                                houseCardOfPlayer[exclusiveBidder][card].setActive(false);
+                                numActiveHouseCardsOfPlayer[exclusiveBidder]--;
+                                lastLostCard = card;
+                                say(HOUSE[exclusiveBidder] + LOSES_CARD + houseCardOfPlayer[exclusiveBidder][card].getName());
+                            }
+                        }
+                        if (numActiveHouseCardsOfPlayer[exclusiveBidder] == 0) {
+                            renewHandExceptCard(exclusiveBidder, houseCardOfPlayer[exclusiveBidder][lastLostCard]);
+                        }
+                    }
+                    // Прочие ставки
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater ||
+                                numActiveHouseCardsOfPlayer[player] == 1) continue;
+                        HouseCard chosenCard = null;
+                        for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                            int card = playerInterface[player].massingOnTheMilkwaterLoseDecision();
+                            if (card >= 0 && card < NUM_HOUSE_CARDS && houseCardOfPlayer[player][card].isActive()) {
+                                Controller.getInstance().interruption();
+                                chosenCard = houseCardOfPlayer[player][card];
+                                break;
+                            }
+                        }
+                        if (attempt >= MAX_TRIES_TO_GO) {
+                            chosenCard = getFirstActiveHouseCard(player);
+                        }
+                        assert chosenCard != null;
+                        chosenCard.setActive(false);
+                        numActiveHouseCardsOfPlayer[player]--;
+                        say(HOUSE[player] + LOSES_CARD + chosenCard.getName());
+                    }
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        houseTabPanel.repaint();
+                    }
+                }
+                break;
+            // Наездники на мамонтах
+            case mammothRiders:
+                if (isNightWatchWon) {
+                    // Высшая ставка
+                    if (numActiveHouseCardsOfPlayer[exclusiveBidder] < NUM_HOUSE_CARDS) {
+                        HouseCard chosenCard = null;
+                        say(HOUSE[exclusiveBidder] + CAN_RETURN_CARD);
+                        for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                            int card = playerInterface[exclusiveBidder].mammothRidersTopDecision();
+                            // Если номер карты отрицательный, значит, игрок не хочет возвращать карту Дома
+                            if (card < 0) {
+                                break;
+                            }
+                            if (card >= 0 && card < NUM_HOUSE_CARDS && !houseCardOfPlayer[exclusiveBidder][card].isActive()) {
+                                chosenCard = houseCardOfPlayer[exclusiveBidder][card];
+                                break;
+                            }
+                        }
+                        if (attempt >= MAX_TRIES_TO_GO) {
+                            say(HOUSE[exclusiveBidder] + FAILED_TO_WILD);
+                        }
+                        if (chosenCard != null) {
+                            chosenCard.setActive(true);
+                            numActiveHouseCardsOfPlayer[exclusiveBidder]++;
+                            say(HOUSE[exclusiveBidder] + RETURNS_CARD + chosenCard.getName() + ".");
+                            if (!Settings.getInstance().isPassByRegime()) {
+                                houseTabPanel.repaintHouse(exclusiveBidder);
+                            }
+                        }
+                    }
+                } else {
+                    // Низшая ставка
+                    playDisband(exclusiveBidder, DisbandReason.mammothTreadDown);
+                    // Прочие ставки
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
+                        playDisband(player, DisbandReason.wildlingCommonDisband);
+                    }
+                }
+                break;
+            // Король за стеной
+            case aKingBeyondTheWall:
+                TrackType track;
+                if (isNightWatchWon) {
+                    say(HOUSE[exclusiveBidder] + CAN_ENLIGHTEN_ON_TRACK);
+                    track = playerInterface[exclusiveBidder].aKingBeyondTheWallTopDecision();
+                    Controller.getInstance().interruption();
+                    if (track != null) {
+                        say(HOUSE[exclusiveBidder] + ENLIGHTENS_ON_TRACK + track.onTheTrack() + ".");
+                        enlightenOnTrack(exclusiveBidder, track.getCode());
+                    }
+                } else {
+                    // Низшая ставка
+                    say(HOUSE[exclusiveBidder] + DESCENDS_ON_ALL_TRACKS);
+                    for (int trackId = 0; trackId < NUM_TRACK; trackId++) {
+                        pissOffOnTrack(exclusiveBidder, trackId);
+                    }
+                    // Прочие ставки
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
+                        say(HOUSE[exclusiveBidder] + MUST_DESCEND_ON_TRACK);
+                        track = playerInterface[player].aKingBeyondTheWallLoseDecision();
+                        Controller.getInstance().interruption();
+                        if (track == null || track == TrackType.ironThrone) {
+                            track = TrackType.getTrack(random.nextInt(2) + 1);
+                        }
+                        assert (track != null);
+                        say(HOUSE[exclusiveBidder] + DESCENDS_ON_TRACK + track.onTheTrack() + ".");
+                        pissOffOnTrack(player, track.getCode());
+                    }
+                }
+                break;
+            // Нашествие орды
+            case hordeDescends:
+                if (isNightWatchWon) {
+                    // Высшая ставка
+                    playOneMuster(exclusiveBidder);
+                } else {
+                    // Низшая ставка
+                    ArrayList<Integer> normCastles = new ArrayList<>();
+                    for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayer.get(exclusiveBidder).entrySet()) {
+                        if (map.getNumCastle(entry.getKey()) > 0 && entry.getValue() > 1) {
+                            normCastles.add(entry.getKey());
+                        }
+                    }
+                    if (normCastles.size() == 0) {
+                        playDisband(exclusiveBidder, DisbandReason.wildlingCommonDisband);
+                    } else if (normCastles.size() == 1 && armyInArea[normCastles.get(0)].getSize() == 2) {
+                        armyInArea[normCastles.get(0)].killAllUnits(KillingReason.wildlings);
+                    } else {
+                        playDisband(exclusiveBidder, DisbandReason.hordeCastle);
+                    }
+                    // Прочие ставки
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
+                        playDisband(player, DisbandReason.hordeBite);
+                    }
+                }
+                break;
+            // Убийцы ворон
+            case crowKillers:
+                if (isNightWatchWon) {
+                    // Высшая ставка
+                    int numAlivePawns = MAX_NUM_OF_UNITS[UnitType.pawn.getCode()] -
+                            restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.pawn.getCode()];
+                    int numRestingKnight = restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.knight.getCode()];
+                    int maxPawnsToUpgrade = Math.min(Math.min(2, numRestingKnight), numAlivePawns);
+                    if (maxPawnsToUpgrade > 0) {
+                        upgradeSomePawns(exclusiveBidder, maxPawnsToUpgrade);
+                    }
+                } else {
+                    // Низшая ставка
+                    int numRestingPawns = restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.pawn.getCode()];
+                    int numAliveKnights = MAX_NUM_OF_UNITS[UnitType.knight.getCode()] -
+                            restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.knight.getCode()];
+                    int numKnightsToKill = Math.max(0, numAliveKnights - numRestingPawns);
+                    // Убиваем коней, которых нельзя превратить в пешки
+                    if (numKnightsToKill > 0) {
+                        killSomeKnights(exclusiveBidder, numKnightsToKill, numAliveKnights);
+                        break;
+                    }
+                    // Спешиваем всех коней
+                    dismountAllKnights(exclusiveBidder);
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        houseTabPanel.repaintHouse(exclusiveBidder);
+                    }
+                    // Прочие ставки
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
+                        numRestingPawns = restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.pawn.getCode()];
+                        numAliveKnights = MAX_NUM_OF_UNITS[UnitType.knight.getCode()] -
+                                restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.knight.getCode()];
+                        int numKnightToDowngrade = Math.min(numAliveKnights, 2);
+                        numKnightsToKill = Math.max(0, numKnightToDowngrade - numRestingPawns);
+                        // Если пехотинцев не хватает, то убиваем часть коней
+                        if (numKnightsToKill > 0) {
+                            killSomeKnights(player, numKnightsToKill, numAliveKnights);
+                        }
+                        numKnightToDowngrade -= numKnightsToKill;
+                        numAliveKnights -= numKnightsToKill;
+                        if (numKnightToDowngrade > 0) {
+                            downgradeSomeKnights(player, numKnightToDowngrade, numAliveKnights);
+                        }
+                        if (!Settings.getInstance().isPassByRegime()) {
+                            houseTabPanel.repaintHouse(player);
+                        }
+                    }
+                }
+                break;
+            case preemptiveRaid:
+                if (isNightWatchWon) {
+                    // Высшая ставка
+                    wildlingsStrength = PREEMPTIVE_RAID_WILDLINGS_STRENGTH;
+                    preemptiveRaidCheater = exclusiveBidder;
+                    wildlingAttack();
+                    preemptiveRaidCheater = -1;
+                } else {
+                    // Низшая ставка
+                    int bestPlace = NUM_PLAYER;
+                    for (int trackId = 0; trackId < NUM_TRACK; trackId++) {
+                        if (bestPlace > trackPlaceForPlayer[trackId][exclusiveBidder]) {
+                            bestPlace = trackPlaceForPlayer[trackId][exclusiveBidder];
+                        }
+                    }
+                    for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                        Object decision = playerInterface[exclusiveBidder].preemptiveRaidBottomDecision();
+                        Controller.getInstance().interruption();
+                        if (decision instanceof TrackType) {
+                            if (trackPlaceForPlayer[((TrackType) decision).getCode()][exclusiveBidder] == bestPlace) {
+                                say(HOUSE[exclusiveBidder] + PREEMPTIVE_RAID_TRACK + ((TrackType) decision).onTheTrack());
+                                descendOnTrack(exclusiveBidder, ((TrackType) decision).getCode(), 2);
+                                break;
+                            }
+                        }
+                        if (decision instanceof DisbandPlayed) {
+                            if (validateDisband(((DisbandPlayed) decision), exclusiveBidder,
+                                    DisbandReason.wildlingCommonDisband)) {
+                                say(HOUSE[exclusiveBidder] + PREEMPTIVE_RAID_DISBAND);
+                                executeDisband((DisbandPlayed) decision, exclusiveBidder);
+                                break;
+                            }
+                        }
+                    }
+                    if (attempt >= MAX_TRIES_TO_GO) {
+                        say(HOUSE[exclusiveBidder] + FAILED_TO_WILD);
+                        for (int trackId = 0; trackId < NUM_TRACK; trackId++) {
+                            if (trackPlaceForPlayer[trackId][exclusiveBidder] == bestPlace) {
+                                descendOnTrack(exclusiveBidder, trackId, 2);
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+        }
     }
 
+    /**
+     * Метод спешивает всех рыцарей игрока. Вызывается при победе "Убийц ворон".
+     * @param player номер игрока
+     */
+    private void dismountAllKnights(int player) {
+        ArrayList<Integer> areasWithKnights = getAreasWithUnitsOfType(player, UnitType.knight);
+        for (int area: areasWithKnights) {
+            while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
+                armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
+                restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+            }
+            if (!Settings.getInstance().isPassByRegime()) {
+                mapPanel.repaintArea(area);
+            }
+        }
+    }
+
+    /**
+     * Метод уничтожает всех рыцарей игрока. Вызывается при победе "Убийц ворон".
+     * @param player номер игрока
+     */
+    private void killAllKnights(int player) {
+        ArrayList<Integer> areasWithKnights = getAreasWithUnitsOfType(player, UnitType.knight);
+        for (int area: areasWithKnights) {
+            while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
+                armyInArea[area].killUnitOfType(UnitType.knight);
+                restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+            }
+            if (!Settings.getInstance().isPassByRegime()) {
+                mapPanel.repaintArea(area);
+            }
+        }
+    }
+
+    /**
+     * Метод улучшает пехотинцев из-за высшей ставки против "Убийц ворон"
+     * @param player            номер игрока
+     * @param maxPawnsToUpgrade максимальное число пешек, которых можно таким образом посвятить в рыцари
+     */
+    private void upgradeSomePawns(int player, int maxPawnsToUpgrade) {
+        say(HOUSE[player] + CAN_BEKNIGHT_PAWNS);
+        int attempt;
+        for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+            UnitExecutionPlayed pawnUpgradeVariant = playerInterface[player].
+                    crowKillersTopDecision(maxPawnsToUpgrade);
+            if (validatePawnsToUpgrade(pawnUpgradeVariant, player, maxPawnsToUpgrade)) {
+                Controller.getInstance().interruption();
+                HashMap<Integer, Integer> numUnitsInArea = pawnUpgradeVariant.getNumberOfUnitsInArea();
+                for (int area : numUnitsInArea.keySet()) {
+                    for (int index = 0; index < numUnitsInArea.get(area); index++) {
+                        armyInArea[area].changeType(UnitType.pawn, UnitType.knight);
+                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]--;
+                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
+                    }
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        mapPanel.repaintArea(area);
+                    }
+                }
+                if (!Settings.getInstance().isPassByRegime()) {
+                    houseTabPanel.repaintHouse(player);
+                }
+                break;
+            }
+        }
+        if (attempt >= MAX_TRIES_TO_GO) {
+            say(HOUSE[player] + FAILED_TO_WILD);
+        }
+    }
+
+    /**
+     * Метод валидирует вариант улучшения пешек, предложенный игроком
+     * @param pawnUpgradeVariant вариант улучшения пешек
+     * @param maxPawnsToUpgrade  максимальное число пешек, которых можно таким образом посвятить в рыцари
+     * @return true, если такой вариант допустим
+     */
+    private boolean validatePawnsToUpgrade(UnitExecutionPlayed pawnUpgradeVariant, int player, int maxPawnsToUpgrade) {
+        if (pawnUpgradeVariant.getNumUnits() > maxPawnsToUpgrade) {
+            say(TOO_MUCH_PAWNS_TO_UPGRAGE_ERROR);
+            return false;
+        }
+        HashMap<Integer, Integer> numUnitsInArea = pawnUpgradeVariant.getNumberOfUnitsInArea();
+            for (int area: numUnitsInArea.keySet()) {
+            if (area < 0 || area >= NUM_AREA) {
+                say(WRONG_AREA_ERROR);
+                return false;
+            }
+            if (armyInArea[area].getOwner() != player) {
+                say(NOT_YOURS_ERROR);
+                return false;
+            }
+            if (armyInArea[area].getNumUnitOfType(UnitType.pawn) < numUnitsInArea.get(area)) {
+                say(LACK_OF_PAWNS_TO_UPGRADE_ERROR);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Метод убивает часть рыцарей определённого игрока. Может вызваться при победе карты "Убийцы ворон"
+     * @param player           номер игрока
+     * @param numKnightsToKill количество рыцарей, которых нужно убить
+     * @param numAliveKnights  количество живых рыцарей игрока
+     */
+    private void killSomeKnights(int player, int numKnightsToKill, int numAliveKnights) {
+        int attempt;
+        ArrayList<Integer> areasWithKnights = getAreasWithUnitsOfType(player, UnitType.knight);
+        if (numKnightsToKill == numAliveKnights) {
+            killAllKnights(player);
+        } else {
+            // Спрашиваем у игрока, каких коней убить
+            say(HOUSE[player] + MUST_DISBAND_SOME_KNIGHTS);
+            for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                UnitExecutionPlayed variantToKillKnights = playerInterface[player].
+                        crowKillersKillKnights(numKnightsToKill);
+                if (validateKnightsToDo(variantToKillKnights, player, numKnightsToKill)) {
+                    Controller.getInstance().interruption();
+                    // Спешиваем выбранных коней
+                    HashMap<Integer, Integer> numUnitsInArea = variantToKillKnights.getNumberOfUnitsInArea();
+                    for (int area : numUnitsInArea.keySet()) {
+                        for (int index = 0; index < numUnitsInArea.get(area); index++) {
+                            armyInArea[area].killUnitOfType(UnitType.knight);
+                            restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                            renewHouseTroopsInArea(area);
+                        }
+                        if (!Settings.getInstance().isPassByRegime()) {
+                            mapPanel.repaintArea(area);
+                        }
+                    }
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        houseTabPanel.repaintHouse(player);
+                    }
+                }
+            }
+            if (attempt >= MAX_TRIES_TO_GO) {
+                // Если игрок не смог выбрать нескольких коней для умерщвления, то убиваем их всех!
+                say(HOUSE[player] + FAILED_TO_WILD);
+                for (int area : areasWithKnights) {
+                    while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
+                        armyInArea[area].killUnitOfType(UnitType.knight);
+                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                    }
+                    renewHouseTroopsInArea(area);
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        mapPanel.repaintArea(area);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Метод спешивает часть рыцарей определённого игрока до пехотинцев. Может вызваться при победе карты "Убийцы ворон"
+     * @param player               номер игрока
+     * @param numKnightToDowngrade количество рыцарей, которых нужно спешить
+     * @param numAliveKnights      количество живых рыцарей игрока
+     */
+    private void downgradeSomeKnights(int player, int numKnightToDowngrade, int numAliveKnights) {
+        if (numAliveKnights == numKnightToDowngrade) {
+            // Если выбора нет, то автоматически спешиваем всех коней игрока
+            dismountAllKnights(player);
+        } else {
+            // Если выбор есть, то спешиваем нужное число коней, обратившись к игроку
+            say(HOUSE[player] + MUST_DOWNGRADE_SOME_KNIGHTS);
+            ArrayList<Integer> areasWithKnights = getAreasWithUnitsOfType(player, UnitType.knight);
+            int attempt;
+            for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+                UnitExecutionPlayed executionVariant = playerInterface[player].
+                        crowKillersLoseDecision(numKnightToDowngrade);
+                if (validateKnightsToDo(executionVariant, player, numKnightToDowngrade)) {
+                    Controller.getInstance().interruption();
+                    HashMap<Integer, Integer> numUnitsInArea = executionVariant.getNumberOfUnitsInArea();
+                    for (int area : numUnitsInArea.keySet()) {
+                        for (int index = 0; index < numUnitsInArea.get(area); index++) {
+                            armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
+                            restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                            restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                        }
+                        if (!Settings.getInstance().isPassByRegime()) {
+                            mapPanel.repaintArea(area);
+                        }
+                    }
+                    if (!Settings.getInstance().isPassByRegime()) {
+                        houseTabPanel.repaintHouse(player);
+                    }
+                    break;
+                }
+            }
+            if (attempt >= MAX_TRIES_TO_GO) {
+                // Если игрок не шмог, то спешиваем первых попавшихся коней
+                say(HOUSE[player] + FAILED_TO_WILD);
+                int numKnightDowngraded = 0;
+                outer:
+                for (int area : areasWithKnights) {
+                    while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
+                        armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
+                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                        numKnightDowngraded++;
+                        if (numKnightDowngraded == numKnightToDowngrade) {
+                            break outer;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Метод валидирует вариант экзекуции над рыцарями, предложенный игроком
+     * @param executionVariant  вариант расстановки юнитов для экзекуции
+     * @param player            номер игрока
+     * @param numberKnightsToDo максимальное число рыцарей, которых можно таким образом подвергнуть экзекуции
+     * @return true, если такой вариант допустим
+     */
+    private boolean validateKnightsToDo(UnitExecutionPlayed executionVariant, int player, int numberKnightsToDo) {
+        if (executionVariant.getNumUnits() != numberKnightsToDo) {
+            say(WRONG_NUMBER_OF_KNIGHTS_TO_DO_ERROR);
+            return false;
+        }
+        HashMap<Integer, Integer> numUnitsInArea = executionVariant.getNumberOfUnitsInArea();
+        for (int area: numUnitsInArea.keySet()) {
+            if (area < 0 || area >= NUM_AREA) {
+                say(WRONG_AREA_ERROR);
+                return false;
+            }
+            if (armyInArea[area].getOwner() != player) {
+                say(NOT_YOURS_ERROR);
+                return false;
+            }
+            if (armyInArea[area].getNumUnitOfType(UnitType.knight) < numUnitsInArea.get(area)) {
+                say(LACK_OF_KNIGHTS_TO_DO_ERROR);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Метод разыгрывает вариант роспуска войск
+     * @param player номер игрока
+     * @param reason причина роспуска войск
+     */
+    private void playDisband(int player, DisbandReason reason) {
+        // Если у игрока не больше войск, чем требуется распустить, то он распускает их все.
+        if (reason != DisbandReason.supply && reason != DisbandReason.hordeCastle) {
+            int numDisbandUnits = reason.getNumDisbands();
+            int numUnits = getTotalNumberOfUnits(player);
+            if (numDisbandUnits >= numUnits) {
+                killAllUnits(player, KillingReason.wildlings);
+            }
+        }
+        // Иначе он сам решает, какие войска распустить.
+        say(HOUSE[player] + MUST_DISBAND_TROOPS);
+        int attempt;
+        for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
+            DisbandPlayed disbandVariant = playerInterface[player].disband(reason);
+            if (validateDisband(disbandVariant, player, reason)) {
+                Controller.getInstance().interruption();
+                executeDisband(disbandVariant, player);
+                break;
+            }
+        }
+        if (attempt >= MAX_TRIES_TO_GO) {
+            say(HOUSE[player] + FAILED_TO_DISBAND);
+            System.exit(-1);
+        }
+    }
+
+    private void executeDisband(DisbandPlayed disbandVariant, int player) {
+        HashMap<Integer, ArrayList<UnitType>> disbands = disbandVariant.getDisbandUnits();
+        for (int area: disbands.keySet()) {
+            for (UnitType unitType: disbands.get(area)) {
+                armyInArea[area].killUnitOfType(unitType);
+                restingUnitsOfPlayerAndType[player][unitType.getCode()]++;
+            }
+            if (!Settings.getInstance().isPassByRegime()) {
+                mapPanel.repaintArea(area);
+            }
+        }
+        if (!Settings.getInstance().isPassByRegime()) {
+            houseTabPanel.repaintHouse(player);
+        }
+    }
+
+    private boolean validateDisband(DisbandPlayed disbandVariant, int player, DisbandReason reason) {
+        int numDisbands = disbandVariant.getNumberDisbands();
+        HashMap<Integer, ArrayList<UnitType>> disbands = disbandVariant.getDisbandUnits();
+        if (reason != DisbandReason.supply && reason.getNumDisbands() != numDisbands) {
+            say(WRONG_DISBANDS_NUMBER_ERROR + reason.getNumDisbands() + DISBAND_RECEIVED + numDisbands);
+            return false;
+        }
+        int[] typesNumber = new int[NUM_UNIT_TYPES];
+        for (int area: disbands.keySet()) {
+            if (area < 0 || area >= NUM_AREA) {
+                say(WRONG_AREA_ERROR);
+                return false;
+            }
+            if (armyInArea[area].getOwner() != player) {
+                say(NOT_YOURS_ERROR);
+                return false;
+            }
+            for (UnitType unitType: UnitType.values()) {
+                typesNumber[unitType.getCode()] = 0;
+            }
+            for (UnitType type: disbands.get(area)) {
+                typesNumber[type.getCode()]++;
+            }
+            for (UnitType unitType: UnitType.values()) {
+                if (armyInArea[area].getNumUnitOfType(unitType) < typesNumber[unitType.getCode()]) {
+                    say(UNSUFFICIENT_UNITS_IN_ARMY + unitType + FOR_DISBAND);
+                    return false;
+                }
+            }
+        }
+        if (reason == DisbandReason.supply) {
+            // TODO реализовать проверку на снабжение
+            System.exit(0);
+        }
+        return true;
+    }
+
+    /**
+     * Метод уничтожает всех юнитов игрока
+     * @param player номер игрока
+     */
+    private void killAllUnits(int player, KillingReason reason) {
+        for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
+            armyInArea[area].killAllUnits(reason);
+            if (!Settings.getInstance().isPassByRegime()) {
+                mapPanel.repaintArea(area);
+            }
+        }
+        areasWithTroopsOfPlayer.get(player).clear();
+        if (!Settings.getInstance().isPassByRegime()) {
+            houseTabPanel.repaintHouse(player);
+        }
+    }
+
+    /**
+     * Метод возвращает список областей, где у определённого игрока есть юниты определённого типа
+     * @param player номер игрока
+     * @param type   тип юнитов
+     * @return список областей
+     */
+    private ArrayList<Integer> getAreasWithUnitsOfType(int player, UnitType type) {
+        ArrayList<Integer> areasWithUnits = new ArrayList<>();
+        for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
+            if (armyInArea[area].hasUnitOfType(type)) {
+                areasWithUnits.add(area);
+            }
+        }
+        return areasWithUnits;
+    }
+
+    /**
+     * Метод возвращает количества юнитов игрока определённого типа в его областях
+     * @param player номер игрока
+     * @param type   тип юнита
+     * @return карта, в которой ключом является номер области,
+     *         а значением - количество юнитов выбранного типа в этой области
+     */
+    public HashMap<Integer, Integer> getNumUnitsOfTypeInArea(int player, UnitType type) {
+        HashMap<Integer, Integer> numUnitsOfTypeInArea = new HashMap<>();
+        for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
+            if (armyInArea[area].hasUnitOfType(type)) {
+                numUnitsOfTypeInArea.put(area, armyInArea[area].getNumUnitOfType(type));
+            }
+        }
+        return numUnitsOfTypeInArea;
+    }
+
+    /**
+     * Метод устанавливает закрытые жетоны приказов во все области, где есть войска игроков
+     */
     private void setClosedOrders() {
         for (int area = 0; area < NUM_AREA; area++) {
             if (!armyInArea[area].isEmpty()) {
@@ -2575,6 +3469,9 @@ public class Game {
         }
     }
 
+    /**
+     * Метод удаляет пустые приказы после вскрытия всех приказов
+     */
     private void deleteVoidOrders() {
         for (int area = 0; area < NUM_AREA; area++) {
             if (orderInArea[area] == Order.closed) {
@@ -2583,12 +3480,30 @@ public class Game {
         }
     }
 
+    /**
+     * Метод возвращает полное количество всех юнитов определённого игрока
+     * @param player номер игрока
+     * @return количество юнитов игрока
+     */
+    private int getTotalNumberOfUnits(int player) {
+        int total = 0;
+        for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayer.get(player).entrySet()) {
+            total += entry.getValue();
+        }
+        return total;
+    }
+
     public GameOfThronesMap getMap() {
         return map;
     }
 
-    public ArrayList<HashMap<Integer, Integer>> getAreasWithTroopsOfPlayer() {
-        return areasWithTroopsOfPlayer;
+    /**
+     * Метод возвращает множество областей, где есть войска определённого игрока
+     * @param player номер игрока
+     * @return множество областей
+     */
+    public Set<Integer> getAreasWithTroopsOfPlayer(int player) {
+        return areasWithTroopsOfPlayer.get(player).keySet();
     }
 
     public ArrayList<HashSet<Integer>> getAreasWithRaidsOfPlayer() {
@@ -2738,6 +3653,10 @@ public class Game {
         }
     }
 
+    public int getTopWildlingsCardCode() {
+        return topWildlingCard == null ? -1 : topWildlingCard.getCode();
+    }
+
     /**
      * Метод возвращает место определённого игрока на определённом треке влияния
      * @param track  номер трека влияния
@@ -2820,7 +3739,7 @@ public class Game {
         for (Map.Entry<Integer, Army> entry : march.getDestinationsOfMarch().entrySet()) {
             int curDestination = entry.getKey();
             Army curArmy = entry.getValue();
-            int nLeavingUnits = curArmy.getNumUnits();
+            int nLeavingUnits = curArmy.getSize();
             int newNTroops = nLeavingUnits;
             if (virtualAreasWithTroops.containsKey(curDestination)) {
                 newNTroops += virtualAreasWithTroops.get(curDestination);

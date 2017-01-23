@@ -3,6 +3,7 @@ package com.alexeus.ai;
 import com.alexeus.logic.enums.*;
 import com.alexeus.logic.struct.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -166,37 +167,85 @@ public interface GotPlayerInterface {
      */
     int[] kingChoiceInfluenceTrack(int track, int[] bids);
 
-    /*
+    /**
      * Возвращает число жетонов власти, которое игрок ставит на ночной дозор.
-     * Допустимое значение - от 0 до текущего максимума числа жетонов.
+     * @param strength сила одичалых
+     * @return ставка игрока
      */
-    int wildlingBid();
+    int wildlingBid(int strength);
 
     // Королевские выборы
-    /*
-     * Возвращает номер дома, который признаётся высший ставкой при нашествии одичалых, если мы - король.
+    /**
+     * Возвращает номер дома, который признаётся высший или низшей ставкой при нашествии одичалых, если мы - король.
+     * @param card       карта одичалых
+     * @param pretenders список претендентов на звание высшей/низшей ставки
+     * @param isBidTop   true, если высшая ставка, false, если низшая ставка
+     * @return выбранный претендент
      */
-    int kingChoiceTop(int pretenders);
-
-    /*
-     * Возвращает номер дома, который признаётся низшей ставкой при нашествии одичалых, если мы - король.
-     */
-    int kingChoiceBottom(int pretenders);
+    int kingChoiceWildlings(WildlingCard card, ArrayList<Integer> pretenders, boolean isBidTop);
 
     // Действия одичалых
-    String disbanding(DisbandReason reason);
 
-    String crowKillersLoseDecision();
+    /**
+     * Метод решает, каких юнитов распускать
+     * @param reason причина роспуска войск
+     * @return вариант роспуска войск
+     */
+    DisbandPlayed disband(DisbandReason reason);
 
-    String crowKillersTopDecision();
+    /**
+     * Метод отвечает, в каких областях спешить рыцарей, если ты - прочая ставка при победе карты "Убийцы ворон"
+     * @param numKnightsToDowngrade количество рыцарей, которых нужно спешить
+     * @return список областей для спешивания рыцарей (размер должен равняться numKnightsToDowngrade)
+     */
+    UnitExecutionPlayed crowKillersLoseDecision(int numKnightsToDowngrade);
 
-    String massingOnTheMilkwaterTopDecision();
+    /**
+     * Метод отвечает, в каких областях убить рыцарей, если ты проиграл карты "Убийцы ворон".
+     * Метод вызывается, только если игроку не хватает пехотинцев, чтобы спешить своих рыцарей.
+     * @param numKnightsToKill минимальное количество рыцарей, которых нужно умертвить
+     * @return список областей для умерщвления рыцарей
+     */
+    UnitExecutionPlayed crowKillersKillKnights(int numKnightsToKill);
 
-    String massingOnTheMilkwaterLoseDecision();
+    /**
+     * Метод отвечает, в каких областях пехотинцев улучшить до рыцарей, если ты - высшая ставка
+     * при победе над картой "Убийцы ворон"
+     * @param numPawnsToUpgrade максимальное количество пехотинцев, которых можно улучшить
+     * @return список областей для спешивания рыцарей (размер - не более двух)
+     */
+    UnitExecutionPlayed crowKillersTopDecision(int numPawnsToUpgrade);
 
-    String aKingBeyondTheWallTopDecision();
+    /**
+     * Метод отвечает, какую карту сбрасывать, если ты - прочая ставка при победе карты "Сбор на молоководной"
+     * @return номер карты Дома для сброса
+     */
+    int massingOnTheMilkwaterLoseDecision();
 
-    String aKingBeyondTheWallLoseDecision();
+    /**
+     * Метод отвечает, какую карту возвращать, если ты - высшая ставка при победе над картой "Наездники на мамонтах"
+     * @return номер нарты Дома для возврата. Вернуть отрицательное число, если игрок не хочет возвращать карту.
+     */
+    int mammothRidersTopDecision();
 
-    String preemptiveRaidBottomDecision();
+    /**
+     * Метод отвечает, по какому треку влияния подняться, если ты - высшая ставка
+     * при победе над картой "Король за стеной"
+     * @return номер трека влияния
+     */
+    TrackType aKingBeyondTheWallTopDecision();
+
+    /**
+     * Метод отвечает, по какому треку влияния опуститься, если ты - прочая ставка при победе карты "Король за стеной"
+     * @return номер трека влияния
+     */
+    TrackType aKingBeyondTheWallLoseDecision();
+
+    /**
+     * Метод отвечает, по какому треку влияния опуститься, или какие войска распустить,
+     * если ты - низшая ставка при победе карты "Передовой отряд"
+     * @return ответ игрока: если это TrackType, то игрок решает спуститься по треку,
+     *         если DisbandPlayed, то распустить войска.
+     */
+    Object preemptiveRaidBottomDecision();
 }

@@ -13,7 +13,6 @@ public class MainConstants {
     public static final String HOUSE[] = {"Баратеон", "Ланнистер", "Старк", "Мартелл", "Грейджой", "Тирелл"};
     public static final String HOUSE_GENITIVE[] = {"Баратеона", "Ланнистера", "Старка", "Мартелла", "Грейджоя", "Тирелла"};
     public static final String HOUSE_ABLATIVE[] = {"Баратеоном", "Ланнистером", "Старком", "Мартеллом", "Грейджоем", "Тиреллом"};
-    public static final String PLAYERS = "Участники партии:";
     public static final String HOUSE_ENG[] = {"baratheon", "lannister", "stark", "martell", "greyjoy", "tyrell"};
 
     // числовые константы
@@ -23,7 +22,8 @@ public class MainConstants {
     public static final int NUM_CASTLES_TO_WIN = 7;
     public static final int NUM_HOUSE_CARDS = 7;
     public static final int WILDLING_STRENGTH_INCREMENT = 2;
-    public static final int MAX_WILDLING_STRENGTH = 12;
+    public static final int MAX_WILDLING_STRENGTH = 6 * WILDLING_STRENGTH_INCREMENT;
+    public static final int PREEMPTIVE_RAID_WILDLINGS_STRENGTH = 3 * WILDLING_STRENGTH_INCREMENT;
     public static final int MAX_TRIES_TO_GO = 3;
     public static final int INITIAL_TOKENS = 5;
     public static final int MAX_TOKENS = 20;
@@ -45,5 +45,11 @@ public class MainConstants {
 
     public static final int[] MAX_NUM_OF_UNITS = {10, 5, 2, 6};
 
-    public static final int[][] SUPPLY_NUM_GROUPS = {{2, 0, 0}, {1, 1, 0}, {2, 1, 0}, {3, 1, 0}, {2, 2, 0}, {2, 1, 1}, {3, 1, 1}};
+    public static final int[][] SUPPLY_NUM_GROUPS = {{2, 0, 0},
+                                                     {1, 1, 0},
+                                                     {2, 1, 0},
+                                                     {3, 1, 0},
+                                                     {2, 2, 0},
+                                                     {2, 1, 1},
+                                                     {3, 1, 1}};
 }

@@ -10,7 +10,8 @@ public enum KillingReason {
     sword,
     supplyLimit,
     noAreaToRetreat,
-    mace;
+    mace,
+    wildlings;
 
     @Override
     public String toString() {
@@ -23,6 +24,8 @@ public enum KillingReason {
                 return "некуда отступать";
             case mace:
                 return "аппетит Мейса Тирелла";
+            case wildlings:
+                return "одичалые";
         }
         return TextErrors.UNKNOWN_UFO_ERROR;
     }

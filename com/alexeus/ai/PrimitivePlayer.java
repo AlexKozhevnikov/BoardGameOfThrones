@@ -1,5 +1,7 @@
 package com.alexeus.ai;
 
+import com.alexeus.ai.struct.DummyArmy;
+import com.alexeus.ai.util.PlayerUtils;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.*;
@@ -8,9 +10,7 @@ import com.alexeus.map.GameOfThronesMap;
 
 import java.util.*;
 
-import static com.alexeus.logic.constants.MainConstants.HOUSE_GENITIVE;
-import static com.alexeus.logic.constants.MainConstants.NUM_PLAYER;
-import static com.alexeus.logic.constants.MainConstants.NUM_TRACK;
+import static com.alexeus.logic.constants.MainConstants.*;
 
 /**
  * Created by alexeus on 03.01.2017.
@@ -30,7 +30,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     protected WildlingCard wildlingCardInfo = null;
 
     // здесь будут храниться области, в которых есть войска игроков
-    protected ArrayList<HashMap<Integer, Integer>> areasWithTroopsOfPlayer;
+    protected Set<Integer> areasWithTroopsOfPlayer;
 
     // здесь будут храниться области, в которых есть набеги игроков
     protected ArrayList<HashSet<Integer>> areasWithRaidsOfPlayer;
@@ -59,8 +59,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public HashMap<Integer, Order> giveOrders() {
-        areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer();
-        Set<Integer> myAreas = areasWithTroopsOfPlayer.get(houseNumber).keySet();
+        areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer(houseNumber);
         orderMap.clear();
         switch (houseNumber) {
             case 0:
@@ -237,9 +236,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int playHouseCard(BattleInfo battleInfo) {
         // Просто играем случайную карту из имеющихся активных
-        boolean[] isCardActive = new boolean[MainConstants.NUM_HOUSE_CARDS];
+        boolean[] isCardActive = new boolean[NUM_HOUSE_CARDS];
         int nActiveCards = 0;
-        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+        for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
             isCardActive[curCard] = game.isCardActive(houseNumber, curCard);
             if (isCardActive[curCard]) nActiveCards++;
         }
@@ -320,7 +319,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseCardPatchface(int enemy) {
-        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+        for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
             if (game.isCardActive(enemy, curCard)) {
                 return curCard;
             }
@@ -365,60 +364,235 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     @Override
-    public int wildlingBid() {
-        // Необходимо сбросить информацию о верхней карте одичалых, добытую посыльным вороном, если таковая имелась.
-        wildlingCardInfo = null;
-        return 0;
+    public int wildlingBid(int strength) {
+        int bet = random.nextInt(10);
+        if (bet < 4) {
+            return 0;
+        } else if (bet < 9) {
+            return 1;
+        }
+        return Math.min(2, game.getNumPowerTokensHouse(houseNumber));
     }
 
     @Override
-    public int kingChoiceTop(int pretenders) {
-        return 0;
+    public int kingChoiceWildlings(WildlingCard card, ArrayList<Integer> pretenders, boolean isBidTop){
+        if (pretenders.contains(houseNumber)) {
+            if (isBidTop) {
+                return houseNumber;
+            } else {
+                int bet = random.nextInt(pretenders.size() - 1);
+                int selfIndex = pretenders.indexOf(houseNumber);
+                if (bet >= selfIndex) {
+                    bet += 1;
+                }
+                return pretenders.get(bet);
+            }
+        } else {
+            return pretenders.get(random.nextInt(pretenders.size()));
+        }
     }
 
     @Override
-    public int kingChoiceBottom(int pretenders) {
-        return 0;
+    public DisbandPlayed disband(DisbandReason reason) {
+        areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer(houseNumber);
+        HashMap<Integer, DummyArmy> armyInArea = PlayerUtils.makeDummyArmies(houseNumber);
+        DisbandPlayed disbandVariant = new DisbandPlayed();
+        int numDisbands;
+        if (reason == DisbandReason.hordeCastle) {
+            Set<Integer> disbandAreas = new HashSet<>();
+            for (int area : areasWithTroopsOfPlayer) {
+                if (map.getNumCastle(area) > 0 || armyInArea.get(area).getSize() >= 2) {
+                    disbandAreas.add(area);
+                }
+            }
+            int area = getRandomElementOfSet(disbandAreas);
+            numDisbands = reason.getNumDisbands();
+            DummyArmy army = armyInArea.get(area);
+            for (UnitType unit: army.getUnits()) {
+                if (numDisbands == 0) break;
+                if (unit == UnitType.pawn || unit == UnitType.ship) {
+                    disbandVariant.addDisbandedUnit(area, unit);
+                    numDisbands--;
+                }
+            }
+            if (numDisbands > 0) {
+                for (UnitType unit: army.getUnits()) {
+                    if (numDisbands == 0) break;
+                    if (unit == UnitType.siegeEngine) {
+                        disbandVariant.addDisbandedUnit(area, unit);
+                        numDisbands--;
+                    }
+                }
+                if (numDisbands > 0) {
+                    for (UnitType unit: army.getUnits()) {
+                        if (numDisbands == 0) break;
+                        if (unit == UnitType.knight) {
+                            disbandVariant.addDisbandedUnit(area, unit);
+                            numDisbands--;
+                        }
+                    }
+                }
+            }
+            return disbandVariant;
+        }
+        if (reason != DisbandReason.supply) {
+            numDisbands = reason.getNumDisbands();
+            // Сначала снимаем "халяву": пешек и корабли, в областях с которыми уже есть юниты
+            HashMap<Integer, Integer> numDisbandSwipe = PlayerUtils.getNumDisbandSwipe(armyInArea);
+            while (numDisbands > 0 && numDisbandSwipe.size() > 0) {
+                int area = getRandomElementOfSet(numDisbandSwipe.keySet());
+                UnitType disbandedUnit = map.getAreaType(area) == AreaType.land ? UnitType.pawn : UnitType.ship;
+                disbandVariant.addDisbandedUnit(area, disbandedUnit);
+                armyInArea.get(area).removeUnit(disbandedUnit);
+                if (numDisbandSwipe.get(area) > 1) {
+                    numDisbandSwipe.put(area, numDisbandSwipe.get(area) - 1);
+                } else {
+                    numDisbandSwipe.remove(area);
+                }
+                numDisbands--;
+            }
+            while (numDisbands > 0) {
+                int area = getRandomElementOfSet(armyInArea.keySet());
+                DummyArmy army = armyInArea.get(area);
+                UnitType disbandedUnit;
+                if (army.getSize() == 1) {
+                    disbandedUnit = army.pollNextUnit();
+                    armyInArea.remove(area);
+                } else {
+                    // Если после удаления халявы в армии по прежнему больше 1 юнита, то там остались только кони и башни
+                    disbandedUnit = army.hasUnitOfType(UnitType.siegeEngine) ? UnitType.siegeEngine : UnitType.knight;
+                    army.removeUnit(disbandedUnit);
+                }
+                disbandVariant.addDisbandedUnit(area, disbandedUnit);
+                numDisbands--;
+            }
+        } else {
+            // TODO доделать
+        }
+        return disbandVariant;
     }
 
     @Override
-    public String disbanding(DisbandReason reason) {
-        return null;
+    public UnitExecutionPlayed crowKillersLoseDecision(int numKnightsToDowngrade) {
+        UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
+        HashMap<Integer, Integer> numKnightInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
+        for (int numRestingUpgrades = numKnightsToDowngrade; numRestingUpgrades > 0; numRestingUpgrades--) {
+            int area = getRandomElementOfSet(numKnightInArea.keySet());
+            targetAreas.addUnit(area);
+            if (numKnightInArea.get(area) == 1) {
+                numKnightInArea.remove(area);
+            } else {
+                numKnightInArea.put(area, numKnightInArea.get(area) - 1);
+            }
+        }
+        return targetAreas;
     }
 
     @Override
-    public String crowKillersLoseDecision() {
-        return null;
+    public UnitExecutionPlayed crowKillersKillKnights(int numKnightsToKill) {
+        UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
+        HashMap<Integer, Integer> numKnightInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
+        for (int numRestingUpgrades = numKnightsToKill; numRestingUpgrades > 0; numRestingUpgrades--) {
+            int area = getRandomElementOfSet(numKnightInArea.keySet());
+            targetAreas.addUnit(area);
+            if (numKnightInArea.get(area) == 1) {
+                numKnightInArea.remove(area);
+            } else {
+                numKnightInArea.put(area, numKnightInArea.get(area) - 1);
+            }
+        }
+        return targetAreas;
     }
 
     @Override
-    public String crowKillersTopDecision() {
-        return null;
+    public UnitExecutionPlayed crowKillersTopDecision(int numPawnsToUpgrade) {
+        UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
+        HashMap<Integer, Integer> numPawnInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.pawn);
+        for (int numRestingUpgrades = numPawnsToUpgrade; numRestingUpgrades > 0; numRestingUpgrades--) {
+            int area = getRandomElementOfSet(numPawnInArea.keySet());
+            targetAreas.addUnit(area);
+            if (numPawnInArea.get(area) == 1) {
+                numPawnInArea.remove(area);
+            } else {
+                numPawnInArea.put(area, numPawnInArea.get(area) - 1);
+            }
+        }
+        return targetAreas;
     }
 
     @Override
-    public String massingOnTheMilkwaterTopDecision() {
-        return null;
+    public int massingOnTheMilkwaterLoseDecision() {
+        for (int curCard = NUM_HOUSE_CARDS - 1; curCard >= 0; curCard--) {
+            if (game.isCardActive(houseNumber, curCard)) {
+                return curCard;
+            }
+        }
+        return -1;
     }
 
     @Override
-    public String massingOnTheMilkwaterLoseDecision() {
-        return null;
+    public int mammothRidersTopDecision() {
+        for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
+            if (!game.isCardActive(houseNumber, curCard)) {
+                return curCard;
+            }
+        }
+        return -1;
     }
 
     @Override
-    public String aKingBeyondTheWallTopDecision() {
-        return null;
+    public TrackType aKingBeyondTheWallTopDecision() {
+        int[] myPlaces = new int[NUM_TRACK];
+        int bottomPlace = 0;
+        int worseTrack = -1;
+        for (int i = 0; i < NUM_TRACK; i++) {
+            myPlaces[i] = game.getInfluenceTrackPlayerOnPlace(i, houseNumber);
+            if (myPlaces[i] >= bottomPlace) {
+                worseTrack = i;
+                bottomPlace = myPlaces[i];
+            }
+        }
+        return myPlaces[TrackType.raven.getCode()] >= 4 ? TrackType.raven : TrackType.getTrack(worseTrack);
     }
 
     @Override
-    public String aKingBeyondTheWallLoseDecision() {
-        return null;
+    public TrackType aKingBeyondTheWallLoseDecision() {
+        int swordPlace =  game.getInfluenceTrackPlayerOnPlace(TrackType.valyrianSword.getCode(), houseNumber);
+        int ravenPlace =  game.getInfluenceTrackPlayerOnPlace(TrackType.raven.getCode(), houseNumber);
+        if (swordPlace > 0) {
+            return ravenPlace >= 4 ? TrackType.raven : TrackType.valyrianSword;
+        } else {
+            return ravenPlace >= 2 ? TrackType.raven : TrackType.valyrianSword;
+        }
     }
 
     @Override
-    public String preemptiveRaidBottomDecision() {
-        return null;
+    public Object preemptiveRaidBottomDecision() {
+        int[] myPlaces = new int[NUM_TRACK];
+        int bestPlace = NUM_PLAYER;
+        ArrayList<Integer> bestTracks = new ArrayList<>();
+        for (int i = 0; i < NUM_TRACK; i++) {
+            myPlaces[i] = game.getInfluenceTrackPlayerOnPlace(i, houseNumber);
+            if (myPlaces[i] < bestPlace) {
+                bestTracks.clear();
+                bestTracks.add(i);
+                bestPlace = myPlaces[i];
+            } else if (myPlaces[i] == bestPlace) {
+                bestTracks.add(i);
+            }
+        }
+        if (bestPlace > 0) {
+            if (bestTracks.contains(TrackType.valyrianSword.getCode())) {
+                return TrackType.valyrianSword;
+            }
+            if (bestTracks.contains(TrackType.ironThrone.getCode())) {
+                return TrackType.ironThrone;
+            }
+            if (bestPlace >= 3) {
+                return TrackType.raven;
+            }
+        }
+        return disband(DisbandReason.wildlingCommonDisband);
     }
 
     protected void say(String text) {

@@ -39,14 +39,6 @@ public class Army {
     }
 
     /**
-     * Метод возвращает количество юнитов в данной армии
-     * @return число юнитов в армии
-     */
-    public int getNumUnits() {
-        return units.size();
-    }
-
-    /**
      * Метод возвращает номер дома-владельца армии
      * @return номер дома, или -1, если армия пуста
      */
@@ -215,12 +207,13 @@ public class Army {
      * Метод убивает одного юнита в армии
      * @param unit   юнит, который должен быть уничтожен
      * @param reason причина убийства
+     * @boolean true, если удалось уничтожить юнита
      */
-    public void killUnit(Unit unit, KillingReason reason) {
+    public boolean killUnit(Unit unit, KillingReason reason) {
         game.say(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
                 unit.isWounded() ? TextInfo.IS_FINISHED : (TextInfo.IS_DEFEATED_M  + " (" + reason + ")")));
-        units.remove(unit);
         game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
+        return units.remove(unit);
     }
 
     /**
@@ -243,6 +236,27 @@ public class Army {
                     nKilled++;
                 }
             }
+        }
+    }
+
+    /**
+     * Метод убивает в армии одного юнита определённого типа
+     * @param type тип юнита, который должен быть уничтожен
+     * @return true, если удалось успешно уничтожить юнит
+     */
+    public boolean killUnitOfType(UnitType type) {
+        Unit unitToKill = null;
+        for (Unit unit: units) {
+            if (unit.getUnitType() == type) {
+                unitToKill = unit;
+                break;
+            }
+        }
+        if (unitToKill == null) {
+            System.out.println(TextErrors.NO_TROOP_TO_KILL);
+            return false;
+        } else {
+            return killUnit(unitToKill, KillingReason.wildlings);
         }
     }
 

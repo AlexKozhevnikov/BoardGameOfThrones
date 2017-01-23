@@ -47,6 +47,7 @@ public class TextErrors {
     public static final String ALREADY_OCCUPIED_BY_OTHER_HOUSE_ERROR = "Ошибка добавления отряда: область занята другим игроком";
     public static final String TRYING_TO_ADD_NULL_ARMY_ERROR = "Ошибка! Попытка добавить пустую армию!";
     public static final String TRYING_TO_ADD_ARMY_OF_OTHER_PLAYER_ERROR = "Ошибка! Попытка добавить армию другого игрока!";
+    public static final String NO_TROOP_TO_KILL = "Ошибка: нельзя уничтожить юнит, которого нет.";
     public static final String NO_DEFENDER_ERROR = "Ошибка! Попытка начать бой в области, где нет защитника!";
     public static final String CANT_SUPPORT_AGAINST_YOURSELF_ERROR = "Ошибка! Нельзя оказывать поддержку против самого себя!";
     public static final String COUNT_UNITS_ON_NEUTRAL_SIDE_ERROR = "Ошибка! Попытка посчитать юниты на нейтральной стороне.";
@@ -66,4 +67,15 @@ public class TextErrors {
     public static final String WRONG_BID_ERROR = "Неверная ставка!";
     public static final String WRONG_TRACK_ORDER_ERROR = "Ошибка королевского решения: порядок по ставкам нарушен.";
     public static final String PLAYER_COUNTED_TWICE_ERROR = "Ошибка королевского решения: игрок выбран дважды.";
+    public static final String WRONG_DISBAND_ERROR = "Неверный формат роспуска войск!";
+    public static final String WRONG_DISBANDS_NUMBER_ERROR = "Неверное число распускаемых отрядов! Ожидалось ";
+    public static final String DISBAND_RECEIVED = " отрядов, получено ";
+    public static final String NOT_YOURS_ERROR = "Ошибка: данная область не принадлежит игроку!";
+    public static final String UNSUFFICIENT_UNITS_IN_ARMY = "В данной области недостаточно отрядов типа ";
+    public static final String FOR_DISBAND = " для роспуска!";
+    public static final String TOO_MUCH_PAWNS_TO_UPGRAGE_ERROR = "Слишком много пехотинцев выбрано для улучшения!";
+    public static final String WRONG_AREA_ERROR = "Неверная область!";
+    public static final String LACK_OF_PAWNS_TO_UPGRADE_ERROR = "В области не хватает пехотинцев для улучшения!";
+    public static final String WRONG_NUMBER_OF_KNIGHTS_TO_DO_ERROR = "Выбрано неверное количаство рыцарей!";
+    public static final String LACK_OF_KNIGHTS_TO_DO_ERROR = "В области не хватает рыцарей!";
 }
