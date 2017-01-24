@@ -1,5 +1,9 @@
 package com.alexeus.logic;
 
+import com.alexeus.logic.constants.TextInfo;
+import com.alexeus.logic.enums.UnitType;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,5 +44,23 @@ class GameUtils {
             }
         }
         return true;
+    }
+
+    /**
+     * Метод составляет и возвращает описание группы юнитов в виде кратких сокращений
+     * @param unitTypes юниты
+     * @return короткая строка
+     */
+    static String getUnitsShortString(ArrayList<UnitType> unitTypes) {
+        StringBuilder sb = new StringBuilder();
+        int n = unitTypes.size();
+        if (n > 0) {
+            for (UnitType type : unitTypes) {
+                sb.append(type.getLetter());
+            }
+        } else {
+            sb.append(TextInfo.NOBODY);
+        }
+        return sb.toString();
     }
 }

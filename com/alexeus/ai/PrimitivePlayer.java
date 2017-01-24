@@ -1,6 +1,9 @@
 package com.alexeus.ai;
 
+import com.alexeus.ai.struct.AreaStatus;
 import com.alexeus.ai.struct.DummyArmy;
+import com.alexeus.ai.struct.OrderScheme;
+import com.alexeus.ai.struct.VotesForOrderInArea;
 import com.alexeus.ai.util.PlayerUtils;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
@@ -29,17 +32,20 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     protected WildlingCard wildlingCardInfo = null;
 
-    // здесь будут храниться области, в которых есть войска игроков
+    // здесь будут храниться области, в которых есть войска игрока
     protected Set<Integer> areasWithTroopsOfPlayer;
 
-    // здесь будут храниться области, в которых есть набеги игроков
+    // здесь будут храниться области, в которых есть набеги игрока
     protected ArrayList<HashSet<Integer>> areasWithRaidsOfPlayer;
 
-    // здесь будут храниться области, в которых есть походы игроков
+    // здесь будут храниться области, в которых есть походы игрока
     protected ArrayList<HashSet<Integer>> areasWithMarchesOfPlayer;
 
-    // здесь будут храниться области, в которых есть сборы власти игрков
-    protected ArrayList<HashSet<Integer>> areasWithCPsOfPlayer;
+    // здесь будут храниться области c войсками игрока, фасованные по статусам
+    protected HashMap<AreaStatus, ArrayList<Integer>> areasWithStatus;
+
+    // здесь будут храниться количества доступных приказов игрока в текущем раунде
+    protected HashMap<OrderType, Integer> numOfOrderTypes;
 
     // здесь будут храниться приказы, которые игрок отдаёт в фазе планирования
     protected HashMap<Integer, Order> orderMap;
@@ -50,6 +56,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
         map = game.getMap();
         this.houseNumber = houseNumber;
         orderMap = new HashMap<>();
+        areasWithStatus = new HashMap<>();
+        numOfOrderTypes = new HashMap<>();
+        for (AreaStatus areaStatus: AreaStatus.values()) {
+            areasWithStatus.put(areaStatus, new ArrayList<>());
+        }
     }
 
     @Override
@@ -60,42 +71,338 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public HashMap<Integer, Order> giveOrders() {
         areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer(houseNumber);
-        orderMap.clear();
-        switch (houseNumber) {
-            case 0:
-                orderMap.put(8, Order.march);
-                orderMap.put(53, Order.consolidatePower);
-                orderMap.put(56, Order.consolidatePowerS);
-                break;
-            case 1:
-                orderMap.put(3, Order.marchS);
-                orderMap.put(37, Order.consolidatePower);
-                orderMap.put(36, Order.consolidatePowerS);
-                break;
-            case 2:
-                orderMap.put(11, Order.marchS);
-                orderMap.put(25, Order.consolidatePower);
-                orderMap.put(21, Order.consolidatePowerS);
-                break;
-            case 3:
-                orderMap.put(7, Order.marchS);
-                orderMap.put(47, Order.consolidatePower);
-                orderMap.put(48, Order.consolidatePowerS);
-                break;
-            case 4:
-                orderMap.put(2, Order.marchB);
-                orderMap.put(13, Order.consolidatePower);
-                orderMap.put(33, Order.consolidatePower);
-                orderMap.put(57, Order.march);
-                break;
-            case 5:
-                orderMap.put(5, Order.marchB);
-                orderMap.put(43, Order.consolidatePower);
-                orderMap.put(41, Order.march);
+        // Множество с областями игрока, из которого мы будем удалять области, когда им уже отданы приказы
+        Set<Integer> areasToCommand = new HashSet<>();
+        areasToCommand.addAll(areasWithTroopsOfPlayer);
+        PlayerUtils playerUtils = PlayerUtils.getInstance();
+        int numFightsCanBegin;
+        int numStars = game.getNumStars(houseNumber);
+        int numRestingStars = numStars;
+        OrderType forbiddenOrder = game.getForbiddenOrder();
+        numOfOrderTypes.clear();
+        for (OrderType type: OrderType.values()) {
+            int n = 0;
+            if (forbiddenOrder == type) {
+                if (type == OrderType.march) {
+                    n = 2;
+                }
+            } else {
+                n = (numStars > 0 ? 3 : 2);
+            }
+            numOfOrderTypes.put(type, n);
         }
-        /* for (Integer area : myAreas) {
-            orderMap.put(area, Order.getOrderWithCode(random.nextInt(MainConstants.NUM_DIFFERENT_ORDERS)));
-        }*/
+        orderMap.clear();
+        for (AreaStatus areaStatus: AreaStatus.values()) {
+            areasWithStatus.get(areaStatus).clear();
+        }
+        for (int area: areasWithTroopsOfPlayer) {
+            AreaStatus status = null;
+            switch (map.getAreaType(area)) {
+                case port:
+                    int seaOwner = game.getTroopsOwner(map.getSeaNearPort(area));
+                    if (seaOwner == houseNumber) {
+                        status = AreaStatus.myPort;
+                    } else if (seaOwner < 0) {
+                        status = AreaStatus.freePort;
+                    } else {
+                        status = AreaStatus.invadedPort;
+                    }
+                    break;
+                case sea:
+                    numFightsCanBegin = playerUtils.getNumFightsCanBeginInArea(area);
+                    if (numFightsCanBegin > 0) {
+                        status = AreaStatus.outerSea;
+                    } else {
+                        for (int adjArea: map.getAdjacentAreas(area)) {
+                            if (map.getAreaType(adjArea) == AreaType.sea && game.getAreaOwner(adjArea) < 0) {
+                                status = AreaStatus.hopefulSea;
+                                break;
+                            }
+                        }
+                        if (status == null) {
+                            status = AreaStatus.innerSea;
+                        }
+                    }
+                    break;
+                case land:
+                    numFightsCanBegin = playerUtils.getNumFightsCanBeginInArea(area);
+                    status = numFightsCanBegin == 0 ? (map.getNumCastle(area) > 0 ? AreaStatus.musterCastle :
+                            AreaStatus.innerLand) : AreaStatus.borderLand;
+                    break;
+            }
+            areasWithStatus.get(status).add(area);
+        }
+
+        // Добавляем голоса за приказы в зависимости от статуса области
+        VotesForOrderInArea voteInAreaForOrder = new VotesForOrderInArea();
+        for (AreaStatus status: AreaStatus.values()) {
+            for (int area : areasWithStatus.get(status)) {
+                voteInAreaForOrder.addArea(area);
+                int armySize = game.getArmyInArea(area).getSize();
+                switch (status) {
+                    case myPort:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 4);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(map.getSeaNearPort(area)));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, armySize * armySize * armySize);
+                        break;
+                    case invadedPort:
+                        int enemyArmySize = game.getArmyInArea(map.getSeaNearPort(area)).getSize();
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.raid, enemyArmySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, armySize * armySize * armySize);
+                        break;
+                    case freePort:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 2);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, armySize * armySize * armySize);
+                        break;
+                    case innerSea:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(area) * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, armySize);
+                        break;
+                    case hopefulSea:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(area) * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 10 * armySize);
+                        break;
+                    case outerSea:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                Math.max(0, playerUtils.getNumFightsToSupportFrom(area) * armySize -
+                                playerUtils.getNumAreasToRaid(area)));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.raid, 2 * playerUtils.getNumAreasToRaidFrom(area));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.defence, Math.max(0, 4 - armySize) *
+                                (forbiddenOrder == OrderType.support ? 4 : 2));
+                        break;
+                    case innerLand:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 3 + 3 * map.getNumCrown(area));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(area) * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
+                        break;
+                    case musterCastle:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePowerS, Math.max(0, 7 * (3 - armySize)));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(area) * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 3 + 3 * map.getNumCrown(area));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
+                        break;
+                    case borderLand:
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.raid, 2 * playerUtils.getNumAreasToRaidFrom(area));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower,
+                                (float) ((3 + 3 * map.getNumCrown(area)) /
+                                Math.pow(forbiddenOrder == OrderType.raid ? 1 : 2, playerUtils.getNumAreasToRaid(area))));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
+                                playerUtils.getNumFightsToSupportFrom(area) * armySize);
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.defence,
+                                playerUtils.getNumFightsCanBeginInArea(area) * 2);
+                        break;
+                }
+            }
+        }
+        if (forbiddenOrder != null && forbiddenOrder != OrderType.march) {
+            voteInAreaForOrder.forbidOrder(forbiddenOrder.mainVariant());
+        }
+        if (numStars == 0) {
+            voteInAreaForOrder.forbidOrder(Order.consolidatePowerS);
+        }
+
+        // Заполняем схему приказов
+        OrderScheme orderScheme = new OrderScheme();
+        orderScheme.setOrderLimits(numOfOrderTypes);
+        // Сбор войск - превыше всего
+        if (numStars > 0 && numOfOrderTypes.get(OrderType.consolidatePower) > 0) {
+            float numVotesForMuster = 0;
+            float probabilityOfMuster = 0;
+            float vote;
+            for (int area : areasWithStatus.get(AreaStatus.musterCastle)) {
+                vote = voteInAreaForOrder.getOrderVotesInArea(area, Order.consolidatePowerS);
+                numVotesForMuster += vote;
+                probabilityOfMuster += (1 - probabilityOfMuster) * (vote / voteInAreaForOrder.getTotalVotesInArea(area));
+            }
+            if (random.nextFloat() < probabilityOfMuster) {
+                float trueVote = random.nextFloat() * numVotesForMuster;
+                numVotesForMuster = 0;
+                int musteredArea = -1;
+                for (int area : areasWithStatus.get(AreaStatus.musterCastle)) {
+                    vote = voteInAreaForOrder.getOrderVotesInArea(area, Order.consolidatePowerS);
+                    numVotesForMuster += vote;
+                    if (numVotesForMuster >= trueVote) {
+                        orderScheme.addOrderInArea(area, Order.consolidatePowerS);
+                        areasToCommand.remove(area);
+                        numRestingStars--;
+                        musteredArea = area;
+                        numOfOrderTypes.put(OrderType.consolidatePower,
+                                numOfOrderTypes.get(OrderType.consolidatePower) - 1);
+                        break;
+                    }
+                }
+                areasWithStatus.get(AreaStatus.musterCastle).remove((Integer) musteredArea);
+            }
+        }
+        // Добавление походов. Первичные области для походов - те, которые больше всех соседствуют с вражескими
+        // или же нуждаются в выводе войск, потому что уж слишком столпились
+        Set<Integer> primaryMarchAreas = new HashSet<>();
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.invadedPort));
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.outerSea));
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.hopefulSea));
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.musterCastle));
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.innerLand));
+        primaryMarchAreas.addAll(areasWithStatus.get(AreaStatus.borderLand));
+        if (forbiddenOrder == OrderType.march || numRestingStars == 0) {
+            numOfOrderTypes.put(OrderType.march, 2);
+        }
+        int numRestingMarches = numOfOrderTypes.get(OrderType.march);
+        float totalVotes = 0;
+        for (int area: primaryMarchAreas) {
+            totalVotes += voteInAreaForOrder.getOrderVotesInArea(area, Order.march);
+        }
+        // Цикл по первичным областям
+        while (!primaryMarchAreas.isEmpty() && numRestingMarches > 0) {
+            float trueVote = random.nextFloat() * totalVotes;
+            float curVote = 0;
+            int potentialMarchArea = getRandomElementOfSet(primaryMarchAreas);
+            for (int area: primaryMarchAreas) {
+                curVote += voteInAreaForOrder.getOrderVotesInArea(area, Order.march);
+                if (curVote >= trueVote) {
+                    potentialMarchArea = area;
+                    break;
+                }
+            }
+            if (random.nextFloat() * voteInAreaForOrder.getOrderVotesInArea(potentialMarchArea, Order.march) >
+                    voteInAreaForOrder.getTotalVotesInArea(potentialMarchArea)) {
+                // Поход состоялся
+                orderScheme.addOrderInArea(potentialMarchArea, Order.march);
+                numRestingMarches--;
+            }
+            // Вне зависимости от того, состоялся ли поход, удаляем область из списка первичных претендентов
+            primaryMarchAreas.remove(potentialMarchArea);
+        }
+        if (numRestingMarches == 0) {
+            voteInAreaForOrder.forbidOrder(Order.march);
+        }
+        if (orderScheme.getNumOfOrders(Order.march) == 3) {
+            numRestingStars -= 1;
+        }
+
+        // Оставшиеся приказы разыгрываем кое-как
+        voteInAreaForOrder.forbidOrder(Order.consolidatePowerS);
+        while (!areasToCommand.isEmpty()) {
+            int area = getRandomElementOfSet(areasToCommand);
+            Order order = voteInAreaForOrder.giveCommand(area);
+            if (order != null) {
+                orderScheme.addOrderInArea(area, order);
+                numOfOrderTypes.put(order.orderType(), numOfOrderTypes.get(order.orderType()) - 1);
+                if (numOfOrderTypes.get(order.orderType()) == 0) {
+                    voteInAreaForOrder.forbidOrder(order);
+                }
+                if (orderScheme.getNumOfOrders(order) == 3) {
+                    if (--numRestingStars == 0) {
+                        // Если закончились звёзды, то оставшихся типов приказов может быть не более 2
+                        for (OrderType type: OrderType.values()) {
+                            if (numOfOrderTypes.get(type) > 0) {
+                                numOfOrderTypes.put(type, numOfOrderTypes.get(type) - 1);
+                            }
+                        }
+                    }
+                }
+            }
+            areasToCommand.remove(area);
+        }
+
+        // Обрабатываем схему приказов и составляем orderMap
+        System.out.println(orderScheme);
+        ArrayList<Integer> areasWithOrder;
+        numRestingStars = numStars;
+        if (orderScheme.getNumOfOrders(Order.consolidatePowerS) > 0) {
+            numRestingStars--;
+        }
+        boolean cpToMuster = orderScheme.getNumOfOrders(Order.consolidatePower) == 3;
+        boolean musterUsed = false;
+        for (OrderType type: OrderType.values()) {
+            if (orderScheme.getNumOfOrders(type.mainVariant()) == 3) {
+                numRestingStars--;
+            }
+        }
+        // Сбор войск и власти
+        if (orderScheme.getNumOfOrders(Order.consolidatePowerS) > 0) {
+            areasWithOrder = orderScheme.getAreasWithOrder(Order.consolidatePowerS);
+            orderMap.put(areasWithOrder.get(0), Order.consolidatePowerS);
+            musterUsed = true;
+        }
+        areasWithOrder = orderScheme.getAreasWithOrder(Order.consolidatePower);
+        for (int area: areasWithOrder) {
+            if (cpToMuster || !musterUsed && map.getNumCastle(area) > 0 && numRestingStars > 0) {
+                orderMap.put(area, Order.consolidatePowerS);
+                cpToMuster = false;
+                musterUsed = true;
+            } else {
+                orderMap.put(area, Order.consolidatePower);
+            }
+        }
+        // Походы
+        int marchMod = 0;
+        areasWithOrder = orderScheme.getAreasWithOrder(Order.march);
+        if (numRestingStars > 0 && forbiddenOrder != OrderType.march) {
+            marchMod = 1;
+            if (areasWithOrder.size() > 0 && areasWithOrder.size() < 3) {
+                numRestingStars--;
+            }
+        }
+        if (areasWithOrder.size() == 3) {
+            marchMod = 1;
+        }
+        while (!areasWithOrder.isEmpty()) {
+            int index = random.nextInt(areasWithOrder.size());
+            orderMap.put(areasWithOrder.get(index), Order.getMarchWithMod(marchMod));
+            marchMod--;
+            areasWithOrder.remove(index);
+        }
+        // Подмоги
+        areasWithOrder = orderScheme.getAreasWithOrder(Order.support);
+        boolean isStar = areasWithOrder.size() == 3 ||
+                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.support;
+        if (isStar && areasWithOrder.size() < 3) {
+            numRestingStars--;
+        }
+        if (isStar && areasWithOrder.size() > 0) {
+            int index = random.nextInt(areasWithOrder.size());
+            orderMap.put(areasWithOrder.get(index), Order.supportS);
+            areasWithOrder.remove(index);
+        }
+        for (int area: areasWithOrder) {
+            orderMap.put(area, Order.support);
+        }
+        // Обороны
+        areasWithOrder = orderScheme.getAreasWithOrder(Order.defence);
+        isStar = areasWithOrder.size() == 3 ||
+                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.defence;
+        if (isStar && areasWithOrder.size() < 3) {
+            numRestingStars--;
+        }
+        if (isStar && areasWithOrder.size() > 0) {
+            int index = random.nextInt(areasWithOrder.size());
+            orderMap.put(areasWithOrder.get(index), Order.defenceS);
+            areasWithOrder.remove(index);
+        }
+        for (int area: areasWithOrder) {
+            orderMap.put(area, Order.defence);
+        }
+        // Набеги
+        areasWithOrder = orderScheme.getAreasWithOrder(Order.raid);
+        isStar = areasWithOrder.size() == 3 ||
+                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.raid;
+        if (isStar && areasWithOrder.size() > 0) {
+            int index = random.nextInt(areasWithOrder.size());
+            orderMap.put(areasWithOrder.get(index), Order.raidS);
+            areasWithOrder.remove(index);
+        }
+        for (int area: areasWithOrder) {
+            orderMap.put(area, Order.raid);
+        }
+
+        // fillFirstTurnOrderMap();
         return orderMap;
     }
 
@@ -168,51 +475,94 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public MarchOrderPlayed playMarch() {
         areasWithMarchesOfPlayer = game.getAreasWithMarchesOfPlayer();
-        int nMarches = areasWithMarchesOfPlayer.get(houseNumber).size();
-        if (nMarches == 0) {
+        int numAreasWithMarches = areasWithMarchesOfPlayer.get(houseNumber).size();
+        if (numAreasWithMarches == 0) {
             say("Объявляю забастовку: нет у меня никаких походов!");
             return null;
         }
-        int indexMarchToPlay = random.nextInt(nMarches);
-        int curIndexMarch = 0;
-        MarchOrderPlayed march = new MarchOrderPlayed();
-        for (Integer areaFrom: areasWithMarchesOfPlayer.get(houseNumber)) {
-            if (curIndexMarch != indexMarchToPlay) {
-                curIndexMarch++;
-            } else {
-                march.setAreaFrom(areaFrom);
-                march.setLeaveToken(!map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0);
-                Army myArmy = game.getArmyInArea(areaFrom);
-                HashSet<Integer> areasToMove = game.getAccessibleAreas(areaFrom, houseNumber);
-                game.printAreasInSet(areasToMove, "Возможные области для похода " + map.getAreaNameRusGenitive(areaFrom));
+        boolean allVariantsConsidered = false;
+        HashSet<MarchOrderPlayed> marches = new HashSet<>();
+        // Случайно выбираем поход, который собираемся разыграть
+        int areaFrom = getRandomElementOfSet(areasWithMarchesOfPlayer.get(houseNumber));
+        ArrayList<Integer> areasToMove = new ArrayList<>();
+        areasToMove.addAll(game.getAccessibleAreas(areaFrom, houseNumber));
+        HashMap<Integer, Boolean> isBattleBeginInArea = new HashMap<>();
+        // Удаление лишних областей
+        ArrayList<Integer> areasToRemove = new ArrayList<>();
+        for (int area: areasToMove) {
+            if (map.getAreaType(area) == AreaType.port && game.getTroopsOwner(area) == houseNumber) {
+                areasToRemove.add(area);
+                continue;
+            }
+            isBattleBeginInArea.put(area, game.isBattleBeginInArea(area, houseNumber));
+        }
+        areasToMove.removeAll(areasToRemove);
 
-                areasToMove.add(-1);
-                HashMap<Integer, Army> destinationsOfMarch = new HashMap<>();
-                // Пытаемся подобрать случайные места назначения, пока не будет успешный тест на снабжение
-                do {
-                    destinationsOfMarch.clear();
-                    for (Unit unit: myArmy.getUnits()) {
-                        if (unit.isWounded()) continue;
-                        int area;
-                        int nTry = 0;
-                        do {
-                            area = getRandomElementOfSet(areasToMove);
-                            nTry++;
-                        } while (/* area >= 0 && game.getGarrisonInArea(area) > 0 ||*/ area < 0 && nTry == 1);
-                        if (area == -1) continue;
-                        if (destinationsOfMarch.containsKey(area)) {
-                            destinationsOfMarch.get(area).addUnit(unit);
-                        } else {
-                            destinationsOfMarch.put(area, new Army(unit, game));
-                        }
+        game.printAreasInCollection(areasToMove, "Возможные области для похода " + map.getAreaNameRusGenitive(areaFrom));
+        areasToMove.add(-1);
+        isBattleBeginInArea.put(-1, false);
+        ArrayList<Unit> myUnits = game.getArmyInArea(areaFrom).getUnits();
+        boolean isLeaveToken = !map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0 &&
+                game.getPowerTokenInArea(areaFrom) < 0;
+        // Возня с меняющимися индексами
+        int armySize = myUnits.size();
+        int numAreasToMove = areasToMove.size();
+        int leadIndex;
+        int[] indexes = new int[armySize];
+
+        while (!allVariantsConsidered) {
+            // Проверка на количество начинающихся битв
+            int nBattle = 0;
+            int battleArea = -1;
+            for (int indexIndex = 0; indexIndex < armySize; indexIndex++) {
+                int area = areasToMove.get(indexes[indexIndex]);
+                if (isBattleBeginInArea.get(area) && area != battleArea) {
+                    battleArea = area;
+                    nBattle++;
+                }
+            }
+            if (nBattle <= 1) {
+                // Составляем вариант похода
+                HashMap<Integer, ArrayList<UnitType>> destinationsOfMarch = new HashMap<>();
+                for (int indexIndex = 0; indexIndex < armySize; indexIndex++) {
+                    int area = areasToMove.get(indexes[indexIndex]);
+                    if (area == -1) continue;
+                    if (!destinationsOfMarch.containsKey(area)) {
+                        destinationsOfMarch.put(area, new ArrayList<>());
                     }
-                    march.setDestinationsOfMarch(destinationsOfMarch);
-                } while (!game.supplyTestForMarch(march));
-
-                return march;
+                    destinationsOfMarch.get(area).add(myUnits.get(indexIndex).getUnitType());
+                }
+                MarchOrderPlayed march = new MarchOrderPlayed();
+                march.setAreaFrom(areaFrom);
+                march.setLeaveToken(isLeaveToken);
+                march.setDestinationsOfMarch(destinationsOfMarch);
+                // Проверка на пробивание нейтрального гарнизона и снабжение
+                if (!(battleArea >= 0 && game.isNeutralGarrisonInArea(battleArea) &&
+                        game.calculatePowerOfPlayerVersusGarrison(houseNumber, battleArea,
+                                destinationsOfMarch.get(battleArea), game.getOrderInArea(areaFrom).getModifier()) <
+                                game.getGarrisonInArea(battleArea)) && game.supplyTestForMarch(march)) {
+                    marches.add(march);
+                    System.out.println(march.toString() + ": " + march.hashCode());
+                }
+            }
+            // Изменяем индексы
+            for (leadIndex = armySize - 1; leadIndex >= 0; leadIndex--) {
+                if (indexes[leadIndex] < numAreasToMove - 1) {
+                    break;
+                }
+            }
+            if (leadIndex < 0) {
+                allVariantsConsidered = true;
+            } else {
+                // Ведущий индекс увеличивается на единицу, следующие за ним становятся нулями
+                indexes[leadIndex]++;
+                for (int index = leadIndex + 1; index < armySize; index++) {
+                    indexes[index] = 0;
+                }
             }
         }
-        return null;
+        MarchOrderPlayed march = getRandomElementOfSet(marches);
+        return march.getDestinationsOfMarch().size() > 0 ? march : getRandomElementOfSet(marches);
     }
 
     @Override
@@ -269,7 +619,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int bestPos = NUM_PLAYER;
         int bestTrack = TrackType.raven.getCode();
         for (int track = NUM_TRACK - 1; track >= 0; track--) {
-            pos[track] = game.getInfluenceTrackPlaceForPlayer(enemy, track);
+            pos[track] = game.getInfluenceTrackPlaceForPlayer(track, enemy);
             if (pos[track] < bestPos) {
                 bestPos = pos[track];
                 bestTrack = track;
@@ -285,7 +635,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaQueenOfThorns(HashSet<Integer> possibleAreas) {
-        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа бабкой");
+        game.printAreasInCollection(possibleAreas, "Области для удаления вражеского приказа бабкой");
         return getRandomElementOfSet(possibleAreas);
     }
 
@@ -313,7 +663,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
-        game.printAreasInSet(possibleAreas, "Области для удаления вражеского приказа Серсеей");
+        game.printAreasInCollection(possibleAreas, "Области для удаления вражеского приказа Серсеей");
         return getRandomElementOfSet(possibleAreas);
     }
 
@@ -394,8 +744,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public DisbandPlayed disband(DisbandReason reason) {
+        PlayerUtils playerUtils = PlayerUtils.getInstance();
         areasWithTroopsOfPlayer = game.getAreasWithTroopsOfPlayer(houseNumber);
-        HashMap<Integer, DummyArmy> armyInArea = PlayerUtils.makeDummyArmies(houseNumber);
+        HashMap<Integer, DummyArmy> armyInArea = playerUtils.makeDummyArmies(houseNumber);
         DisbandPlayed disbandVariant = new DisbandPlayed();
         int numDisbands;
         if (reason == DisbandReason.hordeCastle) {
@@ -803,6 +1154,44 @@ public class PrimitivePlayer implements GotPlayerInterface{
     protected void addNewMusterVariant(HashSet<MusterPlayed> set, MusterPlayed muster) {
         if (game.supplyTestForMuster(muster)) {
             set.add(muster);
+        }
+    }
+
+    private void fillFirstTurnOrderMap() {
+        orderMap.clear();
+        switch (houseNumber) {
+            case 0:
+                orderMap.put(8, Order.support);
+                orderMap.put(9, Order.support);
+                orderMap.put(53, Order.consolidatePower);
+                orderMap.put(56, Order.marchS);
+                break;
+            case 1:
+                orderMap.put(3, Order.marchS);
+                orderMap.put(37, Order.consolidatePower);
+                orderMap.put(36, Order.consolidatePowerS);
+                break;
+            case 2:
+                orderMap.put(11, Order.marchS);
+                orderMap.put(25, Order.consolidatePower);
+                orderMap.put(21, Order.consolidatePowerS);
+                break;
+            case 3:
+                orderMap.put(7, Order.marchS);
+                orderMap.put(47, Order.consolidatePower);
+                orderMap.put(48, Order.consolidatePowerS);
+                orderMap.put(52, Order.defence);
+                break;
+            case 4:
+                orderMap.put(2, Order.marchB);
+                orderMap.put(13, Order.consolidatePower);
+                orderMap.put(33, Order.consolidatePower);
+                orderMap.put(57, Order.march);
+                break;
+            case 5:
+                orderMap.put(5, Order.marchB);
+                orderMap.put(43, Order.consolidatePower);
+                orderMap.put(41, Order.march);
         }
     }
 

@@ -15,7 +15,6 @@ import com.alexeus.logic.struct.*;
 import com.alexeus.map.*;
 import com.alexeus.util.LittleThings;
 
-import javax.sound.midi.Track;
 import javax.swing.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -59,7 +58,7 @@ public class Game {
     // события текущего раунда
     private Happenable[] event = new Happenable[NUM_EVENT_DECKS];
     // Запрещённый в данном раунде приказ
-    private OrderType prohibitedOrder = null;
+    private OrderType forbiddenOrder = null;
     // последняя сыгранная карта одичалых
     private WildlingCard topWildlingCard;
 
@@ -312,6 +311,13 @@ public class Game {
         armyInArea[41].addUnit(UnitType.knight, 5);
         armyInArea[41].addUnit(UnitType.pawn, 5);
 
+        /*// Баловство
+        armyInArea[52].addUnit(UnitType.pawn, 3);
+        armyInArea[9].addUnit(UnitType.ship, 0);
+        armyInArea[9].addUnit(UnitType.ship, 0);
+        armyInArea[55].addUnit(UnitType.pawn, 2);
+        armyInArea[56].addUnit(UnitType.pawn, 0);*/
+
         // Нейтральные лорды
         garrisonInArea[31] = 6;
         garrisonInArea[54] = 5;
@@ -528,7 +534,7 @@ public class Game {
                 alright = false;
             }
             // Проверяем, что нет приказов запрещённого событием третьей колоды приказа
-            if (order.orderType() == prohibitedOrder && order != Order.marchB && order != Order.march) {
+            if (order.orderType() == forbiddenOrder && order != Order.marchB && order != Order.march) {
                 if (!alright) sb.append("\n");
                 sb.append(AREA_NUMBER).append(areaOfOrder).append(PROHIBITED_ORDER)
                         .append(order.toString());
@@ -575,7 +581,6 @@ public class Game {
         int ravenHolder = trackPlayerOnPlace[TrackType.raven.getCode()][0];
         for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
             String ravenUse = playerInterface[ravenHolder].useRaven();
-            Controller.getInstance().interruption();
             // Ворононосец выбрал просмотр карты одичалых
             if (ravenUse.equals(RAVEN_SEES_WILDLINGS_CODE)) {
                 say(HOUSE[ravenHolder] + SEES_WILDLINGS_CARD);
@@ -674,7 +679,6 @@ public class Game {
                             say(HOUSE[player] + DELETES_RAID + map.getAreaNameRusGenitive(from));
                             orderInArea[from] = null;
                             areasWithRaids.get(player).remove(from);
-                            break;
                         }
                         if (!Settings.getInstance().isPassByRegime()) {
                             mapPanel.repaintArea(from);
@@ -770,7 +774,7 @@ public class Game {
                     if (validateMarch(march, player)) {
                         Controller.getInstance().interruption();
                         int from = march.getAreaFrom();
-                        HashMap<Integer, Army> destinationsOfMarch = march.getDestinationsOfMarch();
+                        HashMap<Integer, ArrayList<UnitType>> destinationsOfMarch = march.getDestinationsOfMarch();
                         if (destinationsOfMarch.size() == 0) {
                             // Случай "холостого" снятия приказа похода
                             say(HOUSE[player] + DELETES_MARCH + map.getAreaNameRusGenitive(from));
@@ -783,16 +787,15 @@ public class Game {
                         } else {
                             // Случай результативного похода: перемещаем юниты, если нужно, начинаем бой,
                             // и обновляем попутные переменные
-                            say(HOUSE[player] + PLAYS_MARCH + map.getAreaNameRusGenitive(from) + ".");
                             int areaWhereBattleBegins = -1;
-                            for (Map.Entry<Integer, Army> entry: destinationsOfMarch.entrySet()) {
+                            for (Map.Entry<Integer, ArrayList<UnitType>> entry: destinationsOfMarch.entrySet()) {
                                 int curDestination = entry.getKey();
-                                Army curArmy = entry.getValue();
-                                int destinationArmyOwner = armyInArea[curDestination].getOwner();
+                                ArrayList<UnitType> curUnits = entry.getValue();
+                                Army curArmy = new Army(this, curUnits, player);
+                                int destinationArmyOwner = getTroopsOrGarrisonOwner(curDestination);
                                 if (destinationArmyOwner >= 0 && destinationArmyOwner != player ||
                                         houseHomeLandInArea[curDestination] >= 0 &&
-                                        houseHomeLandInArea[curDestination] != player && garrisonInArea[curDestination] > 0)
-                                {
+                                        houseHomeLandInArea[curDestination] != player && garrisonInArea[curDestination] > 0) {
                                     // Если в области завязывается бой, то запоминаем её и проходим последней
                                     areaWhereBattleBegins = curDestination;
                                     attackingArmy = curArmy;
@@ -803,14 +806,24 @@ public class Game {
                                             map.getAreaNameRusAccusative(curDestination) + ".");
                                     armyInArea[curDestination].addSubArmy(curArmy);
                                     renewHouseTroopsInArea(curDestination);
-                                    if (map.getNumCastle(curDestination) > 0) {
+                                    int destinationOwner = getAreaOwner(curDestination);
+                                    if (map.getNumCastle(curDestination) > 0 && destinationOwner != player) {
                                         victoryPoints[player]++;
+                                    }
+                                    if (destinationOwner >= 0 && destinationOwner != player) {
+                                        if (map.getNumCastle(curDestination) > 0) {
+                                            victoryPoints[destinationOwner]--;
+                                        }
+                                        if (powerTokenOnArea[curDestination] >= 0) {
+                                            powerTokenOnArea[curDestination] = -1;
+                                            maxPowerTokensHouse[destinationOwner]++;
+                                        }
                                     }
                                     // Если в области имелся нейтральный гарнизон, то пробиваем его
                                     if (destinationArmyOwner < 0 && garrisonInArea[curDestination] > 0) {
                                         say(GARRISON_IS_DEFEATED + HOUSE_GENITIVE[player] + " - " +
-                                                calculatePowerOfPlayerVersusGarrison(player, curDestination, curArmy,
-                                                orderInArea[curDestination].getModifier()) + GARRISON_STRENGTH_IS +
+                                                calculatePowerOfPlayerVersusGarrison(player, curDestination, curUnits,
+                                                orderInArea[from].getModifier()) + GARRISON_STRENGTH_IS +
                                                 garrisonInArea[curDestination]);
                                         garrisonInArea[curDestination] = 0;
                                     }
@@ -823,7 +836,7 @@ public class Game {
                             areasWithTroopsOfPlayer.get(player).remove(from);
                             renewHouseTroopsInArea(from);
                             if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] < 0) {
-                                if (march.isLeaveToken()) {
+                                if (march.getIsLeaveToken()) {
                                     say(HOUSE[player] + LEAVES_POWER_TOKEN +
                                             map.getAreaNameRusLocative(from) + ".");
                                     powerTokenOnArea[from] = player;
@@ -894,7 +907,7 @@ public class Game {
      */
     private boolean validateMarch(MarchOrderPlayed march, int player) {
         int from = march.getAreaFrom();
-        HashMap<Integer, Army> destinationsOfMarch = march.getDestinationsOfMarch();
+        HashMap<Integer, ArrayList<UnitType>> destinationsOfMarch = march.getDestinationsOfMarch();
 
         // Банальные проверки на валидность областей и наличие похода, происходят для всех вариантов походов без исключения
         boolean wrongAreasFlag = false;
@@ -915,11 +928,11 @@ public class Game {
 
         System.out.print(MARCH_VALIDATION + map.getAreaNm(from) + ": ");
         boolean firstFlag = true;
-        for (Map.Entry<Integer, Army> entry : destinationsOfMarch.entrySet()) {
+        for (Map.Entry<Integer, ArrayList<UnitType>> entry : destinationsOfMarch.entrySet()) {
             firstFlag = LittleThings.printDelimiter(firstFlag);
             int curDestination = entry.getKey();
-            Army curArmy = entry.getValue();
-            System.out.print(curArmy.getShortString() + " -> " + map.getAreaNm(curDestination));
+            ArrayList<UnitType> curUnits = entry.getValue();
+            System.out.print(GameUtils.getUnitsShortString(curUnits) + " -> " + map.getAreaNm(curDestination));
         }
         System.out.println();
 
@@ -927,7 +940,7 @@ public class Game {
             // Дополнительные проверки в случае результативного похода
             int areaWhereBattleBegins = -1;
             HashSet<Integer> accessibleAreas = null;
-            int nPawns = 0, nKnights = 0, nShips = 0, nSiegeEngines = 0;
+            int[] numUnitsOfType = new int[NUM_UNIT_TYPES];
             if (!map.getAreaType(from).isNaval()) {
                 /*
                  * Составляем множество областей, в которые может пойти игрок из данной области с учётом
@@ -935,9 +948,9 @@ public class Game {
                  */
                 accessibleAreas = getAccessibleAreas(from, player);
             }
-            for (Map.Entry<Integer, Army> entry : destinationsOfMarch.entrySet()) {
+            for (Map.Entry<Integer, ArrayList<UnitType>> entry : destinationsOfMarch.entrySet()) {
                 int curDestination = entry.getKey();
-                Army curArmy = entry.getValue();
+                ArrayList<UnitType> curUnits = entry.getValue();
                 // Проверяем, что в данную область назначения действительно можно пойти
                 if (map.getAreaType(from).isNaval() && !map.getAreaType(curDestination).isNaval()) {
                     say(CANT_MARCH_FROM_SEA_TO_LAND_ERROR);
@@ -963,18 +976,18 @@ public class Game {
                     return false;
                 }
                 // Проверяем, что марширующая армия не пуста
-                if (curArmy.isEmpty()) {
+                if (curUnits.isEmpty()) {
                     say(EMPTY_ARMY_MARCH_ERROR);
                     return false;
                 }
 
                 // Считаем, начнётся ли битва в области назначения (пробивание нейтрального гарнизона тоже считается)
-                int destinationArmyOwner = armyInArea[curDestination].getOwner();
+                int destinationArmyOwner = getTroopsOrGarrisonOwner(curDestination);
                 if (destinationArmyOwner >= 0 && destinationArmyOwner != player ||
-                        garrisonInArea[curDestination] > 0 && destinationArmyOwner != player) {
+                        garrisonInArea[curDestination] > 0 && destinationArmyOwner < 0) {
                     if (areaWhereBattleBegins < 0) {
                         if (destinationArmyOwner < 0 && garrisonInArea[curDestination] > 0) {
-                            int playerStrength = calculatePowerOfPlayerVersusGarrison(player, curDestination, curArmy,
+                            int playerStrength = calculatePowerOfPlayerVersusGarrison(player, curDestination, curUnits,
                                     orderInArea[from].getModifier());
                             if (playerStrength < garrisonInArea[curDestination]) {
                                 say(CANT_BEAT_NEUTRAL_GARRISON_ERROR_PLAYER_STRENGTH + playerStrength +
@@ -990,45 +1003,21 @@ public class Game {
                 }
 
                 // Проверки данной области назначения пройдены. Теперь учитываем юниты, перемещающиеся в эту область
-                for (Unit unit : curArmy.getUnits()) {
-                    switch (unit.getUnitType()) {
-                        case pawn:
-                            nPawns++;
-                            break;
-                        case knight:
-                            nKnights++;
-                            break;
-                        case ship:
-                            nShips++;
-                            break;
-                        case siegeEngine:
-                            nSiegeEngines++;
-                            break;
-                    }
+                for (UnitType type : curUnits) {
+                    numUnitsOfType[type.getCode()]++;
                 }
             }
 
             // Проверка наличия необходимых юнитов в области отправления
             for (Unit unit : armyInArea[from].getUnits()) {
                 if (unit.isWounded()) continue;
-                switch (unit.getUnitType()) {
-                    case pawn:
-                        if (nPawns > 0) nPawns--;
-                        break;
-                    case knight:
-                        if (nKnights > 0) nKnights--;
-                        break;
-                    case ship:
-                        if (nShips > 0) nShips--;
-                        break;
-                    case siegeEngine:
-                        if (nSiegeEngines > 0) nSiegeEngines--;
-                        break;
-                }
+                numUnitsOfType[unit.getUnitType().getCode()]--;
             }
-            if (nPawns > 0 || nKnights > 0 || nShips > 0 || nSiegeEngines > 0) {
-                say(LACK_OF_UNITS_ERROR);
-                return false;
+            for (int i = 0; i < NUM_UNIT_TYPES; i++) {
+                if (numUnitsOfType[i] > 0) {
+                    say(LACK_OF_UNITS_ERROR);
+                    return false;
+                }
             }
 
             // Проверка по снабжению
@@ -1038,11 +1027,11 @@ public class Game {
             }
 
             // Проверки возможности оставить жетон власти
-            if (march.isLeaveToken() && nPowerTokensHouse[player] == 0) {
+            if (march.getIsLeaveToken() && nPowerTokensHouse[player] == 0) {
                 say(NO_POWER_TOKENS_TO_LEAVE_ERROR);
                 return false;
             }
-            if (march.isLeaveToken() && map.getAreaType(from).isNaval()) {
+            if (march.getIsLeaveToken() && map.getAreaType(from).isNaval()) {
                 say(CANT_LEAVE_POWER_TOKEN_IN_SEA_ERROR);
                 return false;
             }
@@ -1293,6 +1282,43 @@ public class Game {
         return getAreaOwner(map.getCastleWithPort(portArea)) == player;
     }
 
+    public int getNumStars(int player) {
+        return Math.max(0, Math.min(4 - trackPlaceForPlayer[TrackType.raven.getCode()][player], 3));
+    }
+
+    /**
+     * Метод возвращает области, из которых может прийти атака на данную область.
+     * Если в области есть отряды или гарнизон игрока, то учитываются только вражеские области;
+     * в противном случае учитываются области всех игроков, откуда может прийти атака
+     * @param area номер области
+     * @return Множество областей с возможными походами
+     */
+    public HashSet<Integer> getAreasWithProbableMarch(int area) {
+        HashSet<Integer> probableMarchAreas = new HashSet<>();
+        int areaOwner = getTroopsOrGarrisonOwner(area);
+        if (map.getAreaType(area).isNaval()) {
+            HashSet<Integer> adjacentAreas = map.getAdjacentAreas(area);
+            for (int adjArea: adjacentAreas) {
+                if (map.getAreaType(adjArea).isNaval() &&
+                        getTroopsOwner(adjArea) >= 0 && getTroopsOwner(adjArea) != areaOwner) {
+                    probableMarchAreas.add(adjArea);
+                }
+            }
+        } else {
+            HashSet<Integer> accessibleForPlayerAreas;
+            for (int player = 0; player < NUM_PLAYER; player++) {
+                if (player == areaOwner) continue;
+                accessibleForPlayerAreas = getAccessibleAreas(area, player);
+                for (int enemyArea: accessibleForPlayerAreas) {
+                    if (getTroopsOwner(enemyArea) == player) {
+                        probableMarchAreas.add(enemyArea);
+                    }
+                }
+            }
+        }
+        return probableMarchAreas;
+    }
+
     /**
      * Метод разыгрывает одно сражение за определённую область. На данный момент атакующая армия должна быть сохранена
      * в attackingArmy, а нападающий игрок может быть определён посредоством attackingArmy.getOwner();
@@ -1394,7 +1420,7 @@ public class Game {
             // Добавляем боевую силу поддерживающих войск
             for (int areaOfSupport: areasOfSupport) {
                 battleInfo.addSupportingArmyToSide(supportOfPlayer[getTroopsOwner(areaOfSupport)],
-                        armyInArea[areaOfSupport]);
+                        armyInArea[areaOfSupport], orderInArea[areaOfSupport].getModifier());
             }
             if (!Settings.getInstance().isPassByRegime()) {
                 fightTabPanel.repaint();
@@ -1402,6 +1428,7 @@ public class Game {
         }
 
         // Выбираем карты дома
+        Controller.getInstance().interruption();
         houseCardOfSide[0] = getHouseCard(battleInfo, playerOnSide[0]);
         houseCardOfSide[1] = getHouseCard(battleInfo, playerOnSide[1]);
 
@@ -1503,9 +1530,10 @@ public class Game {
                                             // Если противник сам себя поддержал, а мы снимаем поддержку,
                                             // то боевая сила поддержки аннулируется
                                             if (supportOfPlayer[playerOnSide[1 - heroSide]] != SideOfBattle.neutral) {
-                                                battleInfo.deleteArmy(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker,
-                                                        armyInArea[area]);
-                                                battleInfo.deleteSupportOfPlayer(playerOnSide[1 - heroSide]);
+                                                battleInfo.deleteArmy(heroSide == 0 ? SideOfBattle.defender :
+                                                        SideOfBattle.attacker, armyInArea[area]);
+                                                battleInfo.deleteSupportOfPlayer(playerOnSide[1 - heroSide],
+                                                        orderInArea[area].getModifier());
                                                 countBattleVariables();
                                             }
                                     }
@@ -1651,13 +1679,14 @@ public class Game {
             if (houseCardOfSide[1] == HouseCard.arianneMartell) {
                 say(ARIANNA_RULES_AND_PUTS_BACK + map.getAreaNameRusAccusative(areaOfMarch) + ".");
                 armyInArea[areaOfMarch].addSubArmy(attackingArmy);
+                armyInArea[areaOfBattle].deleteAllUnits();
                 renewHouseTroopsInArea(areaOfMarch);
                 if (!Settings.getInstance().isPassByRegime()) {
                     mapPanel.repaintArea(areaOfMarch);
                 }
             } else {
                 armyInArea[areaOfBattle] = attackingArmy;
-               renewHouseTroopsInArea(areaOfBattle);
+                renewHouseTroopsInArea(areaOfBattle);
             }
             attackingArmy = null;
             // Отступление
@@ -1674,6 +1703,8 @@ public class Game {
                 for (int area: areasToRetreat) {
                     // Нельзя отступить в область, откуда пришла атака
                     if (area == areaOfMarch) continue;
+                    // Нельзя отступить в область, где есть нейтральный гарнизон
+                    if (isNeutralGarrisonInArea(area)) continue;
                     int areaOwner = getAreaOwner(area);
                     if (areaOwner < 0 || areaOwner == playerOnSide[1 - winnerSide]) {
                         if (getTroopsOwner(area) < 0) {
@@ -1703,7 +1734,7 @@ public class Game {
                     if (minLosses > 0) {
                         retreatingArmy.killSomeUnits(minLosses);
                     }
-                    printAreasInSet(trueAreasToRetreat, "Области для отступления");
+                    printAreasInCollection(trueAreasToRetreat, "Области для отступления");
                     switch (trueAreasToRetreat.size()) {
                         case 0:
                             say(NO_AREAS_TO_RETREAT);
@@ -1789,7 +1820,7 @@ public class Game {
                             virtualAreasWithTroops.put(areaOfMarch, previousNumberOfUnits);
                         }
                     }
-                    say(MINIMAL_LOSSES + minLosses + ".");
+                    System.out.println(MINIMAL_LOSSES + minLosses + ".");
                     if (minLosses > 0) {
                         attackingArmy.killSomeUnits(minLosses);
                     }
@@ -1993,16 +2024,16 @@ public class Game {
      * Нужен при пробивании нейтральных гарнизонов.
      * @param player        игрок
      * @param area          область, в которую собирается неумолимо надвигаться несокрушимая армада
-     * @param army          армия из марширующих юнитов
+     * @param units         армия из марширующих юнитов
      * @param marchModifier модификатор похода
      * @return итоговая боевая сила игрока
      */
-    private int calculatePowerOfPlayerVersusGarrison(int player, int area, Army army, int marchModifier) {
+    public int calculatePowerOfPlayerVersusGarrison(int player, int area, ArrayList<UnitType> units, int marchModifier) {
         int strength = marchModifier;
         // Прибавляем силу атакующих юнитов
-        for (Unit unit: army.getUnits()) {
-            if (unit.getUnitType() != UnitType.siegeEngine || map.getNumCastle(area) > 0) {
-                strength += unit.getStrength();
+        for (UnitType type: units) {
+            if (type != UnitType.siegeEngine || map.getNumCastle(area) > 0) {
+                strength += type.getStrength();
             }
         }
         // Прибавляем силу поддеривающих юнитов
@@ -2236,7 +2267,7 @@ public class Game {
             orderInArea[area] = null;
             armyInArea[area].healAllUnits();
         }
-        prohibitedOrder = null;
+        forbiddenOrder = null;
         isSwordUsed = false;
         mapPanel.repaint();
     }
@@ -2366,11 +2397,11 @@ public class Game {
                     } else {
                         switch (swordChoice) {
                             case 0:
-                                prohibitedOrder = OrderType.defence;
+                                forbiddenOrder = OrderType.defence;
                                 say(STORM_OF_SWORDS);
                                 break;
                             case 1:
-                                prohibitedOrder = OrderType.march;
+                                forbiddenOrder = OrderType.march;
                                 say(RAIN_OF_AUTUMN);
                                 break;
                             case 2:
@@ -2385,23 +2416,23 @@ public class Game {
                 }
                 break;
             case seaOfStorms:
-                prohibitedOrder = OrderType.raid;
+                forbiddenOrder = OrderType.raid;
                 say(SEA_OF_STORMS);
                 break;
             case rainOfAutumn:
-                prohibitedOrder = OrderType.march;
+                forbiddenOrder = OrderType.march;
                 say(RAIN_OF_AUTUMN);
                 break;
             case feastForCrows:
-                prohibitedOrder = OrderType.consolidatePower;
+                forbiddenOrder = OrderType.consolidatePower;
                 say(FEAST_FOR_CROWS);
                 break;
             case webOfLies:
-                prohibitedOrder = OrderType.support;
+                forbiddenOrder = OrderType.support;
                 say(WEB_OF_LIES);
                 break;
             case stormOfSwords:
-                prohibitedOrder = OrderType.defence;
+                forbiddenOrder = OrderType.defence;
                 say(STORM_OF_SWORDS);
                 break;
         }
@@ -2453,7 +2484,8 @@ public class Game {
             }
         }
         mapPanel.repaint();
-        for (int player = 0; player < NUM_PLAYER; player++) {
+        for (int place = 0; place < NUM_PLAYER; place++) {
+            int player = trackPlayerOnPlace[0][place];
             say(HOUSE[player] + CAN_MUSTER_TROOPS);
             while (!areasOfPlayerWithMuster.get(player).isEmpty()) {
                 int attempt;
@@ -2645,7 +2677,7 @@ public class Game {
                     curMaxBid = currentBids[player];
                 }
             }
-            newTrackPlayerOnPlace[curMaxBidder] = place;
+            newTrackPlayerOnPlace[place] = curMaxBidder;
             isPlayerCounted[curMaxBidder] = true;
         }
         trackPlayerOnPlace[track] = newTrackPlayerOnPlace;
@@ -2717,7 +2749,7 @@ public class Game {
         Controller.getInstance().interruption();
         currentBids = tempBids;
         currentBidTrack = -1;
-        wildlingDeck.pollFirst();
+        topWildlingCard = wildlingDeck.pollFirst();
         StringBuilder sb = new StringBuilder(BIDS_ARE);
         boolean firstFlag = true;
         for (int player = 0; player < NUM_PLAYER; player++) {
@@ -2739,7 +2771,7 @@ public class Game {
         for (int player = 0; player < NUM_PLAYER; player++) {
             if (player == preemptiveRaidCheater) continue;
             nPowerTokensHouse[player] -= currentBids[player];
-            nightWatchStrength += nightWatchStrength;
+            nightWatchStrength += currentBids[player];
         }
         houseTabPanel.repaint();
 
@@ -2763,7 +2795,7 @@ public class Game {
         }
         // Находим высшую или низшую ставку
         int exclusiveBidder = -1;
-        int exclusiveBid = -1;
+        int exclusiveBid = isNightWatchWon ? Integer.MIN_VALUE : Integer.MAX_VALUE;
         ArrayList<Integer> curExBidders = new ArrayList<>();
         for (int player = 0; player < NUM_PLAYER; player++) {
             if (player == preemptiveRaidCheater) continue;
@@ -2797,6 +2829,7 @@ public class Game {
         }
         say((isNightWatchWon ? TOP_BID_IS : BOTTOM_BID_IS) + HOUSE[exclusiveBidder] + "!");
         // Разыгрываем эффекты карт одичалых
+        int player;
         switch (topWildlingCard) {
             // Охотники на снабжение
             case rattleShirtRaiders:
@@ -2804,7 +2837,8 @@ public class Game {
                     changeSupply(exclusiveBidder, 1);
                 } else {
                     changeSupply(exclusiveBidder, -2);
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         changeSupply(player, -1);
                     }
@@ -2820,7 +2854,8 @@ public class Game {
                     nPowerTokensHouse[exclusiveBidder] += currentBids[exclusiveBidder];
                     say(HOUSE[exclusiveBidder] + SKINCHANGER_SCOUT_WIN);
                 } else {
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == preemptiveRaidCheater) continue;
                         if (player == exclusiveBidder) {
                             nPowerTokensHouse[player] = 0;
@@ -2863,7 +2898,8 @@ public class Game {
                         }
                     }
                     // Прочие ставки
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater ||
                                 numActiveHouseCardsOfPlayer[player] == 1) continue;
                         HouseCard chosenCard = null;
@@ -2922,7 +2958,8 @@ public class Game {
                     // Низшая ставка
                     playDisband(exclusiveBidder, DisbandReason.mammothTreadDown);
                     // Прочие ставки
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         playDisband(player, DisbandReason.wildlingCommonDisband);
                     }
@@ -2946,7 +2983,8 @@ public class Game {
                         pissOffOnTrack(exclusiveBidder, trackId);
                     }
                     // Прочие ставки
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         say(HOUSE[exclusiveBidder] + MUST_DESCEND_ON_TRACK);
                         track = playerInterface[player].aKingBeyondTheWallLoseDecision();
@@ -2981,7 +3019,8 @@ public class Game {
                         playDisband(exclusiveBidder, DisbandReason.hordeCastle);
                     }
                     // Прочие ставки
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         playDisband(player, DisbandReason.hordeBite);
                     }
@@ -3015,7 +3054,8 @@ public class Game {
                         houseTabPanel.repaintHouse(exclusiveBidder);
                     }
                     // Прочие ставки
-                    for (int player = 0; player < NUM_PLAYER; player++) {
+                    for (int place = 0; place < NUM_PLAYER; place++) {
+                        player = trackPlayerOnPlace[0][place];
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         numRestingPawns = restingUnitsOfPlayerAndType[exclusiveBidder][UnitType.pawn.getCode()];
                         numAliveKnights = MAX_NUM_OF_UNITS[UnitType.knight.getCode()] -
@@ -3620,6 +3660,10 @@ public class Game {
         return numRemainingCards.get(h);
     }
 
+    public OrderType getForbiddenOrder() {
+        return forbiddenOrder;
+    }
+
     public GamePhase getGamePhase() {
         return gamePhase;
     }
@@ -3640,6 +3684,23 @@ public class Game {
      */
     public int getTroopsOwner(int area) {
         return armyInArea[area].getOwner();
+    }
+
+    /**
+     * Метод возвращает владельца войск в данной области карты или гарнизона, если он есть. Если ничего из этого нет,
+     * то возвращает -1.
+     * @param area номер области
+     * @return номер Дома, которому принадлежат войска или гарнизон
+     */
+    public int getTroopsOrGarrisonOwner(int area) {
+        int troopsOwner = getTroopsOwner(area);
+        if (troopsOwner >= 0) {
+            return troopsOwner;
+        } else if (getAreaOwner(area) >= 0 && garrisonInArea[area] > 0) {
+            return getAreaOwner(area);
+        } else {
+            return -1;
+        }
     }
 
     public int getAreaOwner(int area) {
@@ -3711,11 +3772,11 @@ public class Game {
     }
 
     /**
-     * Метод выводит все области из множества под их русскими именами
+     * Метод выводит все области в коллекции под их русскими именами
      * @param areas  множество областей
      * @param text сопутствующий текст
      */
-    public void printAreasInSet(HashSet<Integer> areas, String text) {
+    public void printAreasInCollection(Collection<Integer> areas, String text) {
         System.out.print(text + ": ");
         boolean firstFlag = true;
         for (int area: areas) {
@@ -3723,6 +3784,25 @@ public class Game {
             System.out.print(map.getAreaNameRus(area));
         }
         System.out.println();
+    }
+
+    /**
+     * Метод отвечает, начнётся ли бой в области, если определённый игрок сунется туда своими отрядами
+     * @param area   номер области
+     * @param player номер игрока
+     * @return true, если начнётся бой
+     */
+    public boolean isBattleBeginInArea(int area, int player) {
+        return armyInArea[area].getOwner() > 0 && armyInArea[area].getOwner() != player || isNeutralGarrisonInArea(area);
+    }
+
+    /**
+     * Метод отвечает, есть ли в данной области нейтральный гарнизон
+     * @param area номер области
+     * @return true, если есть нейтральный гарнизон
+     */
+    public boolean isNeutralGarrisonInArea(int area) {
+        return getAreaOwner(area) < 0 && garrisonInArea[area] > 0;
     }
 
     /**
@@ -3736,10 +3816,10 @@ public class Game {
         int player = getTroopsOwner(from);
         virtualAreasWithTroops.clear();
         virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
-        for (Map.Entry<Integer, Army> entry : march.getDestinationsOfMarch().entrySet()) {
+        for (Map.Entry<Integer, ArrayList<UnitType>> entry : march.getDestinationsOfMarch().entrySet()) {
             int curDestination = entry.getKey();
-            Army curArmy = entry.getValue();
-            int nLeavingUnits = curArmy.getSize();
+            ArrayList<UnitType> curUnits = entry.getValue();
+            int nLeavingUnits = curUnits.size();
             int newNTroops = nLeavingUnits;
             if (virtualAreasWithTroops.containsKey(curDestination)) {
                 newNTroops += virtualAreasWithTroops.get(curDestination);

@@ -9,5 +9,21 @@ public enum OrderType {
     march,
     consolidatePower,
     support,
-    defence
+    defence;
+
+    public Order mainVariant() {
+        switch (this) {
+            case raid:
+                return Order.raid;
+            case march:
+                return Order.march;
+            case consolidatePower:
+                return Order.consolidatePower;
+            case support:
+                return Order.support;
+            case defence:
+                return Order.defence;
+        }
+        return null;
+    }
 }

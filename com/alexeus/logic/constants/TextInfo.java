@@ -46,7 +46,6 @@ public class TextInfo {
     public static final String MUST_PLAY_MARCH = " должен разыграть один свой приказ похода.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
     public static final String DELETES_MARCH = " удаляет приказ похода ";
-    public static final String PLAYS_MARCH = " совершает поход ";
     public static final String MOVE_TO = " перемещаются в ";
     public static final String MOVES_TO = " перемещается в ";
     public static final String LEAVES_POWER_TOKEN = " оставляет жетон власти ";

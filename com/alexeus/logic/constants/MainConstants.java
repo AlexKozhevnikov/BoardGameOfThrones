@@ -32,6 +32,7 @@ public class MainConstants {
     public static final int NUM_EVENT_DECKS = 3;
     public static final int NUM_EVENT_CHOICES = 3;
     public static final int MAX_TROOPS_IN_AREA = 4;
+    public static final int TROOPS_HASH_MULTIPLYER = MAX_TROOPS_IN_AREA + 1;
     public static final int NUM_UNIT_TYPES = 4;
     public static final int MAX_DEFENCE = 6;
     public static final int MIN_DEFENCE = 2;

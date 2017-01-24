@@ -4,6 +4,7 @@ import com.alexeus.logic.enums.Musterable;
 import com.alexeus.logic.enums.PawnPromotion;
 import com.alexeus.logic.enums.UnitType;
 
+import static com.alexeus.logic.constants.TextErrors.TOO_MANY_TROOPS_TO_MUSTER_ERROR;
 import static com.alexeus.map.GameOfThronesMap.NUM_AREA;
 
 /**
@@ -82,24 +83,27 @@ public class MusterPlayed {
 
     @Override
     public boolean equals(Object object) {
-        if (object instanceof MusterPlayed) {
-            if (numberMusterUnits != ((MusterPlayed) object).numberMusterUnits) {
-                return false;
-            }
-            MusterPlayed m1 = (MusterPlayed) object;
-            switch (numberMusterUnits) {
-                case 0:
-                    return true;
-                case 1:
-                    return musterUnits[0].equals(m1.getMusterUnit(0)) && area[0] == m1.getArea(0);
-                case 2:
-                    return musterUnits[0].equals(m1.getMusterUnit(0)) && area[0] == m1.getArea(0) &&
-                            musterUnits[1].equals(m1.getMusterUnit(1)) && area[1] == m1.getArea(1) ||
-                            musterUnits[0].equals(m1.getMusterUnit(1)) && area[0] == m1.getArea(1) &&
-                            musterUnits[1].equals(m1.getMusterUnit(0)) && area[1] == m1.getArea(0);
-            }
+        if (!(object instanceof MusterPlayed)) {
+            return false;
         }
-        return false;
+        MusterPlayed m1 = (MusterPlayed) object;
+        if (numberMusterUnits != m1.numberMusterUnits) {
+            return false;
+        }
+        switch (numberMusterUnits) {
+            case 0:
+                return true;
+            case 1:
+                return musterUnits[0].equals(m1.getMusterUnit(0)) && area[0] == m1.getArea(0);
+            case 2:
+                return musterUnits[0].equals(m1.getMusterUnit(0)) && area[0] == m1.getArea(0) &&
+                        musterUnits[1].equals(m1.getMusterUnit(1)) && area[1] == m1.getArea(1) ||
+                        musterUnits[0].equals(m1.getMusterUnit(1)) && area[0] == m1.getArea(1) &&
+                        musterUnits[1].equals(m1.getMusterUnit(0)) && area[1] == m1.getArea(0);
+            default:
+                System.err.println(TOO_MANY_TROOPS_TO_MUSTER_ERROR);
+                return false;
+        }
     }
 
     @Override

@@ -140,12 +140,10 @@ public interface GotPlayerInterface {
      */
     MusterPlayed muster(HashSet<Integer> areas);
 
-    /*
-     * Какое событие выбрать (1, 2, 3).
-     * Аргумент deckNumber принимает следующие значения:
-     * 1 - Трон из клинков
-     * 2 - Чёрные крылья, чёрные слова
-     * 3 - Преданы мечу
+    /**
+     * Отвечает, какое событие выбрать
+     * @param deckNumber номер колоды событий, в которой нужно выбрать событие (от 0 до 2)
+     * @return номер выбранного события (от 0 до 2)
      */
     int eventToChoose(int deckNumber);
 

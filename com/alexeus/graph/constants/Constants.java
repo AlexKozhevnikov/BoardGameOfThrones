@@ -93,5 +93,5 @@ public class Constants {
     public static final float CARD_TORSO_KOEF = 0.4f;
     public static final int BID_TEXT_SIZE = 75;
     public static final int BID_TEXT_X_INDENT = 23;
-    public static final int BID_TEXT_Y_INDENT = 32;
+    public static final int BID_TEXT_Y_INDENT = 29;
 }

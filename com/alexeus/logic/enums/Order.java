@@ -185,4 +185,16 @@ public enum Order {
         }
         return 0;
     }
+
+    public static Order getMarchWithMod(int mod) {
+        switch (mod) {
+            case 1:
+                return marchS;
+            case 0:
+                return march;
+            case -1:
+                return marchB;
+        }
+        return null;
+    }
 }

@@ -78,12 +78,14 @@ public class BattleInfo {
      * Метод добавляет армию поддержки к одной из сражающихся сторон, попутно пересчитывая соответствующие переменные
      * @param side           сторона, которую поддерживают
      * @param supportingArmy поддерживающая армия
+     * @param modifier       модификатор приказа поддержки (0 или +1)
      */
-    public void addSupportingArmyToSide(SideOfBattle side, Army supportingArmy) {
+    public void addSupportingArmyToSide(SideOfBattle side, Army supportingArmy, int modifier) {
         int house = supportingArmy.getOwner();
         supportOfPlayer[house] = side;
         playerNumSupports[house]++;
         addArmyToSide(side, supportingArmy);
+        playerStrength[supportingArmy.getOwner()] += modifier;
     }
 
     /**
@@ -107,6 +109,10 @@ public class BattleInfo {
                 playerStrength[house] += unit.getStrength();
             }
         }
+    }
+
+    public void changePlayerStrength(int player, int modifier) {
+        playerStrength[player] += modifier;
     }
 
     /**
@@ -361,8 +367,9 @@ public class BattleInfo {
         houseCardOfSide[side] = card;
     }
 
-    public void deleteSupportOfPlayer(int player) {
+    public void deleteSupportOfPlayer(int player, int modifier) {
         playerNumSupports[player]--;
+        playerStrength[player] -= modifier;
     }
 
     public int getMarchModifier() {

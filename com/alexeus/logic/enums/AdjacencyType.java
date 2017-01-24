@@ -13,5 +13,9 @@ public enum AdjacencyType {
     portToSea,
     seaToPort,
     portOfCastle,
-    castleWithPort
+    castleWithPort;
+
+    public boolean supportOrRaidAvailable() {
+        return this != noAdjacency && this != landToSea && this != portOfCastle && this != castleWithPort;
+    }
 }

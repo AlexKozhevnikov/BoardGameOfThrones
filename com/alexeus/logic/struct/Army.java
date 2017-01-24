@@ -24,10 +24,18 @@ public class Army {
         this.game = game;
     }
 
-    public Army(Unit unit, Game game) {
+    public Army(Game game, Unit unit) {
+        this.game = game;
         units = new ArrayList<>();
         units.add(unit);
+    }
+
+    public Army(Game game, ArrayList<UnitType> unitTypes, int player) {
         this.game = game;
+        units = new ArrayList<>();
+        for (UnitType type: unitTypes) {
+            units.add(new Unit(type, player));
+        }
     }
 
     /**
@@ -211,7 +219,7 @@ public class Army {
      */
     public boolean killUnit(Unit unit, KillingReason reason) {
         game.say(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
-                unit.isWounded() ? TextInfo.IS_FINISHED : (TextInfo.IS_DEFEATED_M  + " (" + reason + ")")));
+                unit.isWounded() ? TextInfo.IS_FINISHED : TextInfo.IS_DEFEATED_M)  + " (" + reason + ")");
         game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
         return units.remove(unit);
     }
@@ -222,9 +230,11 @@ public class Army {
      */
     public void killSomeUnits(int numDoomedTroops) {
         int nKilled = 0;
+        ArrayList<Unit> unitsToKill = new ArrayList<>();
+        unitsToKill.addAll(units);
         for (Unit unit: units) {
             if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
-                killUnit(unit, KillingReason.supplyLimit);
+                unitsToKill.add(unit);
                 nKilled++;
             }
         }
@@ -232,10 +242,13 @@ public class Army {
         if (nKilled < numDoomedTroops) {
             for (Unit unit: units) {
                 if (nKilled < numDoomedTroops && unit.getUnitType() == UnitType.knight) {
-                    killUnit(unit, KillingReason.supplyLimit);
+                    unitsToKill.add(unit);
                     nKilled++;
                 }
             }
+        }
+        for (Unit unit: unitsToKill) {
+            killUnit(unit, KillingReason.supplyLimit);
         }
     }
 
@@ -348,19 +361,6 @@ public class Army {
                 sb.append(units.get(i).getUnitType());
             }
             sb.append(" ").append(MainConstants.HOUSE_GENITIVE[units.get(0).getHouse()]);
-        } else {
-            sb.append(TextInfo.NOBODY);
-        }
-        return sb.toString();
-    }
-
-    public String getShortString() {
-        StringBuilder sb = new StringBuilder();
-        int n = units.size();
-        if (n > 0) {
-            for (Unit unit : units) {
-                sb.append(unit.getUnitType().getLetter());
-            }
         } else {
             sb.append(TextInfo.NOBODY);
         }
