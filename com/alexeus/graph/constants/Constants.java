@@ -44,6 +44,8 @@ public class Constants {
 
     public static final Color[] HOUSE_COLOR = {Color.YELLOW, Color.RED, Color.WHITE,
             new Color(255, 128, 0), new Color(0x10, 0x10, 0x10), new Color(0, 180, 0)};
+    public static final Color[] HOUSE_ACTION_STRING_COLOR = {Color.YELLOW, Color.RED, Color.LIGHT_GRAY,
+            new Color(255, 128, 0), new Color(0x10, 0x10, 0x10), new Color(0, 180, 0)};
     public static final Color HOUSE_BACKGROUND_COLOR = new Color(0x90, 0x90, 0x90);
 
     public static final float[][] TOKEN_INDENT_X = {{}, {0}, {-0.4f, 0.4f}, {-0.4f, 0.4f, 0}, {-0.4f, 0.4f, -0.4f, 0.4f},

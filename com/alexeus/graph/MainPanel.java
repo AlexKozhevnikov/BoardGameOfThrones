@@ -1,7 +1,7 @@
 package com.alexeus.graph;
 
 import com.alexeus.control.Controller;
-import com.alexeus.control.PlayRegimeType;
+import com.alexeus.control.enums.PlayRegimeType;
 import com.alexeus.control.Settings;
 import com.alexeus.graph.tab.*;
 import com.alexeus.graph.util.ImageLoader;

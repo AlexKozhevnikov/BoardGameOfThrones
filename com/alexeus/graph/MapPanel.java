@@ -85,6 +85,10 @@ public class MapPanel extends JPanel{
 
     private AffineTransform heal, wound;
 
+    private int activePlayer;
+
+    private String actionText = "";
+
     private int defenceX[] = new int[NUM_AREA];
     private int defenceY[] = new int[NUM_AREA];
     private int tokenX[] = new int[NUM_AREA];
@@ -265,6 +269,14 @@ public class MapPanel extends JPanel{
                 }
             }
         }
+        // Рисуем строку состояния игры
+        /*if (!actionText.equals("")) {
+            g2d.setFont(new Font("Times New Roman", Font.PLAIN, 40));
+            g2d.setColor(activePlayer >= 0 ? HOUSE_ACTION_STRING_COLOR[activePlayer] : Color.BLACK);
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.75f));
+            g2d.drawString((activePlayer >= 0 ? HOUSE[activePlayer] : "Игроки") + actionText,
+                    indent - getLocation().x + (int) (20 * scale), -getLocation().y + (int) (40 * scale));
+        }*/
     }
 
     public void repaintArea(int area) {
@@ -299,6 +311,13 @@ public class MapPanel extends JPanel{
     public void repaintWildlingsCard() {
         repaint(new Rectangle((int) (indent + WILDLINGS_CARD_BEGIN_X / scale), (int) (WILDLINGS_CARD_BEGIN_Y / scale),
                 (int) (WILDLINGS_CARD_WIDTH  / scale), (int) (WILDLINGS_CARD_HEIGHT / scale)));
+    }
+
+    public void repaintActionString(int player, String text) {
+        activePlayer = player;
+        actionText = text;
+        Point location = getLocation();
+        repaint();
     }
 
     /**
@@ -678,7 +697,7 @@ public class MapPanel extends JPanel{
 
         armyX[31] = 1140; armyY[31] = 1726;
         attackerArmyX[31] = 1211; attackerArmyY[31] = 1688;
-        areaBeginX[31] = 1057; areaBeginY[31] = 1654;
+        areaBeginX[31] = 1058; areaBeginY[31] = 1654;
         unitPackType[31] = line;
         orderX[31] = 1232; orderY[31] = 1718;
         tokenX[31] = 1248; tokenY[31] = 1816;

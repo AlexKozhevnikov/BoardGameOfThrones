@@ -743,7 +743,35 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int[] kingChoiceInfluenceTrack(int track, int[] bids) {
-        return new int[]{0, 1, 2, 3, 4, 5};
+        boolean[] isPlayerCounted = new boolean[NUM_PLAYER];
+        int[] newPlayerOnPlace = new int[NUM_PLAYER];
+        ArrayList<Integer> pretenders = new ArrayList<>();
+        for (int curPlace = 0; curPlace < NUM_PLAYER; ) {
+            int curMaxBid = -1;
+            for (int player = 0; player < NUM_PLAYER; player++) {
+                if (bids[player] > curMaxBid && !isPlayerCounted[player]) {
+                    pretenders.clear();
+                    pretenders.add(player);
+                    curMaxBid = bids[player];
+                } else if (bids[player] == curMaxBid) {
+                    pretenders.add(player);
+                }
+            }
+            while(!pretenders.isEmpty()) {
+                if (pretenders.contains(houseNumber)) {
+                    newPlayerOnPlace[curPlace] = houseNumber;
+                    isPlayerCounted[houseNumber] = true;
+                    pretenders.remove((Integer) houseNumber);
+                } else {
+                    int nextOnTrackIndex = random.nextInt(pretenders.size());
+                    newPlayerOnPlace[curPlace] = pretenders.get(nextOnTrackIndex);
+                    isPlayerCounted[pretenders.get(nextOnTrackIndex)] = true;
+                    pretenders.remove(nextOnTrackIndex);
+                }
+                curPlace++;
+            }
+        }
+        return newPlayerOnPlace;
     }
 
     @Override
@@ -909,7 +937,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int bottomPlace = 0;
         int worseTrack = -1;
         for (int i = 0; i < NUM_TRACK; i++) {
-            myPlaces[i] = game.getInfluenceTrackPlayerOnPlace(i, houseNumber);
+            myPlaces[i] = game.getInfluenceTrackPlaceForPlayer(i, houseNumber);
             if (myPlaces[i] >= bottomPlace) {
                 worseTrack = i;
                 bottomPlace = myPlaces[i];
@@ -920,8 +948,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public TrackType aKingBeyondTheWallLoseDecision() {
-        int swordPlace =  game.getInfluenceTrackPlayerOnPlace(TrackType.valyrianSword.getCode(), houseNumber);
-        int ravenPlace =  game.getInfluenceTrackPlayerOnPlace(TrackType.raven.getCode(), houseNumber);
+        int swordPlace =  game.getInfluenceTrackPlaceForPlayer(TrackType.valyrianSword.getCode(), houseNumber);
+        int ravenPlace =  game.getInfluenceTrackPlaceForPlayer(TrackType.raven.getCode(), houseNumber);
         if (swordPlace > 0) {
             return ravenPlace >= 4 ? TrackType.raven : TrackType.valyrianSword;
         } else {
@@ -935,7 +963,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int bestPlace = NUM_PLAYER;
         ArrayList<Integer> bestTracks = new ArrayList<>();
         for (int i = 0; i < NUM_TRACK; i++) {
-            myPlaces[i] = game.getInfluenceTrackPlayerOnPlace(i, houseNumber);
+            myPlaces[i] = game.getInfluenceTrackPlaceForPlayer(i, houseNumber);
             if (myPlaces[i] < bestPlace) {
                 bestTracks.clear();
                 bestTracks.add(i);

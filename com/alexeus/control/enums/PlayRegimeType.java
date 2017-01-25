@@ -1,4 +1,4 @@
-package com.alexeus.control;
+package com.alexeus.control.enums;
 
 /**
  * Created by alexeus on 20.01.2017.

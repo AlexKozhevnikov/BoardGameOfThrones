@@ -225,13 +225,12 @@ public class Army {
     }
 
     /**
-     * Метод убивает несколько юнитов в армии из-за снабжения
+     * Метод убивает несколько юнитов в армии
      * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
      */
     public void killSomeUnits(int numDoomedTroops, KillingReason reason) {
         int nKilled = 0;
         ArrayList<Unit> unitsToKill = new ArrayList<>();
-        unitsToKill.addAll(units);
         for (Unit unit: units) {
             if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
                 unitsToKill.add(unit);

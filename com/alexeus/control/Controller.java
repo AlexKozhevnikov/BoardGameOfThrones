@@ -1,21 +1,11 @@
 package com.alexeus.control;
 
+import com.alexeus.GotFrame;
 import com.alexeus.graph.MapPanel;
-import com.alexeus.graph.tab.*;
 import com.alexeus.logic.Game;
-import com.alexeus.logic.enums.Deck1Cards;
-import com.alexeus.logic.enums.Deck2Cards;
-import com.alexeus.logic.enums.Deck3Cards;
 import com.alexeus.logic.enums.GamePhase;
 
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-
-import java.util.LinkedList;
-
 import static com.alexeus.logic.constants.MainConstants.*;
-import static com.alexeus.logic.constants.TextInfo.*;
 
 /**
  * Created by alexeus on 13.01.2017.
@@ -32,6 +22,8 @@ public class Controller {
 
     private long timeFromLastInterrupt;
 
+    private MapPanel mapPanel;
+
     private Controller() {
         settings = Settings.getInstance();
     }
@@ -46,6 +38,7 @@ public class Controller {
     public void startNewGame() {
         game = Game.getInstance();
         game.prepareNewGame();
+        mapPanel = game.getMapPanel();
         timeFromLastInterrupt = System.currentTimeMillis();
         game.setNewGamePhase(GamePhase.planningPhase);
     }
@@ -54,7 +47,9 @@ public class Controller {
         return game;
     }
 
-    public void interruption() {
+    public void interruption(String text) {
+        //mapPanel.repaintActionString(player, text.toString());
+        GotFrame.getInstance().setTitle("Игра Престолов. " + game.getTime() + " раунд. " + text);
         try {
             switch (Settings.getInstance().getPlayRegime()) {
                 case none:

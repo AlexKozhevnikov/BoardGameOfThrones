@@ -1,5 +1,7 @@
 package com.alexeus.control;
 
+import com.alexeus.control.enums.PlayRegimeType;
+
 /**
  * Created by alexeus on 18.01.2017.
  * Данный класс определяет настройки для игры, которые можно поменять в меню "Настройки".

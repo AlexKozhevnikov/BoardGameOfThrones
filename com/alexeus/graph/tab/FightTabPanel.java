@@ -227,7 +227,7 @@ public class FightTabPanel extends JPanel {
         }
         // Добавляем валирийский меч
         if (battleInfo.getSideWhereSwordUsed() == side) {
-            curWidth += FIGHT_SYMBOL_INDENT + trueSwordImageWidth * FIGHT_X_INDENT * 2;
+            curWidth += FIGHT_SYMBOL_INDENT + trueSwordImageWidth + FIGHT_X_INDENT * 2;
         }
         return curWidth;
     }

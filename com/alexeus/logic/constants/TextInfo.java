@@ -27,7 +27,6 @@ public class TextInfo {
     public static final String NOBODY = "Никого";
 
     /************** Ворононосец принимает решение ******************/
-    public static final String CHANGES_ORDER = " меняет приказ";
     public static final String SEES_WILDLINGS_CARD = " смотрит верхнюю карту одичалых...";
     public static final String AND_LEAVES = "... и оставляет её наверху.";
     public static final String AND_BURIES = "... и закапывает её.";
@@ -37,13 +36,11 @@ public class TextInfo {
     public static final String TO = " на ";
     public static final String GAINS_POWER = " получает жетон власти.";
     public static final String LOSES_POWER = " теряет жетон власти.";
-    public static final String MUST_PLAY_RAID = " должен разыграть один свой приказ набега.";
     public static final String DELETES_RAID = " удаляет приказ набега ";
     public static final String FAILED_TO_PLAY_RAID = " не смог разыграть набег, поэтому все его набеги удаляются с карты.";
 
     /************** Походы ******************/
     public static final String MARCH_VALIDATION = "Проверка корректности следующего похода: ";
-    public static final String MUST_PLAY_MARCH = " должен разыграть один свой приказ похода.";
     public static final String FAILED_TO_PLAY_MARCH = " не смог разыграть поход, поэтому один его поход удаляется с карты.";
     public static final String DELETES_MARCH = " удаляет приказ похода ";
     public static final String MOVE_TO = " перемещаются в ";
@@ -138,10 +135,7 @@ public class TextInfo {
     public static final String BIDS_ARE = "Ставки игроков: ";
     public static final String NIGHT_WATCH_VICTORY = "Победа ночного дозора!";
     public static final String NIGHT_WATCH_DEFEAT = "Победа одичалых!";
-    public static final String KING = "Король ";
     public static final String CHOOSES = " выбирает";
-    public static final String TOP_BID = " высшую ставку.";
-    public static final String BOTTOM_BID = " низшую ставку.";
     public static final String TOP_BID_IS = "Высшая ставка - ";
     public static final String BOTTOM_BID_IS = "Низшая ставка - ";
     public static final String WILDLINGS_ARE = "Карта одичалых: ";
@@ -158,9 +152,7 @@ public class TextInfo {
     public static final String DESCENDS_ON_TRACK = " опускается ";
     public static final String CAN_MUSTER_IN_ONE_CASTLE = " может собрать войска в одном из своих замков/крепостей!";
     public static final String MUST_DISBAND_TROOPS = " должен распустить войска!";
-    public static final String MUST_DISBAND_TROOPS_SUPPLY = " должен распустить войска, так как нарушает предел снабжения.";
     public static final String FAILED_TO_DISBAND = " не смог распустить войска, поэтому его войска будут распущены случайным образом.";
-    public static final String CAN_BEKNIGHT_PAWNS = " может улучшить пехотинцев до рыцарей!";
     public static final String MUST_DISBAND_SOME_KNIGHTS = " должен распустить часть своих рыцарей!";
     public static final String MUST_DOWNGRADE_SOME_KNIGHTS = " должен превратить часть своих рыцарей в пехотинцев!";
     public static final String DOESNT_TAKE_PART = " не участвует в отражении новой атаки одичалых!";
