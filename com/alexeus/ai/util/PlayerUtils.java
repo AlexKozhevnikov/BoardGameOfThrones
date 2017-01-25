@@ -60,7 +60,7 @@ public class PlayerUtils {
         int numSwipe;
         for (Map.Entry<Integer, DummyArmy> entry: armyInArea.entrySet()) {
             DummyArmy army = entry.getValue();
-            numSwipe = army.hasUnitOfType(UnitType.knight) || army.hasUnitOfType(UnitType.siegeEngine) ?
+            numSwipe = (army.hasUnitOfType(UnitType.knight) || army.hasUnitOfType(UnitType.siegeEngine)) ?
                     army.getNumUnitsOfType(UnitType.pawn) : army.getSize() - 1;
             if (numSwipe > 0) {
                 numDisbandSwipe.put(entry.getKey(), numSwipe);

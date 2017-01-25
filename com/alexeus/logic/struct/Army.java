@@ -47,6 +47,20 @@ public class Army {
     }
 
     /**
+     * Возвращает всех юнитов армии
+     * @return все юниты армии
+     */
+    public ArrayList<Unit> getHealthyUnits() {
+        ArrayList<Unit> healthyUnits = new ArrayList<>();
+        for (Unit unit: healthyUnits) {
+            if (!unit.isWounded()) {
+                healthyUnits.add(unit);
+            }
+        }
+        return healthyUnits;
+    }
+
+    /**
      * Метод возвращает номер дома-владельца армии
      * @return номер дома, или -1, если армия пуста
      */

@@ -181,10 +181,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
                         break;
                     case musterCastle:
-                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePowerS, Math.max(0, 7 * (3 - armySize)));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePowerS,
+                                Math.max(0, (map.getNumCastle(area) == 2 ? 10 : 5) * (3 - armySize)));
                         voteInAreaForOrder.setOrderVotesInArea(area, Order.support,
                                 playerUtils.getNumFightsToSupportFrom(area) * armySize);
-                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 3 + 3 * map.getNumCrown(area));
+                        voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePower, 1 + map.getNumCrown(area));
                         voteInAreaForOrder.setOrderVotesInArea(area, Order.march, 2 * armySize * armySize);
                         break;
                     case borderLand:
@@ -315,9 +316,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
         System.out.println(orderScheme);
         ArrayList<Integer> areasWithOrder;
         numRestingStars = numStars;
-        if (orderScheme.getNumOfOrders(Order.consolidatePowerS) > 0) {
-            numRestingStars--;
-        }
         boolean cpToMuster = orderScheme.getNumOfOrders(Order.consolidatePower) == 3;
         boolean musterUsed = false;
         for (OrderType type: OrderType.values()) {
@@ -330,28 +328,26 @@ public class PrimitivePlayer implements GotPlayerInterface{
             areasWithOrder = orderScheme.getAreasWithOrder(Order.consolidatePowerS);
             orderMap.put(areasWithOrder.get(0), Order.consolidatePowerS);
             musterUsed = true;
+            numRestingStars--;
         }
         areasWithOrder = orderScheme.getAreasWithOrder(Order.consolidatePower);
         for (int area: areasWithOrder) {
             if (cpToMuster || !musterUsed && map.getNumCastle(area) > 0 && numRestingStars > 0) {
                 orderMap.put(area, Order.consolidatePowerS);
                 cpToMuster = false;
-                musterUsed = true;
+                if (!musterUsed) {
+                    musterUsed = true;
+                    numRestingStars--;
+                }
             } else {
                 orderMap.put(area, Order.consolidatePower);
             }
         }
         // Походы
-        int marchMod = 0;
         areasWithOrder = orderScheme.getAreasWithOrder(Order.march);
-        if (numRestingStars > 0 && forbiddenOrder != OrderType.march) {
-            marchMod = 1;
-            if (areasWithOrder.size() > 0 && areasWithOrder.size() < 3) {
-                numRestingStars--;
-            }
-        }
-        if (areasWithOrder.size() == 3) {
-            marchMod = 1;
+        int marchMod = forbiddenOrder != OrderType.march && (numRestingStars > 0 || areasWithOrder.size() == 3) ? 1: 0;
+        if (forbiddenOrder != OrderType.march && numRestingStars > 0 && areasWithOrder.size() > 0 && areasWithOrder.size() < 3) {
+            numRestingStars--;
         }
         while (!areasWithOrder.isEmpty()) {
             int index = random.nextInt(areasWithOrder.size());
@@ -360,46 +356,50 @@ public class PrimitivePlayer implements GotPlayerInterface{
             areasWithOrder.remove(index);
         }
         // Подмоги
+        boolean isStar;
         areasWithOrder = orderScheme.getAreasWithOrder(Order.support);
-        boolean isStar = areasWithOrder.size() == 3 ||
-                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.support;
-        if (isStar && areasWithOrder.size() < 3) {
-            numRestingStars--;
-        }
-        if (isStar && areasWithOrder.size() > 0) {
-            int index = random.nextInt(areasWithOrder.size());
-            orderMap.put(areasWithOrder.get(index), Order.supportS);
-            areasWithOrder.remove(index);
-        }
-        for (int area: areasWithOrder) {
-            orderMap.put(area, Order.support);
+        if (!areasWithOrder.isEmpty()) {
+            isStar = (areasWithOrder.size() == 3 || numRestingStars > 0) && forbiddenOrder != OrderType.support;
+            if (isStar && areasWithOrder.size() < 3) {
+                numRestingStars--;
+            }
+            if (isStar) {
+                int index = random.nextInt(areasWithOrder.size());
+                orderMap.put(areasWithOrder.get(index), Order.supportS);
+                areasWithOrder.remove(index);
+            }
+            for (int area : areasWithOrder) {
+                orderMap.put(area, Order.support);
+            }
         }
         // Обороны
         areasWithOrder = orderScheme.getAreasWithOrder(Order.defence);
-        isStar = areasWithOrder.size() == 3 ||
-                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.defence;
-        if (isStar && areasWithOrder.size() < 3) {
-            numRestingStars--;
-        }
-        if (isStar && areasWithOrder.size() > 0) {
-            int index = random.nextInt(areasWithOrder.size());
-            orderMap.put(areasWithOrder.get(index), Order.defenceS);
-            areasWithOrder.remove(index);
-        }
-        for (int area: areasWithOrder) {
-            orderMap.put(area, Order.defence);
+        if (!areasWithOrder.isEmpty()) {
+            isStar = (areasWithOrder.size() == 3 || numRestingStars > 0) && forbiddenOrder != OrderType.defence;
+            if (isStar && areasWithOrder.size() < 3) {
+                numRestingStars--;
+            }
+            if (isStar) {
+                int index = random.nextInt(areasWithOrder.size());
+                orderMap.put(areasWithOrder.get(index), Order.defenceS);
+                areasWithOrder.remove(index);
+            }
+            for (int area : areasWithOrder) {
+                orderMap.put(area, Order.defence);
+            }
         }
         // Набеги
         areasWithOrder = orderScheme.getAreasWithOrder(Order.raid);
-        isStar = areasWithOrder.size() == 3 ||
-                areasWithOrder.size() > 0 && numRestingStars > 0 && forbiddenOrder != OrderType.raid;
-        if (isStar && areasWithOrder.size() > 0) {
-            int index = random.nextInt(areasWithOrder.size());
-            orderMap.put(areasWithOrder.get(index), Order.raidS);
-            areasWithOrder.remove(index);
-        }
-        for (int area: areasWithOrder) {
-            orderMap.put(area, Order.raid);
+        if (!areasWithOrder.isEmpty()) {
+            isStar = (areasWithOrder.size() == 3 || numRestingStars > 0) && forbiddenOrder != OrderType.raid;
+            if (isStar) {
+                int index = random.nextInt(areasWithOrder.size());
+                orderMap.put(areasWithOrder.get(index), Order.raidS);
+                areasWithOrder.remove(index);
+            }
+            for (int area : areasWithOrder) {
+                orderMap.put(area, Order.raid);
+            }
         }
 
         // fillFirstTurnOrderMap();
@@ -501,7 +501,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         game.printAreasInCollection(areasToMove, "Возможные области для похода " + map.getAreaNameRusGenitive(areaFrom));
         areasToMove.add(-1);
         isBattleBeginInArea.put(-1, false);
-        ArrayList<Unit> myUnits = game.getArmyInArea(areaFrom).getUnits();
+        ArrayList<Unit> myUnits = game.getArmyInArea(areaFrom).getHealthyUnits();
         boolean isLeaveToken = !map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0 &&
                 game.getPowerTokenInArea(areaFrom) < 0;
         // Возня с меняющимися индексами

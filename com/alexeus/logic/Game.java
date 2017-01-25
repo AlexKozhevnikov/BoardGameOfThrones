@@ -661,7 +661,7 @@ public class Game {
                                     }
                                     if (nPowerTokensHouse[raidedPlayer] > 0) {
                                         nPowerTokensHouse[raidedPlayer]--;
-                                        say(HOUSE[player] + LOSES_POWER);
+                                        say(HOUSE[raidedPlayer] + LOSES_POWER);
                                         if (!Settings.getInstance().isPassByRegime()) {
                                             houseTabPanel.repaintHouse(raidedPlayer);
                                         }
@@ -804,12 +804,13 @@ public class Game {
                                     say(curArmy.toString() +
                                             (curArmy.getSize() == 1 ? MOVES_TO : MOVE_TO) +
                                             map.getAreaNameRusAccusative(curDestination) + ".");
-                                    armyInArea[curDestination].addSubArmy(curArmy);
-                                    renewHouseTroopsInArea(curDestination);
                                     int destinationOwner = getAreaOwner(curDestination);
                                     if (map.getNumCastle(curDestination) > 0 && destinationOwner != player) {
                                         victoryPoints[player]++;
                                     }
+                                    armyInArea[curDestination].addSubArmy(curArmy);
+                                    renewHouseTroopsInArea(curDestination);
+
                                     if (destinationOwner >= 0 && destinationOwner != player) {
                                         if (map.getNumCastle(curDestination) > 0) {
                                             victoryPoints[destinationOwner]--;
@@ -1469,8 +1470,6 @@ public class Game {
         for (int curSide = 0; curSide < 2; curSide++) {
             int heroSide = (curSide + firstSideOnThrone) % 2;
             if (houseCardOfSide[heroSide].getCardInitiative() == CardInitiative.immediately) {
-                say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
-                        houseCardOfSide[heroSide].getName());
                 switch (houseCardOfSide[heroSide]) {
                     case maceTyrell:
                         // Чёрная Рыба защищает от свойства Мейса Тирелла
@@ -1502,6 +1501,8 @@ public class Game {
                             }
                         }
                         if (!accessibleAreaSet.isEmpty()) {
+                            say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
+                                    houseCardOfSide[heroSide].getName());
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                                 int area = playerInterface[playerOnSide[heroSide]].chooseAreaQueenOfThorns(accessibleAreaSet);
                                 // Если область меньше нуля, значит, игрок отказался использовать свойство карты
@@ -1552,6 +1553,8 @@ public class Game {
                         }
                         break;
                     case doranMartell:
+                        say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
+                                houseCardOfSide[heroSide].getName());
                         int trackToPissOff = playerInterface[playerOnSide[heroSide]].chooseInfluenceTrackDoran(battleInfo);
                         Controller.getInstance().interruption();
                         if (trackToPissOff >= 0 && trackToPissOff < NUM_TRACK) {
@@ -1567,6 +1570,8 @@ public class Game {
                         propertyUsed = false;
                         if (nPowerTokensHouse[playerOnSide[heroSide]] >= 2 &&
                                 numActiveHouseCardsOfPlayer[playerOnSide[heroSide]] >= 2) {
+                            say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
+                                    houseCardOfSide[heroSide].getName());
                             boolean useDamphair = playerInterface[playerOnSide[heroSide]].useAeron(battleInfo);
                             Controller.getInstance().interruption();
                             if (useDamphair) {
@@ -1678,6 +1683,8 @@ public class Game {
             // Арианна
             if (houseCardOfSide[1] == HouseCard.arianneMartell) {
                 say(ARIANNA_RULES_AND_PUTS_BACK + map.getAreaNameRusAccusative(areaOfMarch) + ".");
+                retreatingArmy = new Army(this);
+                retreatingArmy.addSubArmy(armyInArea[areaOfBattle]);
                 armyInArea[areaOfMarch].addSubArmy(attackingArmy);
                 armyInArea[areaOfBattle].deleteAllUnits();
                 renewHouseTroopsInArea(areaOfMarch);
@@ -1857,7 +1864,7 @@ public class Game {
                         for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
                             if (getTroopsOwner(adjacentArea) == player && orderInArea[adjacentArea] != null &&
                                     orderInArea[adjacentArea].orderType() == OrderType.support &&
-                                    supportOfPlayer[player].getCode() == heroSide) {
+                                    supportOfPlayer[player] != null && supportOfPlayer[player].getCode() == heroSide) {
                                 accessibleAreaSet.add(adjacentArea);
                             }
                         }
@@ -3133,9 +3140,7 @@ public class Game {
         ArrayList<Integer> areasWithKnights = getAreasWithUnitsOfType(player, UnitType.knight);
         for (int area: areasWithKnights) {
             while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
-                armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
-                restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
-                restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                downgradeKnightInArea(area, player);
             }
             if (!Settings.getInstance().isPassByRegime()) {
                 mapPanel.repaintArea(area);
@@ -3152,7 +3157,7 @@ public class Game {
         for (int area: areasWithKnights) {
             while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
                 armyInArea[area].killUnitOfType(UnitType.knight);
-                restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
             }
             if (!Settings.getInstance().isPassByRegime()) {
                 mapPanel.repaintArea(area);
@@ -3176,9 +3181,7 @@ public class Game {
                 HashMap<Integer, Integer> numUnitsInArea = pawnUpgradeVariant.getNumberOfUnitsInArea();
                 for (int area : numUnitsInArea.keySet()) {
                     for (int index = 0; index < numUnitsInArea.get(area); index++) {
-                        armyInArea[area].changeType(UnitType.pawn, UnitType.knight);
-                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]--;
-                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
+                        upgradePawnInArea(area, player);
                     }
                     if (!Settings.getInstance().isPassByRegime()) {
                         mapPanel.repaintArea(area);
@@ -3193,6 +3196,12 @@ public class Game {
         if (attempt >= MAX_TRIES_TO_GO) {
             say(HOUSE[player] + FAILED_TO_WILD);
         }
+    }
+
+    private void upgradePawnInArea(int area, int player) {
+        armyInArea[area].changeType(UnitType.pawn, UnitType.knight);
+        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
     }
 
     /**
@@ -3248,7 +3257,7 @@ public class Game {
                     for (int area : numUnitsInArea.keySet()) {
                         for (int index = 0; index < numUnitsInArea.get(area); index++) {
                             armyInArea[area].killUnitOfType(UnitType.knight);
-                            restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                            restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
                             renewHouseTroopsInArea(area);
                         }
                         if (!Settings.getInstance().isPassByRegime()) {
@@ -3266,7 +3275,7 @@ public class Game {
                 for (int area : areasWithKnights) {
                     while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
                         armyInArea[area].killUnitOfType(UnitType.knight);
-                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
+                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
                     }
                     renewHouseTroopsInArea(area);
                     if (!Settings.getInstance().isPassByRegime()) {
@@ -3300,9 +3309,7 @@ public class Game {
                     HashMap<Integer, Integer> numUnitsInArea = executionVariant.getNumberOfUnitsInArea();
                     for (int area : numUnitsInArea.keySet()) {
                         for (int index = 0; index < numUnitsInArea.get(area); index++) {
-                            armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
-                            restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
-                            restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                            downgradeKnightInArea(area, player);
                         }
                         if (!Settings.getInstance().isPassByRegime()) {
                             mapPanel.repaintArea(area);
@@ -3321,9 +3328,7 @@ public class Game {
                 outer:
                 for (int area : areasWithKnights) {
                     while (armyInArea[area].hasUnitOfType(UnitType.knight)) {
-                        armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
-                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
-                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                        downgradeKnightInArea(area, player);
                         numKnightDowngraded++;
                         if (numKnightDowngraded == numKnightToDowngrade) {
                             break outer;
@@ -3332,6 +3337,12 @@ public class Game {
                 }
             }
         }
+    }
+
+    private void downgradeKnightInArea(int area, int player) {
+        armyInArea[area].changeType(UnitType.knight, UnitType.pawn);
+        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
+        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]--;
     }
 
     /**
@@ -3793,7 +3804,8 @@ public class Game {
      * @return true, если начнётся бой
      */
     public boolean isBattleBeginInArea(int area, int player) {
-        return armyInArea[area].getOwner() > 0 && armyInArea[area].getOwner() != player || isNeutralGarrisonInArea(area);
+        return armyInArea[area].getOwner() >= 0 && armyInArea[area].getOwner() != player ||
+                getAreaOwner(area) != player && garrisonInArea[area] > 0;
     }
 
     /**
