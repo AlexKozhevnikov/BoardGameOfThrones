@@ -24,12 +24,6 @@ public class Army {
         this.game = game;
     }
 
-    public Army(Game game, Unit unit) {
-        this.game = game;
-        units = new ArrayList<>();
-        units.add(unit);
-    }
-
     public Army(Game game, ArrayList<UnitType> unitTypes, int player) {
         this.game = game;
         units = new ArrayList<>();
@@ -52,7 +46,7 @@ public class Army {
      */
     public ArrayList<Unit> getHealthyUnits() {
         ArrayList<Unit> healthyUnits = new ArrayList<>();
-        for (Unit unit: healthyUnits) {
+        for (Unit unit: units) {
             if (!unit.isWounded()) {
                 healthyUnits.add(unit);
             }
@@ -95,15 +89,6 @@ public class Army {
         }
         System.out.println(TextErrors.DELETE_TROOP_ERROR);
         return false;
-    }
-
-    /**
-     * Метод удаляет из армии одного юнита
-     * @param unit юнит, которого нужно удалить
-     * @return true, если удалось успешно удалить
-     */
-    public boolean deleteUnit(Unit unit) {
-        return units.remove(unit);
     }
 
     /**
@@ -229,11 +214,12 @@ public class Army {
      * Метод убивает одного юнита в армии
      * @param unit   юнит, который должен быть уничтожен
      * @param reason причина убийства
-     * @boolean true, если удалось уничтожить юнита
+     * @return true, если удалось уничтожить юнита
      */
     public boolean killUnit(Unit unit, KillingReason reason) {
-        game.say(unit.getUnitType() + (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F :
-                unit.isWounded() ? TextInfo.IS_FINISHED : TextInfo.IS_DEFEATED_M)  + " (" + reason + ")");
+        game.say(unit.getUnitType() + (unit.isWounded() ? TextInfo.IS_FINISHED :
+                (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F : TextInfo.IS_DEFEATED_M +
+                " (" + reason + ")")));
         game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
         return units.remove(unit);
     }
@@ -242,7 +228,7 @@ public class Army {
      * Метод убивает несколько юнитов в армии из-за снабжения
      * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
      */
-    public void killSomeUnits(int numDoomedTroops) {
+    public void killSomeUnits(int numDoomedTroops, KillingReason reason) {
         int nKilled = 0;
         ArrayList<Unit> unitsToKill = new ArrayList<>();
         unitsToKill.addAll(units);
@@ -262,7 +248,7 @@ public class Army {
             }
         }
         for (Unit unit: unitsToKill) {
-            killUnit(unit, KillingReason.supplyLimit);
+            killUnit(unit, reason);
         }
     }
 
@@ -284,6 +270,27 @@ public class Army {
             return false;
         } else {
             return killUnit(unitToKill, KillingReason.wildlings);
+        }
+    }
+
+    /**
+     * Метод убивает в армии самого слабого юнита. Считается, что осадная башня слабее рыцаря, но сильнее пехотинца
+     * @return true, если удалось успешно уничтожить юнит
+     */
+    public boolean killWeakestUnit() {
+        if (getSize() == 0) {
+            return false;
+        } else {
+            boolean hasSiegeEngines = false;
+            for (Unit unit : units) {
+                if (unit.getStrength() == 1) {
+                    return killUnitOfType(unit.getUnitType());
+                }
+                if (unit.getUnitType() == UnitType.siegeEngine) {
+                    hasSiegeEngines = true;
+                }
+            }
+            return killUnitOfType(hasSiegeEngines ? UnitType.siegeEngine : UnitType.knight);
         }
     }
 
@@ -343,6 +350,16 @@ public class Army {
             }
         }
         return false;
+    }
+
+    /**
+     * Метод устанавливает владельца армии. Используется при переходе кораблей в порту от одного игрока к другому
+     * @param player новый владелец
+     */
+    public void setOwner(int player) {
+        for (Unit unit: units) {
+            unit.setHouse(player);
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.alexeus.ai.struct;
 
+import com.alexeus.logic.constants.TextInfo;
 import com.alexeus.logic.enums.UnitType;
 
 import java.util.ArrayList;
@@ -57,7 +58,39 @@ public class DummyArmy {
         return unit;
     }
 
+    public UnitType getWeakestUnit() {
+        boolean hasSiegeEngines = false;
+        for (UnitType unit : unitTypes) {
+            if (unit.getStrength() == 1) {
+                return unit;
+            }
+            if (unit == UnitType.siegeEngine) {
+                hasSiegeEngines = true;
+            }
+        }
+        return hasSiegeEngines ? UnitType.siegeEngine : UnitType.knight;
+    }
+
     public void setUnits(ArrayList<UnitType> unitTypes) {
         this.unitTypes = unitTypes;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        int n = unitTypes.size();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                if (i == n - 1 && i != 0) {
+                    sb.append(" и ");
+                } else if (i != 0) {
+                    sb.append(", ");
+                }
+                sb.append(unitTypes.get(i));
+            }
+        } else {
+            sb.append(TextInfo.NOBODY);
+        }
+        return sb.toString();
     }
 }

@@ -61,7 +61,7 @@ public class Constants {
     public static final int EVENT_TAB_WIDTH = 350;
     public static final int HOUSE_TAB_WIDTH = 650;
     public static final int FIGHT_TAB_WIDTH = 500;
-    public static final int CHAT_TAB_WIDTH = 450;
+    public static final int CHAT_TAB_WIDTH = 500;
     public static final int TAB_PANEL_HEIGHT = FRAME_HEIGHT - BUTTON_PANEL_HEIGHT + 30;
     public static final int MAP_WIDTH = FRAME_WIDTH - EVENT_TAB_WIDTH;
     public static final int MAP_HEIGHT = FRAME_HEIGHT;

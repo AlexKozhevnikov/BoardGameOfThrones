@@ -47,6 +47,69 @@ class GameUtils {
     }
 
     /**
+     * Метод возвращает размер армии, который нарушает предел снабжения для данных областей с юнитами
+     * @param areasWithTroops карта с областями и числами юнитов в них
+     * @param supplyLevel     уровень снабжения игрока
+     * @return размер армии
+     */
+    public static int getBreakingArmySize(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+        int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
+        System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
+        for (int armySize = MAX_TROOPS_IN_AREA; armySize >= 2; armySize--) {
+            for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {
+                if (entry.getValue() != armySize) continue;
+                // Если это армия, пробуем занять свободную ячейку. Если это не удаётся сделать, значит предел снабжения превышен.
+                boolean isThereFreeCell = false;
+                for (int cellSize = armySize - 2; cellSize < MAX_TROOPS_IN_AREA - 1; cellSize++) {
+                    if (nFreeGroups[cellSize] > 0) {
+                        isThereFreeCell = true;
+                        nFreeGroups[cellSize]--;
+                        break;
+                    }
+                }
+                if (!isThereFreeCell) {
+                    return armySize;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Метод возвращает самый большой свободный размер армии при данном уровне снабжения
+     * @param areasWithTroops карта с областями и числами юнитов в них
+     * @param supplyLevel     уровень снабжения игрока
+     * @return размер армии
+     */
+    public static int getBiggestFreeArmySize(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+        int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
+        System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
+        for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {
+            int armySize = entry.getValue();
+            // Если это армия, то занимаем свободную ячейку. Если это не удаётся сделать, значит предел снабжения превышен.
+            if (armySize > 1) {
+                boolean isThereFreeCell = false;
+                for (int cellSize = armySize - 2; cellSize < MAX_TROOPS_IN_AREA - 1; cellSize++) {
+                    if (nFreeGroups[cellSize] > 0) {
+                        isThereFreeCell = true;
+                        nFreeGroups[cellSize]--;
+                        break;
+                    }
+                }
+                if (!isThereFreeCell) {
+                    return -1;
+                }
+            }
+        }
+        for (int cellSize = 2; cellSize >= 0; cellSize--) {
+            if (nFreeGroups[cellSize] > 0) {
+                return cellSize + 2;
+            }
+        }
+        return 1;
+    }
+
+    /**
      * Метод составляет и возвращает описание группы юнитов в виде кратких сокращений
      * @param unitTypes юниты
      * @return короткая строка

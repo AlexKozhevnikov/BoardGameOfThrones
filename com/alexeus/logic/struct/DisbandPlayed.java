@@ -17,6 +17,7 @@ public class DisbandPlayed {
 
     public DisbandPlayed() {
         numDisbands = 0;
+        disbandUnits = new HashMap<>();
     }
 
     public void addDisbandedUnit(int area, UnitType type) {

@@ -436,7 +436,7 @@ public class GameOfThronesMap {
 
     /**
      * Метод возвращает номер области с замком, которой принадлежит данная обасть с портом
-     * @param portArea портовая область
+     * @param portArea номер портовой области
      * @return номер области с замком
      */
     public int getCastleWithPort(int portArea) {
@@ -450,8 +450,23 @@ public class GameOfThronesMap {
     }
 
     /**
+     * Метод возвращает номер портовой области, которая принадлежит замку, или -1, если такой области нет
+     * @param castleArea номер области c замком
+     * @return номер области с портом
+     */
+    public int getPortOfCastle(int castleArea) {
+        HashSet<Integer> adjacentAreas = getAdjacentAreas(castleArea);
+        for (int curArea: adjacentAreas) {
+            if (getAreaType(curArea) == AreaType.port) {
+                return curArea;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Метод возвращает номер морской области, граничащей с данным портом
-     * @param portArea портовая область
+     * @param portArea номер портовой области
      * @return номер соседней морской области
      */
     public int getSeaNearPort(int portArea) {

@@ -636,7 +636,7 @@ public class MapPanel extends JPanel{
 
         armyX[25] = 953; armyY[25] = 910;
         attackerArmyX[25] = 1065; attackerArmyY[25] = 780;
-        areaBeginX[25] = 833; areaBeginY[25] = 709;
+        areaBeginX[25] = 833; areaBeginY[25] = 710;
         unitPackType[25] = line3square4;
         orderX[25] = 992; orderY[25] = 1050;
         tokenX[25] = 1095; tokenY[25] = 800;

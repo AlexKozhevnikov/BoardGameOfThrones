@@ -51,6 +51,11 @@ public class TextInfo {
     public static final String LEAVES_POWER_TOKEN = " оставляет жетон власти ";
     public static final String GARRISON_IS_DEFEATED = "Нейтральный лорд побеждён: сила войск ";
     public static final String GARRISON_STRENGTH_IS = ", сила нейтрального лорда - ";
+    public static final String CAN_CAPTURE_OR_DESTROY_SHIPS = " может захватить или уничтожить корабли в порту.";
+    public static final String DESTROYS_ALL_SHIPS = " уничтожает все корабли в порту.";
+    public static final String CAPTURES = " захватывает ";
+    public static final String OF_SHIP = " корабль.";
+    public static final String OF_SHIPA = " корабля.";
     public static final String AND_FIGHTS = " и начинает бой.";
     public static final String AND_FIGHT = " и начинают бой.";
     public static final String BATTLE_BEGINS_FOR = "Начинается бой за ";
@@ -98,6 +103,8 @@ public class TextInfo {
     public static final String PATCHPACE_DELETES_CARD = "Пестряк сбрасывает карту ";
     public static final String RETURNS_ALL_CARDS = " возвращает весь сброс карт Дома себе на руку.";
     public static final String RETURNS_CARD = " возвращает карту Дома ";
+
+    /************** Сбор власти ******************/
     public static final String EARNS = " получает ";
     public static final String POWER_TOKEN = " жетон власти.";
     public static final String POWER_TOKENA = " жетона власти.";
@@ -126,7 +133,7 @@ public class TextInfo {
     public static final String WEB_OF_LIES = "Запрещены приказы подмоги.";
     public static final String STORM_OF_SWORDS = "Запрещены приказы обороны.";
 
-    /************** Одичалые ******************/
+    /************** Одичалые и роспуск войск ******************/
     public static final String WILDLINGS_ATTACK_WITH_STRENGTH = "Нашествие одичалых с силой ";
     public static final String BIDS_ARE = "Ставки игроков: ";
     public static final String NIGHT_WATCH_VICTORY = "Победа ночного дозора!";
@@ -151,10 +158,12 @@ public class TextInfo {
     public static final String DESCENDS_ON_TRACK = " опускается ";
     public static final String CAN_MUSTER_IN_ONE_CASTLE = " может собрать войска в одном из своих замков/крепостей!";
     public static final String MUST_DISBAND_TROOPS = " должен распустить войска!";
+    public static final String MUST_DISBAND_TROOPS_SUPPLY = " должен распустить войска, так как нарушает предел снабжения.";
     public static final String FAILED_TO_DISBAND = " не смог распустить войска, поэтому его войска будут распущены случайным образом.";
     public static final String CAN_BEKNIGHT_PAWNS = " может улучшить пехотинцев до рыцарей!";
     public static final String MUST_DISBAND_SOME_KNIGHTS = " должен распустить часть своих рыцарей!";
     public static final String MUST_DOWNGRADE_SOME_KNIGHTS = " должен превратить часть своих рыцарей в пехотинцев!";
+    public static final String DOESNT_TAKE_PART = " не участвует в отражении новой атаки одичалых!";
     public static final String PREEMPTIVE_RAID_TRACK = " решил опуститься на два деления ";
     public static final String PREEMPTIVE_RAID_DISBAND = " решил распустить войска.";
     public static final String FAILED_TO_WILD = " не смог принять одичальническое решение!";

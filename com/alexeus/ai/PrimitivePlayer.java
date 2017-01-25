@@ -10,6 +10,7 @@ import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.*;
 import com.alexeus.logic.struct.*;
 import com.alexeus.map.GameOfThronesMap;
+import com.alexeus.util.LittleThings;
 
 import java.util.*;
 
@@ -232,10 +233,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     if (numVotesForMuster >= trueVote) {
                         orderScheme.addOrderInArea(area, Order.consolidatePowerS);
                         areasToCommand.remove(area);
-                        numRestingStars--;
                         musteredArea = area;
                         numOfOrderTypes.put(OrderType.consolidatePower,
                                 numOfOrderTypes.get(OrderType.consolidatePower) - 1);
+                        // Если закончились звёзды, то все остальные типы приказов режем нещадно
+                        if (--numRestingStars == 0) {
+                            cutOrdersWithoutStar();
+                        }
                         break;
                     }
                 }
@@ -263,7 +267,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         while (!primaryMarchAreas.isEmpty() && numRestingMarches > 0) {
             float trueVote = random.nextFloat() * totalVotes;
             float curVote = 0;
-            int potentialMarchArea = getRandomElementOfSet(primaryMarchAreas);
+            int potentialMarchArea = LittleThings.getRandomElementOfSet(primaryMarchAreas);
             for (int area: primaryMarchAreas) {
                 curVote += voteInAreaForOrder.getOrderVotesInArea(area, Order.march);
                 if (curVote >= trueVote) {
@@ -275,7 +279,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     voteInAreaForOrder.getTotalVotesInArea(potentialMarchArea)) {
                 // Поход состоялся
                 orderScheme.addOrderInArea(potentialMarchArea, Order.march);
-                numRestingMarches--;
+                // Если закончились звёзды, то все остальные типы приказов режем безо всякого сожаления
+                if (--numRestingStars == 0) {
+                    cutOrdersWithoutStar();
+                }
             }
             // Вне зависимости от того, состоялся ли поход, удаляем область из списка первичных претендентов
             primaryMarchAreas.remove(potentialMarchArea);
@@ -290,7 +297,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         // Оставшиеся приказы разыгрываем кое-как
         voteInAreaForOrder.forbidOrder(Order.consolidatePowerS);
         while (!areasToCommand.isEmpty()) {
-            int area = getRandomElementOfSet(areasToCommand);
+            int area = LittleThings.getRandomElementOfSet(areasToCommand);
             Order order = voteInAreaForOrder.giveCommand(area);
             if (order != null) {
                 orderScheme.addOrderInArea(area, order);
@@ -300,12 +307,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 }
                 if (orderScheme.getNumOfOrders(order) == 3) {
                     if (--numRestingStars == 0) {
-                        // Если закончились звёзды, то оставшихся типов приказов может быть не более 2
-                        for (OrderType type: OrderType.values()) {
-                            if (numOfOrderTypes.get(type) > 0) {
-                                numOfOrderTypes.put(type, numOfOrderTypes.get(type) - 1);
-                            }
-                        }
+                        cutOrdersWithoutStar();
                     }
                 }
             }
@@ -406,6 +408,17 @@ public class PrimitivePlayer implements GotPlayerInterface{
         return orderMap;
     }
 
+    /**
+     * Метод подрезает число оставшихся типов приказов, когда исчерпано количество звёздных приказов
+     */
+    private void cutOrdersWithoutStar() {
+        for (OrderType type: OrderType.values()) {
+            if (numOfOrderTypes.get(type) > 0) {
+                numOfOrderTypes.put(type, numOfOrderTypes.get(type) - 1);
+            }
+        }
+    }
+
     @Override
     public String useRaven() {
         return MainConstants.RAVEN_SEES_WILDLINGS_CODE;
@@ -483,7 +496,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         boolean allVariantsConsidered = false;
         HashSet<MarchOrderPlayed> marches = new HashSet<>();
         // Случайно выбираем поход, который собираемся разыграть
-        int areaFrom = getRandomElementOfSet(areasWithMarchesOfPlayer.get(houseNumber));
+        int areaFrom = LittleThings.getRandomElementOfSet(areasWithMarchesOfPlayer.get(houseNumber));
         ArrayList<Integer> areasToMove = new ArrayList<>();
         areasToMove.addAll(game.getAccessibleAreas(areaFrom, houseNumber));
         HashMap<Integer, Boolean> isBattleBeginInArea = new HashMap<>();
@@ -504,6 +517,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
         ArrayList<Unit> myUnits = game.getArmyInArea(areaFrom).getHealthyUnits();
         boolean isLeaveToken = !map.getAreaType(areaFrom).isNaval() && game.getNumPowerTokensHouse(houseNumber) > 0 &&
                 game.getPowerTokenInArea(areaFrom) < 0;
+        // Если в каком-то из вариантов походов побеждается нейтральный гарнизон, то выбор вариантов сужается.
+        boolean isNeutralGarrisonDefeated = false;
         // Возня с меняющимися индексами
         int armySize = myUnits.size();
         int numAreasToMove = areasToMove.size();
@@ -536,13 +551,26 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 march.setAreaFrom(areaFrom);
                 march.setLeaveToken(isLeaveToken);
                 march.setDestinationsOfMarch(destinationsOfMarch);
-                // Проверка на пробивание нейтрального гарнизона и снабжение
-                if (!(battleArea >= 0 && game.isNeutralGarrisonInArea(battleArea) &&
-                        game.calculatePowerOfPlayerVersusGarrison(houseNumber, battleArea,
-                                destinationsOfMarch.get(battleArea), game.getOrderInArea(areaFrom).getModifier()) <
-                                game.getGarrisonInArea(battleArea)) && game.supplyTestForMarch(march)) {
-                    marches.add(march);
-                    System.out.println(march.toString() + ": " + march.hashCode());
+                // Проверка на снабжение
+                if (game.supplyTestForMarch(march)) {
+                    // Если гарнизона нет, то добавляем вариант похода
+                    if ((battleArea < 0 || !game.isNeutralGarrisonInArea(battleArea)) && !isNeutralGarrisonDefeated) {
+                        marches.add(march);
+                        System.out.println(march.toString() + ": " + march.hashCode());
+                    } else {
+                        // Если гарнизон есть, и мы его пробиваем, то всё ещё лучше
+                        if (battleArea >= 0 && game.isNeutralGarrisonInArea(battleArea) &&
+                                game.calculatePowerOfPlayerVersusGarrison(houseNumber, battleArea,
+                                        destinationsOfMarch.get(battleArea), game.getOrderInArea(areaFrom).getModifier()) >=
+                                        game.getGarrisonInArea(battleArea)) {
+                            if (!isNeutralGarrisonDefeated) {
+                                isNeutralGarrisonDefeated = true;
+                                marches.clear();
+                            }
+                            marches.add(march);
+                            System.out.println(march.toString() + ": " + march.hashCode());
+                        }
+                    }
                 }
             }
             // Изменяем индексы
@@ -561,8 +589,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 }
             }
         }
-        MarchOrderPlayed march = getRandomElementOfSet(marches);
-        return march.getDestinationsOfMarch().size() > 0 ? march : getRandomElementOfSet(marches);
+        MarchOrderPlayed march = LittleThings.getRandomElementOfSet(marches);
+        return march.getDestinationsOfMarch().size() > 0 ? march : LittleThings.getRandomElementOfSet(marches);
+    }
+
+    @Override
+    public int getNumCapturedShips(int portArea) {
+        return 1;
     }
 
     @Override
@@ -636,7 +669,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int chooseAreaQueenOfThorns(HashSet<Integer> possibleAreas) {
         game.printAreasInCollection(possibleAreas, "Области для удаления вражеского приказа бабкой");
-        return getRandomElementOfSet(possibleAreas);
+        return LittleThings.getRandomElementOfSet(possibleAreas);
     }
 
     @Override
@@ -653,18 +686,18 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseAreaToRetreat(Army retreatingArmy, HashSet<Integer> possibleAreas) {
-        return getRandomElementOfSet(possibleAreas);
+        return LittleThings.getRandomElementOfSet(possibleAreas);
     }
 
     @Override
     public int areaToUseRenly(HashSet<Integer> possibleAreas) {
-        return getRandomElementOfSet(possibleAreas);
+        return LittleThings.getRandomElementOfSet(possibleAreas);
     }
 
     @Override
     public int chooseAreaCerseiLannister(HashSet<Integer> possibleAreas) {
         game.printAreasInCollection(possibleAreas, "Области для удаления вражеского приказа Серсеей");
-        return getRandomElementOfSet(possibleAreas);
+        return LittleThings.getRandomElementOfSet(possibleAreas);
     }
 
     @Override
@@ -684,7 +717,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public MusterPlayed muster(HashSet<Integer> castleAreas) {
-        return musterInArea(getRandomElementOfSet(castleAreas));
+        return musterInArea(LittleThings.getRandomElementOfSet(castleAreas));
     }
 
     @Override
@@ -696,11 +729,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
     public int bid(int track) {
         // считаем количество всевозможных комбинаций ставок на (3 - track) треков и выбираем случайную из них!
         int numTokens = game.getNumPowerTokensHouse(houseNumber);
-        int totalCombinations = (int) (numCombinations(NUM_TRACK - track, numTokens + NUM_TRACK - track));
+        int totalCombinations = (int) (LittleThings.numCombinations(NUM_TRACK - track, numTokens + NUM_TRACK - track));
         int chosenCombination = random.nextInt(totalCombinations);
         int threshold = 0;
         for (int curBid = 0; curBid < numTokens; curBid++) {
-            threshold += (int) (numCombinations(NUM_TRACK - track - 1, numTokens + NUM_TRACK - track - curBid - 1));
+            threshold += (int) (LittleThings.numCombinations(NUM_TRACK - track - 1, numTokens + NUM_TRACK - track - curBid - 1));
             if (chosenCombination < threshold) {
                 return curBid;
             }
@@ -756,33 +789,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     disbandAreas.add(area);
                 }
             }
-            int area = getRandomElementOfSet(disbandAreas);
-            numDisbands = reason.getNumDisbands();
+            int area = LittleThings.getRandomElementOfSet(disbandAreas);
             DummyArmy army = armyInArea.get(area);
-            for (UnitType unit: army.getUnits()) {
-                if (numDisbands == 0) break;
-                if (unit == UnitType.pawn || unit == UnitType.ship) {
-                    disbandVariant.addDisbandedUnit(area, unit);
-                    numDisbands--;
-                }
-            }
-            if (numDisbands > 0) {
-                for (UnitType unit: army.getUnits()) {
-                    if (numDisbands == 0) break;
-                    if (unit == UnitType.siegeEngine) {
-                        disbandVariant.addDisbandedUnit(area, unit);
-                        numDisbands--;
-                    }
-                }
-                if (numDisbands > 0) {
-                    for (UnitType unit: army.getUnits()) {
-                        if (numDisbands == 0) break;
-                        if (unit == UnitType.knight) {
-                            disbandVariant.addDisbandedUnit(area, unit);
-                            numDisbands--;
-                        }
-                    }
-                }
+            for (numDisbands = reason.getNumDisbands(); numDisbands > 0; numDisbands--) {
+                UnitType unit = army.getWeakestUnit();
+                army.removeUnit(unit);
+                disbandVariant.addDisbandedUnit(area, unit);
             }
             return disbandVariant;
         }
@@ -791,7 +803,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             // Сначала снимаем "халяву": пешек и корабли, в областях с которыми уже есть юниты
             HashMap<Integer, Integer> numDisbandSwipe = PlayerUtils.getNumDisbandSwipe(armyInArea);
             while (numDisbands > 0 && numDisbandSwipe.size() > 0) {
-                int area = getRandomElementOfSet(numDisbandSwipe.keySet());
+                int area = LittleThings.getRandomElementOfSet(numDisbandSwipe.keySet());
                 UnitType disbandedUnit = map.getAreaType(area) == AreaType.land ? UnitType.pawn : UnitType.ship;
                 disbandVariant.addDisbandedUnit(area, disbandedUnit);
                 armyInArea.get(area).removeUnit(disbandedUnit);
@@ -803,7 +815,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 numDisbands--;
             }
             while (numDisbands > 0) {
-                int area = getRandomElementOfSet(armyInArea.keySet());
+                int area = LittleThings.getRandomElementOfSet(armyInArea.keySet());
                 DummyArmy army = armyInArea.get(area);
                 UnitType disbandedUnit;
                 if (army.getSize() == 1) {
@@ -818,7 +830,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 numDisbands--;
             }
         } else {
-            // TODO доделать
+            return disbandVariant;
         }
         return disbandVariant;
     }
@@ -828,7 +840,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
         HashMap<Integer, Integer> numKnightInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
         for (int numRestingUpgrades = numKnightsToDowngrade; numRestingUpgrades > 0; numRestingUpgrades--) {
-            int area = getRandomElementOfSet(numKnightInArea.keySet());
+            int area = LittleThings.getRandomElementOfSet(numKnightInArea.keySet());
             targetAreas.addUnit(area);
             if (numKnightInArea.get(area) == 1) {
                 numKnightInArea.remove(area);
@@ -844,7 +856,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
         HashMap<Integer, Integer> numKnightInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
         for (int numRestingUpgrades = numKnightsToKill; numRestingUpgrades > 0; numRestingUpgrades--) {
-            int area = getRandomElementOfSet(numKnightInArea.keySet());
+            int area = LittleThings.getRandomElementOfSet(numKnightInArea.keySet());
             targetAreas.addUnit(area);
             if (numKnightInArea.get(area) == 1) {
                 numKnightInArea.remove(area);
@@ -860,7 +872,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
         HashMap<Integer, Integer> numPawnInArea = game.getNumUnitsOfTypeInArea(houseNumber, UnitType.pawn);
         for (int numRestingUpgrades = numPawnsToUpgrade; numRestingUpgrades > 0; numRestingUpgrades--) {
-            int area = getRandomElementOfSet(numPawnInArea.keySet());
+            int area = LittleThings.getRandomElementOfSet(numPawnInArea.keySet());
             targetAreas.addUnit(area);
             if (numPawnInArea.get(area) == 1) {
                 numPawnInArea.remove(area);
@@ -950,25 +962,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
         game.say(MainConstants.HOUSE[houseNumber] + ": " + text);
     }
 
-    /**
-     * Метод возвращает случайный элемент множества
-     * @param set множество
-     * @return случайный элемент
-     */
-    protected <T> T getRandomElementOfSet(Set<T> set) {
-        int size = set.size();
-        int curIndex = 0;
-        int needIndex = random.nextInt(size);
-        for (T element: set) {
-            if (curIndex == needIndex) {
-                return element;
-            } else {
-                curIndex++;
-            }
-        }
-        return null;
-    }
-
     protected MusterPlayed musterInArea(int castleArea) {
         long time = System.currentTimeMillis();
         int numMusterPoints = map.getNumCastle(castleArea);
@@ -1012,7 +1005,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         HashSet<MusterPlayed> musterVariants = getMusterVariants(castleArea, normNavalAreas,
                 template, numMusterPoints, curAvailableShips);
         System.out.println("Сбор " + HOUSE_GENITIVE[houseNumber] + ": " + (System.currentTimeMillis() - time) + " мс");
-        return getRandomElementOfSet(musterVariants);
+        return LittleThings.getRandomElementOfSet(musterVariants);
     }
 
     protected HashSet<MusterPlayed> getMusterVariants(int castleArea, HashSet<Integer> navalAreas,
@@ -1193,15 +1186,5 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 orderMap.put(43, Order.consolidatePower);
                 orderMap.put(41, Order.march);
         }
-    }
-
-    /**
-     * Метод считает число комбинаций из n по k
-     * @param k кэ
-     * @param n нэ
-     * @return число комбинаций
-     */
-    private double numCombinations(int k, int n){
-        return k == n ? 1 : 1. * n / (n - k) * numCombinations(k, n - 1);
     }
 }

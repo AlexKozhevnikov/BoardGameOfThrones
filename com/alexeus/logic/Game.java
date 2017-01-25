@@ -1,5 +1,6 @@
 package com.alexeus.logic;
 
+import com.alexeus.GotFrame;
 import com.alexeus.ai.GotPlayerInterface;
 import com.alexeus.ai.PrimitivePlayer;
 import com.alexeus.control.Controller;
@@ -19,6 +20,7 @@ import javax.swing.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.lang.reflect.Array;
 import java.util.*;
 
 import static com.alexeus.logic.constants.MainConstants.*;
@@ -447,6 +449,11 @@ public class Game {
                 victoryPoints[areaOwner]++;
             }
         }
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (victoryPoints[player] >= 7 || time == 2) {
+                setNewGamePhase(GamePhase.end);
+            }
+        }
     }
 
     private void getPlans() {
@@ -806,7 +813,7 @@ public class Game {
                                             map.getAreaNameRusAccusative(curDestination) + ".");
                                     int destinationOwner = getAreaOwner(curDestination);
                                     if (map.getNumCastle(curDestination) > 0 && destinationOwner != player) {
-                                        victoryPoints[player]++;
+                                        adjustVictoryPoints();
                                     }
                                     armyInArea[curDestination].addSubArmy(curArmy);
                                     renewHouseTroopsInArea(curDestination);
@@ -814,6 +821,7 @@ public class Game {
                                     if (destinationOwner >= 0 && destinationOwner != player) {
                                         if (map.getNumCastle(curDestination) > 0) {
                                             victoryPoints[destinationOwner]--;
+                                            tryToCaptureShips(curDestination, player);
                                         }
                                         if (powerTokenOnArea[curDestination] >= 0) {
                                             powerTokenOnArea[curDestination] = -1;
@@ -836,7 +844,8 @@ public class Game {
                             }
                             areasWithTroopsOfPlayer.get(player).remove(from);
                             renewHouseTroopsInArea(from);
-                            if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] < 0) {
+                            if (armyInArea[from].isEmpty() && houseHomeLandInArea[from] != player &&
+                                    powerTokenOnArea[from] < 0) {
                                 if (march.getIsLeaveToken()) {
                                     say(HOUSE[player] + LEAVES_POWER_TOKEN +
                                             map.getAreaNameRusLocative(from) + ".");
@@ -846,16 +855,21 @@ public class Game {
                                 } else {
                                     if (map.getNumCastle(from) > 0) {
                                         victoryPoints[player]--;
+                                        // Если мы покинули чью-то столицу, не оставив жетона, то столица возвращается
+                                        // владельцу, и тот может что-нибудь сделать с кораблями в порту.
+                                        if (houseHomeLandInArea[from] >= 0) {
+                                            adjustVictoryPoints();
+                                            tryToCaptureShips(from, houseHomeLandInArea[from]);
+                                        } else {
+                                            // Если мы покинули замок с портом, то все корабли в порту немедленно уничтожаются
+                                            tryToDestroyNeutralShips(from);
+                                        }
                                     }
                                 }
                             }
                             if (!Settings.getInstance().isPassByRegime()) {
                                 mapPanel.repaintArea(from);
                                 mapPanel.repaintVictory();
-                            }
-                            if (victoryPoints[player] >= NUM_CASTLES_TO_WIN) {
-                                setNewGamePhase(GamePhase.end);
-                                return;
                             }
                             if (areaWhereBattleBegins >= 0) {
                                 say(attackingArmy.toString() +
@@ -897,7 +911,8 @@ public class Game {
             place++;
             if (place == NUM_PLAYER) place = 0;
         }
-        setNewGamePhase(event[2] == Deck3Cards.feastForCrows ? GamePhase.westerosPhase : GamePhase.consolidatePowerPhase);
+        setNewGamePhase(event[2] == Deck3Cards.feastForCrows ?
+                (time < LAST_TURN ? GamePhase.westerosPhase : GamePhase.end) : GamePhase.consolidatePowerPhase);
     }
 
     /**
@@ -1093,7 +1108,7 @@ public class Game {
                 }
             }
         }
-        setNewGamePhase(GamePhase.westerosPhase);
+        setNewGamePhase(time < LAST_TURN ? GamePhase.westerosPhase : GamePhase.end);
     }
 
     /**
@@ -1125,6 +1140,65 @@ public class Game {
         }
         if (!Settings.getInstance().isPassByRegime()) {
             houseTabPanel.repaintHouse(player);
+        }
+    }
+
+    private void tryToCaptureShips(int castleArea, int player) {
+        int portArea = map.getPortOfCastle(castleArea);
+        if (portArea >= 0 && !armyInArea[portArea].isEmpty()) {
+            int numShips = armyInArea[portArea].getSize();
+            int numCapturedShips = Math.min(restingUnitsOfPlayerAndType[player][UnitType.ship.getCode()], numShips);
+            if (numShips > numCapturedShips) {
+                armyInArea[portArea].killSomeUnits(numShips - numCapturedShips, KillingReason.navyLimit);
+            }
+            if (numCapturedShips > 0) {
+                areasWithTroopsOfPlayer.get(armyInArea[portArea].getOwner()).remove(portArea);
+                int exOwner = armyInArea[portArea].getOwner();
+                armyInArea[portArea].setOwner(player);
+                renewArea(portArea, exOwner);
+                say(HOUSE[player] + CAN_CAPTURE_OR_DESTROY_SHIPS);
+                int restShips = playerInterface[player].getNumCapturedShips(portArea);
+                Controller.getInstance().interruption();
+                if (restShips > numCapturedShips) {
+                    restShips = numCapturedShips;
+                    System.out.println(FLEET_VIOLATION_ERROR);
+                }
+                if (restShips < 0) {
+                    restShips = 0;
+                    System.out.println(DESTROY_EVERYTHING_ERROR);
+                }
+                say(HOUSE[player] + (restShips == 0 ? DESTROYS_ALL_SHIPS : CAPTURES + restShips +
+                        (restShips == 1 ? OF_SHIP : OF_SHIPA)));
+                if (restShips < numCapturedShips) {
+                    armyInArea[portArea].killSomeUnits(numCapturedShips - restShips, KillingReason.shipwreck);
+                    if (orderInArea[portArea] != null) {
+                        if (orderInArea[portArea].orderType() == OrderType.march) {
+                            areasWithMarches.get(exOwner).remove(portArea);
+                        } else if (orderInArea[portArea].orderType() == OrderType.consolidatePower) {
+                            areasWithCPs.get(exOwner).remove(portArea);
+                        }
+                        orderInArea[portArea] = null;
+                    }
+                    renewArea(portArea, player);
+                }
+            }
+        }
+    }
+
+    private void tryToDestroyNeutralShips(int castleArea) {
+        int portArea = map.getPortOfCastle(castleArea);
+        if (portArea >= 0 && !armyInArea[portArea].isEmpty()) {
+            int exOwner = armyInArea[portArea].getOwner();
+            armyInArea[portArea].killAllUnits(KillingReason.shipwreck);
+            if (orderInArea[portArea] != null) {
+                if (orderInArea[portArea].orderType() == OrderType.march) {
+                    areasWithMarches.get(exOwner).remove(portArea);
+                } else if (orderInArea[portArea].orderType() == OrderType.consolidatePower) {
+                    areasWithCPs.get(exOwner).remove(portArea);
+                }
+                orderInArea[portArea] = null;
+            }
+            renewArea(portArea, exOwner);
         }
     }
 
@@ -1194,26 +1268,11 @@ public class Game {
                 return false;
             }
         }
-
-        // Проверка по снабжению
-        virtualAreasWithTroops.clear();
-        virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
-        for (int i = 0; i < numUnits; i++) {
-            if (muster.getMusterUnit(i) instanceof UnitType) {
-                if (virtualAreasWithTroops.containsKey(muster.getArea(i))) {
-                    int armySize = virtualAreasWithTroops.get(muster.getArea(i));
-                    virtualAreasWithTroops.put(muster.getArea(i), armySize + 1);
-                } else {
-                    virtualAreasWithTroops.put(muster.getArea(i), 1);
-                }
-
-            }
-        }
-        if (!GameUtils.supplyTest(virtualAreasWithTroops, supply[player])) {
+        boolean result = supplyTestForMuster(muster);
+        if (!result) {
             say(MUSTER_SUPPLY_VIOLATION_ERROR);
-            return false;
         }
-        return true;
+        return result;
     }
 
     /**
@@ -1483,9 +1542,9 @@ public class Game {
                             say(MACE_EATS_MAN + map.getAreaNameRusLocative(areaOfBattle));
                             battleInfo.deleteUnit(heroSide == 0 ? SideOfBattle.defender : SideOfBattle.attacker, victimOfMace);
                             armyToSearchForFootmen.killUnit(victimOfMace, KillingReason.mace);
+                            renewArea(areaOfBattle, playerOnSide[1 - heroSide]);
                             countBattleVariables();
                             if (!Settings.getInstance().isPassByRegime()) {
-                                mapPanel.repaintArea(areaOfBattle);
                                 houseTabPanel.repaintHouse(playerOnSide[1 - heroSide]);
                             }
                         } else {
@@ -1496,7 +1555,8 @@ public class Game {
                         propertyUsed = false;
                         accessibleAreaSet.clear();
                         for (int adjacentArea: map.getAdjacentAreas(areaOfBattle)) {
-                            if (orderInArea[adjacentArea] != null && getTroopsOwner(adjacentArea) == playerOnSide[1 - heroSide]) {
+                            if (orderInArea[adjacentArea] != null && adjacentArea != areaOfMarch &&
+                                    getTroopsOwner(adjacentArea) == playerOnSide[1 - heroSide]) {
                                 accessibleAreaSet.add(adjacentArea);
                             }
                         }
@@ -1696,6 +1756,15 @@ public class Game {
                 renewHouseTroopsInArea(areaOfBattle);
             }
             attackingArmy = null;
+
+            // Захват кораблей в порту
+            if (map.getNumCastle(areaOfBattle) > 0) {
+                if (getAreaOwner(areaOfBattle) < 0) {
+                    tryToDestroyNeutralShips(areaOfBattle);
+                } else if (getAreaOwner(areaOfBattle) == winner) {
+                    tryToCaptureShips(areaOfBattle, winner);
+                }
+            }
             // Отступление
             if (retreatingArmy.getSize() > 0) {
                 int numRetreatingUnits = retreatingArmy.getSize();
@@ -1739,7 +1808,7 @@ public class Game {
                     retreatingArmy.killAllUnits(KillingReason.noAreaToRetreat);
                 } else {
                     if (minLosses > 0) {
-                        retreatingArmy.killSomeUnits(minLosses);
+                        retreatingArmy.killSomeUnits(minLosses, KillingReason.supplyLimit);
                     }
                     printAreasInCollection(trueAreasToRetreat, "Области для отступления");
                     switch (trueAreasToRetreat.size()) {
@@ -1747,16 +1816,10 @@ public class Game {
                             say(NO_AREAS_TO_RETREAT);
                         case 1:
                             // Если имеется единтсвенная область для отступления, то отступаем туда автоматически
-                            if (minLosses > 0) {
-                                retreatingArmy.killSomeUnits(minLosses);
-                            }
                             int onlyArea = trueAreasToRetreat.iterator().next();
                             armyInArea[onlyArea].addSubArmy(retreatingArmy);
-                            renewHouseTroopsInArea(onlyArea);
                             say(HOUSE[loser] + RETREATS_IN + map.getAreaNameRusAccusative(onlyArea));
-                            if (!Settings.getInstance().isPassByRegime()) {
-                                mapPanel.repaintArea(onlyArea);
-                            }
+                            renewArea(onlyArea, loser);
                             break;
                         default:
                             // Если есть выбор, то спрашиваем игрока, куда ему отступить
@@ -1774,11 +1837,8 @@ public class Game {
                                         map.getAreaNameRusAccusative(area));
                                 if (trueAreasToRetreat.contains(area)) {
                                     armyInArea[area].addSubArmy(retreatingArmy);
-                                    renewHouseTroopsInArea(area);
+                                    renewArea(area, loser);
                                     successFlag = true;
-                                    if (!Settings.getInstance().isPassByRegime()) {
-                                        mapPanel.repaintArea(area);
-                                    }
                                     break;
                                 } else {
                                     say(CANT_RETREAT_THERE_ERROR);
@@ -1788,7 +1848,7 @@ public class Game {
                             if (!successFlag) {
                                 int area = trueAreasToRetreat.iterator().next();
                                 armyInArea[area].addSubArmy(retreatingArmy);
-                                renewHouseTroopsInArea(area);
+                                renewArea(area, loser);
                                 say(HOUSE[loser] + RETREATS_IN +
                                         map.getAreaNameRusAccusative(area));
                             }
@@ -1829,13 +1889,13 @@ public class Game {
                     }
                     System.out.println(MINIMAL_LOSSES + minLosses + ".");
                     if (minLosses > 0) {
-                        attackingArmy.killSomeUnits(minLosses);
+                        attackingArmy.killSomeUnits(minLosses, KillingReason.supplyLimit);
                     }
                     if (attackingArmy.getSize() > 0) {
                         say(HOUSE[loser] + RETREATS_IN +
                                 map.getAreaNameRusAccusative(areaOfMarch));
                         armyInArea[areaOfMarch].addSubArmy(attackingArmy);
-                        renewHouseTroopsInArea(areaOfMarch);
+                        renewArea(areaOfMarch, loser);
                     }
                 }
             } else {
@@ -2719,7 +2779,12 @@ public class Game {
      * лишние войска. Вызывается после события "Снабжение" и после поражения от одичальнических охотников на снабжение
      */
     private void verifyNewSupplyLimits() {
-        // TODO реализовать роспуск войск, если игрок не вписывается в снабжение
+        for (int place = 0; place < NUM_PLAYER; place++) {
+            int player = trackPlayerOnPlace[TrackType.ironThrone.getCode()][place];
+            if (!GameUtils.supplyTest(areasWithTroopsOfPlayer.get(player), supply[player])) {
+                playDisband(player, DisbandReason.supply);
+            }
+        }
     }
 
     /**
@@ -3089,6 +3154,7 @@ public class Game {
                     // Высшая ставка
                     wildlingsStrength = PREEMPTIVE_RAID_WILDLINGS_STRENGTH;
                     preemptiveRaidCheater = exclusiveBidder;
+                    say(HOUSE[exclusiveBidder] + DOESNT_TAKE_PART);
                     wildlingAttack();
                     preemptiveRaidCheater = -1;
                 } else {
@@ -3402,7 +3468,40 @@ public class Game {
         }
         if (attempt >= MAX_TRIES_TO_GO) {
             say(HOUSE[player] + FAILED_TO_DISBAND);
-            System.exit(-1);
+            if (reason == DisbandReason.supply) {
+                ArrayList<Integer> areasWithSuchArmies = new ArrayList<>();
+                do {
+                    int breakingArmySize = GameUtils.getBreakingArmySize(areasWithTroopsOfPlayer.get(player), supply[player]);
+                    areasWithSuchArmies.clear();
+                    for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayer.get(player).entrySet()) {
+                        if (entry.getValue() == breakingArmySize) {
+                            areasWithSuchArmies.add(entry.getKey());
+                        }
+                    }
+                    int area = areasWithSuchArmies.get(random.nextInt(areasWithSuchArmies.size()));
+                    armyInArea[area].killWeakestUnit();
+                    renewArea(area, player);
+                } while (!GameUtils.supplyTest(areasWithTroopsOfPlayer.get(player), supply[player]));
+            } else {
+                if (reason == DisbandReason.hordeCastle) {
+                    Set<Integer> disbandAreas = new HashSet<>();
+                    for (int area : areasWithTroopsOfPlayer.get(player).keySet()) {
+                        if (map.getNumCastle(area) > 0 || armyInArea[area].getSize() >= 2) {
+                            disbandAreas.add(area);
+                        }
+                    }
+                    int area = LittleThings.getRandomElementOfSet(disbandAreas);
+                    armyInArea[area].killWeakestUnit();
+                    armyInArea[area].killWeakestUnit();
+                    renewArea(area, player);
+                } else {
+                    for (int numDisbands = reason.getNumDisbands(); numDisbands > 0; numDisbands--) {
+                        int area = LittleThings.getRandomElementOfSet(areasWithTroopsOfPlayer.get(player).keySet());
+                        armyInArea[area].killWeakestUnit();
+                        renewArea(area, player);
+                    }
+                }
+            }
         }
     }
 
@@ -3423,8 +3522,12 @@ public class Game {
     }
 
     private boolean validateDisband(DisbandPlayed disbandVariant, int player, DisbandReason reason) {
-        int numDisbands = disbandVariant.getNumberDisbands();
         HashMap<Integer, ArrayList<UnitType>> disbands = disbandVariant.getDisbandUnits();
+        int numDisbands = disbandVariant.getNumberDisbands();
+        if (numDisbands == 0){
+            say(EMPTY_DISBAND_ERROR);
+            return false;
+        }
         if (reason != DisbandReason.supply && reason.getNumDisbands() != numDisbands) {
             say(WRONG_DISBANDS_NUMBER_ERROR + reason.getNumDisbands() + DISBAND_RECEIVED + numDisbands);
             return false;
@@ -3452,9 +3555,12 @@ public class Game {
                 }
             }
         }
+        if (reason == DisbandReason.hordeCastle && disbands.size() > 1) {
+            say(HORDE_CASTLE_MULTIPLE_AREAS_ERROR);
+            return false;
+        }
         if (reason == DisbandReason.supply) {
-            // TODO реализовать проверку на снабжение
-            System.exit(0);
+            return supplyTestForDisband(disbandVariant, player);
         }
         return true;
     }
@@ -3542,6 +3648,14 @@ public class Game {
             total += entry.getValue();
         }
         return total;
+    }
+
+    private void renewArea(int area, int exOwner) {
+        areasWithTroopsOfPlayer.get(exOwner).remove(area);
+        renewHouseTroopsInArea(area);
+        if (!Settings.getInstance().isPassByRegime()) {
+            mapPanel.repaintArea(area);
+        }
     }
 
     public GameOfThronesMap getMap() {
@@ -3873,6 +3987,29 @@ public class Game {
         return GameUtils.supplyTest(virtualAreasWithTroops, supply[player]);
     }
 
+    /**
+     * Проверка на снабжения для данного варианта роспуска войск. Имеет смысл только для роспуска войск в результате
+     * уменьшения уровня снабжения.
+     * @param disbandVariant вариант роспуска войск
+     * @param player         номер игрока
+     * @return true, если вписываемся в снабжение
+     */
+    public boolean supplyTestForDisband(DisbandPlayed disbandVariant, int player) {
+        virtualAreasWithTroops.clear();
+        virtualAreasWithTroops.putAll(areasWithTroopsOfPlayer.get(player));
+        for (Map.Entry<Integer, ArrayList<UnitType>> entry: disbandVariant.getDisbandUnits().entrySet()) {
+            int area = entry.getKey();
+            int numDeletedUnits = entry.getValue().size();
+            virtualAreasWithTroops.put(area, virtualAreasWithTroops.get(area) - numDeletedUnits);
+        }
+        boolean result = GameUtils.supplyTest(virtualAreasWithTroops, supply[player]);
+        if (!result) {
+            say(DISBAND_SUPPLY_VIOLATION_ERROR);
+        }
+        return result;
+
+    }
+
     private PropertyChangeSupport gamePhaseChangeSupport = new PropertyChangeSupport(this);
 
     private void addListener(PropertyChangeListener listener) {
@@ -3935,11 +4072,7 @@ public class Game {
             //System.out.println("Состояние игры поменялось:" + event.getNewValue());
 
             if (gamePhase == GamePhase.westerosPhase) {
-                if (time == LAST_TURN) {
-                    gamePhase = GamePhase.end;
-                } else {
-                    time++;
-                }
+                time++;
             }
             say(ROUND_NUMBER + time + ". " + (event.getNewValue()).toString());
             // в зависимости от фазы игры выполняем разные действия
@@ -3965,7 +4098,7 @@ public class Game {
                     playNewEvents();
                     break;
                 default:
-                    say("Игра: Ну блять, я уже не знаю, что делать!");
+                    JOptionPane.showMessageDialog(GotFrame.getInstance(), "Игра закончена.");
                     break;
             }
         }

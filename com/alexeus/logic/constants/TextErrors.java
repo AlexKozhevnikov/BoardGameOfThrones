@@ -51,6 +51,8 @@ public class TextErrors {
     public static final String NO_DEFENDER_ERROR = "Ошибка! Попытка начать бой в области, где нет защитника!";
     public static final String CANT_SUPPORT_AGAINST_YOURSELF_ERROR = "Ошибка! Нельзя оказывать поддержку против самого себя!";
     public static final String COUNT_UNITS_ON_NEUTRAL_SIDE_ERROR = "Ошибка! Попытка посчитать юниты на нейтральной стороне.";
+    public static final String DESTROY_EVERYTHING_ERROR = "Попытка уничтожить больше кораблей, чем есть";
+    public static final String FLEET_VIOLATION_ERROR = "Попытка оставить больше кораблей, чем можно содержать";
     public static final String CANT_RETREAT_THERE_ERROR = "Нельзя отступить в эту область!";
     public static final String SAME_TYPES_ERROR = "Ошибка превращения одного юнита в другой: одинаковые типы!";
     public static final String INVALID_AREA_ERROR = "Ошибка: неподходящая область!";
@@ -68,7 +70,9 @@ public class TextErrors {
     public static final String WRONG_BID_ERROR = "Неверная ставка!";
     public static final String WRONG_TRACK_ORDER_ERROR = "Ошибка королевского решения: порядок по ставкам нарушен.";
     public static final String PLAYER_COUNTED_TWICE_ERROR = "Ошибка королевского решения: игрок выбран дважды.";
-    public static final String WRONG_DISBAND_ERROR = "Неверный формат роспуска войск!";
+    public static final String HORDE_CASTLE_MULTIPLE_AREAS_ERROR = "Необходимо удалить войска в ОДНОМ замке или крепости!";
+    public static final String DISBAND_SUPPLY_VIOLATION_ERROR = "Ошибка роспуска войск: по прежнему нарушен предел снабжения.";
+    public static final String EMPTY_DISBAND_ERROR = "Не указаны отряды для роспуска!";
     public static final String WRONG_DISBANDS_NUMBER_ERROR = "Неверное число распускаемых отрядов! Ожидалось ";
     public static final String DISBAND_RECEIVED = " отрядов, получено ";
     public static final String NOT_YOURS_ERROR = "Ошибка: данная область не принадлежит игроку!";

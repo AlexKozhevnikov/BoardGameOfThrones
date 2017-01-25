@@ -9,6 +9,8 @@ import com.alexeus.logic.constants.TextErrors;
 public enum KillingReason {
     sword,
     supplyLimit,
+    navyLimit,
+    shipwreck,
     noAreaToRetreat,
     mace,
     wildlings;
@@ -20,6 +22,10 @@ public enum KillingReason {
                 return "знак меча";
             case supplyLimit:
                 return "ограничение по снабжению";
+            case navyLimit:
+                return "предел флота";
+            case shipwreck:
+                return "потоплен";
             case noAreaToRetreat:
                 return "некуда отступать";
             case mace:

@@ -1,6 +1,6 @@
 package com.alexeus.graph;
 
-import com.alexeus.ai.PrimitivePlayer;
+import com.alexeus.GotFrame;
 import com.alexeus.control.Controller;
 import com.alexeus.control.Settings;
 import com.alexeus.logic.Game;
@@ -9,7 +9,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Set;
 
 public class Main {
 
@@ -17,7 +16,7 @@ public class Main {
         //printFonts();
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                JFrame frame = new JFrame("Board Game of Thrones");
+                JFrame frame = GotFrame.getInstance();
                 frame.setContentPane(new MainPanel());
                 addMenu(frame);
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
