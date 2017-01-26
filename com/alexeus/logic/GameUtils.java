@@ -15,7 +15,7 @@ import static com.alexeus.logic.constants.MainConstants.SUPPLY_NUM_GROUPS;
  * Класс содержит некоторые полезные для игры функции, которые можно абстрагировать от переменных конкретной партии.
  * Создан для того, чтобы рагрузить основной класс игры Game.
  */
-class GameUtils {
+public class GameUtils {
 
     /**
      * Метод проверяет, нарушается ли предел снабжения при данном расположении войск игрока
@@ -23,7 +23,7 @@ class GameUtils {
      * @param supplyLevel     уровень снабжения игрока
      * @return true, если предел снабжения не нарушается
      */
-    public static boolean supplyTest(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+    public static boolean supplyTest(Map<Integer, Integer> areasWithTroops, int supplyLevel) {
         int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
         System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
         for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {
@@ -52,7 +52,7 @@ class GameUtils {
      * @param supplyLevel     уровень снабжения игрока
      * @return размер армии
      */
-    public static int getBreakingArmySize(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+    public static int getBreakingArmySize(Map<Integer, Integer> areasWithTroops, int supplyLevel) {
         int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
         System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
         for (int armySize = MAX_TROOPS_IN_AREA; armySize >= 2; armySize--) {
@@ -81,7 +81,7 @@ class GameUtils {
      * @param supplyLevel     уровень снабжения игрока
      * @return размер армии
      */
-    public static int getBiggestFreeArmySize(HashMap<Integer, Integer> areasWithTroops, int supplyLevel) {
+    public static int getBiggestFreeArmySize(Map<Integer, Integer> areasWithTroops, int supplyLevel) {
         int[] nFreeGroups = new int[MAX_TROOPS_IN_AREA - 1];
         System.arraycopy(SUPPLY_NUM_GROUPS[supplyLevel], 0, nFreeGroups, 0, SUPPLY_NUM_GROUPS[supplyLevel].length);
         for (Map.Entry<Integer, Integer> entry: areasWithTroops.entrySet()) {

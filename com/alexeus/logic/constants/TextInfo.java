@@ -132,7 +132,7 @@ public class TextInfo {
 
     /************** Одичалые и роспуск войск ******************/
     public static final String WILDLINGS_ATTACK_WITH_STRENGTH = "Нашествие одичалых с силой ";
-    public static final String BIDS_ARE = "Ставки игроков: ";
+    public static final String BIDS_ARE = "Ставки: ";
     public static final String NIGHT_WATCH_VICTORY = "Победа ночного дозора!";
     public static final String NIGHT_WATCH_DEFEAT = "Победа одичалых!";
     public static final String CHOOSES = " выбирает";

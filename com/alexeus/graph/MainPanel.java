@@ -8,6 +8,8 @@ import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.logic.Game;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -20,7 +22,7 @@ import static com.alexeus.graph.constants.Constants.*;
 public class MainPanel extends JPanel {
 
     private MapPanel mapPanel;
-    private ImageIcon playIcon, playEndIcon, nextIcon, pauseIcon;
+    private ImageIcon playIcon, playEndIcon, nextIcon, pauseIcon, nextTurnIcon;
     //private ImageIcon collapseIcon, returnIcon;
     //private JButton leftPanelCollapser;
 
@@ -86,6 +88,15 @@ public class MainPanel extends JPanel {
         leftPanel.setLayout(new BorderLayout());
 
         LeftTabPanel tabbedPane = new LeftTabPanel();
+        /*tabbedPane.addChangeListener(new ChangeListener() {
+            // TODO Не работает! Подстраивает размер под предыдущую выбранную вкладку, а не под новую. Почему?..
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if (e.getSource() instanceof JTabbedPane) {
+                    mapPanel.adjustIndent();
+                }
+            }
+        });*/
         leftPanel.add(tabbedPane, BorderLayout.PAGE_END);
 
         JPanel buttonsPanel = new JPanel(new FlowLayout());
@@ -94,6 +105,7 @@ public class MainPanel extends JPanel {
         nextButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                Settings.getInstance().setPlayRegime(PlayRegimeType.none);
                 synchronized (Game.getInstance()) {
                     Game.getInstance().notify();
                 }
@@ -104,16 +116,27 @@ public class MainPanel extends JPanel {
         playButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                PlayRegimeType playRegime = Settings.getInstance().getPlayRegime();
-                playButton.setIcon(playRegime == PlayRegimeType.timeout ? playIcon: pauseIcon);
-                Settings.getInstance().setPlayRegime(playRegime == PlayRegimeType.timeout ?
+                PlayRegimeType previousPlayRegime = Settings.getInstance().getPlayRegime();
+                playButton.setIcon(previousPlayRegime == PlayRegimeType.timeout ? playIcon: pauseIcon);
+                Settings.getInstance().setPlayRegime(previousPlayRegime == PlayRegimeType.timeout ?
                         PlayRegimeType.none : PlayRegimeType.timeout);
                 // Если раньше режим был выключен, то теперь мы его ВКЛЮЧИЛИ, и должны прервать ожидание.
-                if (playRegime == PlayRegimeType.none) {
+                if (previousPlayRegime == PlayRegimeType.none) {
                     synchronized (Game.getInstance()) {
                         Controller.getInstance().setTimer();
                         Game.getInstance().notify();
                     }
+                }
+            }
+        });
+        JButton nexTurnButton = new JButton("", nextTurnIcon);
+        nexTurnButton.setPreferredSize(new Dimension(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE));
+        nexTurnButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Settings.getInstance().setPlayRegime(PlayRegimeType.nextTurn);
+                synchronized (Game.getInstance()) {
+                    Game.getInstance().notify();
                 }
             }
         });
@@ -130,6 +153,7 @@ public class MainPanel extends JPanel {
         });
         buttonsPanel.add(nextButton);
         buttonsPanel.add(playButton);
+        buttonsPanel.add(nexTurnButton);
         buttonsPanel.add(playEndButton);
         buttonsPanel.setPreferredSize(new Dimension(BUTTON_PANEL_WIDTH, BUTTON_PANEL_HEIGHT));
         leftPanel.add(buttonsPanel, BorderLayout.PAGE_START);
@@ -139,7 +163,7 @@ public class MainPanel extends JPanel {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(50);
                     repaint();
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
@@ -156,6 +180,7 @@ public class MainPanel extends JPanel {
         playEndIcon = imageLoader.getIcon(PLAY_END, TAB_ICON_SIZE, TAB_ICON_SIZE);
         nextIcon = imageLoader.getIcon(NEXT, TAB_ICON_SIZE, TAB_ICON_SIZE);
         pauseIcon = imageLoader.getIcon(PAUSE, TAB_ICON_SIZE, TAB_ICON_SIZE);
+        nextTurnIcon = imageLoader.getIcon(NEXT_TURN, TAB_ICON_SIZE, TAB_ICON_SIZE);
         //collapseIcon = imageLoader.getIcon(TABS + COLLAPSE, TAB_ICON_SIZE, TAB_ICON_SIZE);
         //returnIcon = imageLoader.getIcon(TABS + RETURN, TAB_ICON_SIZE, TAB_ICON_SIZE);
     }

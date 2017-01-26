@@ -17,27 +17,16 @@ public class OrderScheme {
 
     private HashMap<Integer, Order> orderInArea;
 
-    /**
-     * Лимиты на количество приказов определённого типа
-     */
-    private HashMap<OrderType, Integer> limitsOfOrderType;
-
     public OrderScheme() {
         orderInArea = new HashMap<>();
-        limitsOfOrderType = new HashMap<>();
-    }
-
-    public void setOrderLimits(HashMap<OrderType, Integer> limits) {
-        limitsOfOrderType.putAll(limits);
     }
 
     /**
      * Метод добавляет приказ в схему приказов
      * @param area  номер области
      * @param order приказ
-     * @return true, если удалось успешно добавить
      */
-    public boolean addOrderInArea(int area, Order order) {
+    public void addOrderInArea(int area, Order order) {
         Order modifiedOrder = order;
         switch (order) {
             case raidS:
@@ -54,13 +43,7 @@ public class OrderScheme {
                 modifiedOrder = Order.support;
                 break;
         }
-        if (limitsOfOrderType.get(modifiedOrder.orderType()) == 0) {
-            return false;
-        } else {
-            orderInArea.put(area, modifiedOrder);
-            limitsOfOrderType.put(modifiedOrder.orderType(), limitsOfOrderType.get(modifiedOrder.orderType()) - 1);
-            return true;
-        }
+        orderInArea.put(area, modifiedOrder);
     }
 
     public boolean containsOrder(Order targetOrder) {

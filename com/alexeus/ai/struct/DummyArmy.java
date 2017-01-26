@@ -60,6 +60,7 @@ public class DummyArmy {
 
     public UnitType getWeakestUnit() {
         boolean hasSiegeEngines = false;
+        UnitType currentWeakestUnit = null;
         for (UnitType unit : unitTypes) {
             if (unit.getStrength() == 1) {
                 return unit;

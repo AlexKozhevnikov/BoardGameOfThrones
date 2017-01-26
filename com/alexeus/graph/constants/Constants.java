@@ -16,6 +16,7 @@ public class Constants {
     public static final String FIGHT = "fight.png";
     public static final String PLAY = "play.gif";
     public static final String PLAY_END = "playEnd.png";
+    public static final String NEXT_TURN = "nextTurn.png";
     public static final String COLLAPSE = "collapse.png";
     public static final String RETURN = "return.png";
     public static final String POWER = "_power.png";
@@ -57,7 +58,7 @@ public class Constants {
     public static final int PORT_SIZE = 134;
 
     public static final int FRAME_WIDTH = 1350;
-    public static final int FRAME_HEIGHT = 660;
+    public static final int FRAME_HEIGHT = 650;
     public static final int BUTTON_PANEL_WIDTH = 300;
     public static final int BUTTON_PANEL_HEIGHT = 80;
     public static final int EVENT_TAB_WIDTH = 350;

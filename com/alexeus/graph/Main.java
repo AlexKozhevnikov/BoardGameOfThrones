@@ -39,9 +39,9 @@ public class Main {
         newGameItemMenu.setFont(font);
         fileMenu.add(newGameItemMenu);
 
-        JMenuItem openItem = new JMenuItem("Загрузить партию");
+        /*JMenuItem openItem = new JMenuItem("Загрузить партию");
         openItem.setFont(font);
-        fileMenu.add(openItem);
+        fileMenu.add(openItem);*/
 
         JMenuItem exitItem = new JMenuItem("Выйти");
         exitItem.setFont(font);

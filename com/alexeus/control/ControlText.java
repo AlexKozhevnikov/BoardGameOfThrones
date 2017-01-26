@@ -18,7 +18,7 @@ public class ControlText {
     public static final String ESTABLISH_SUPPORT = " определяются с подмогой";
     public static final String CHOOSES_CARD = " выбирает карту Дома";
     public static final String CHOOSE_CARD = " выбирают карты Домов";
-    public static final String CERCEI = "Серсея Ланнистер удаляет приказ противника";
+    public static final String CERSEI = "Серсея Ланнистер удаляет приказ противника";
     public static final String QUEEN_OF_THORNS = "Королева Шипов удаляет приказ противника";
     public static final String PATCHFACE = "Пестряк сбрасывает карту противника";
     public static final String RENLY = "Ренли Баратеон посвящает в рыцари";

@@ -1,6 +1,7 @@
 package com.alexeus.control;
 
 import com.alexeus.GotFrame;
+import com.alexeus.control.enums.PlayRegimeType;
 import com.alexeus.graph.MapPanel;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.GamePhase;
@@ -15,14 +16,17 @@ public class Controller {
 
     private static Controller instance;
 
-    // Игра
     private Game game;
 
     private Settings settings;
 
     private long timeFromLastInterrupt;
 
-    private MapPanel mapPanel;
+    private int gameRound;
+
+    private Thread currentGameThread;
+
+    //private MapPanel mapPanel;
 
     private Controller() {
         settings = Settings.getInstance();
@@ -36,37 +40,67 @@ public class Controller {
     }
 
     public void startNewGame() {
-        game = Game.getInstance();
-        game.prepareNewGame();
-        mapPanel = game.getMapPanel();
-        timeFromLastInterrupt = System.currentTimeMillis();
-        game.setNewGamePhase(GamePhase.planningPhase);
+        if (currentGameThread != null) {
+            currentGameThread.interrupt();
+            settings.setPlayRegime(PlayRegimeType.none);
+        }
+        currentGameThread = new Thread() {
+            @Override public void run() {
+                game = Game.getInstance();
+                game.prepareNewGame();
+                //mapPanel = game.getMapPanel();
+                timeFromLastInterrupt = System.currentTimeMillis();
+                gameRound = game.getTime();
+                game.setNewGamePhase(GamePhase.planningPhase);
+            }
+        };
+        currentGameThread.start();
     }
 
     public Game getGame() {
         return game;
     }
 
-    public void interruption(String text) {
+    public void controlPoint(String text) {
         //mapPanel.repaintActionString(player, text.toString());
         GotFrame.getInstance().setTitle("Игра Престолов. " + game.getTime() + " раунд. " + text);
+        waitingCore();
+    }
+
+    private void waitingCore() {
+        int previousGameTime = gameRound;
+        gameRound = game.getTime();
         try {
-            switch (Settings.getInstance().getPlayRegime()) {
+            switch (settings.getPlayRegime()) {
                 case none:
                     synchronized (Game.getInstance()) {
                         game.wait();
                     }
                     break;
                 case timeout:
-                    Thread.sleep(timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis());
+                    long timeToWait = timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis();
+                    if (timeToWait > 0) {
+                        synchronized (Game.getInstance()) {
+                            game.wait(timeToWait);
+                        }
+                        if (settings.getPlayRegime() != PlayRegimeType.timeout) {
+                            waitingCore();
+                        }
+                    }
                     setTimer();
+                    break;
+                case nextTurn:
+                    if (previousGameTime != gameRound) {
+                        synchronized (Game.getInstance()) {
+                            game.wait();
+                        }
+                    }
                     break;
                 case playEnd:
                     break;
             }
         } catch (InterruptedException ex) {
-            System.err.println("Друзья, нечто ужасное случилось! Хватит это терпеть, давайте дебажить!");
-            ex.printStackTrace();
+            Thread.currentThread().interrupt();
         }
     }
 

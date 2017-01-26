@@ -162,35 +162,9 @@ public class Army {
     }
 
     /**
-     * Вызывается при проигрыше данной армии. Осадные башни уничтожаются сразу.
-     * Определённое число юнитов погибает, остальные становятся ранеными.
-     * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
-     * @param reason          причина уничтожения
+     * Вызывается при проигрыше данной армии. Все юниты становятся ранеными
      */
-    public void woundAndKillTroops(int numDoomedTroops, KillingReason reason) {
-        int nKilled = 0;
-        ArrayList<Unit> unitsToKill = new ArrayList<>();
-        for (Unit unit: units) {
-            // Осадные башни и раненые уничтожаются сразу
-            if (unit.getUnitType() == UnitType.siegeEngine || unit.isWounded()) {
-                unitsToKill.add(unit);
-            } else if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
-                unitsToKill.add(unit);
-                nKilled++;
-            }
-        }
-        // Если не хватило убийств пешек, принимаемся за рыцарей
-        if (nKilled < numDoomedTroops) {
-            for (Unit unit: units) {
-                if (nKilled < numDoomedTroops && unit.getUnitType() == UnitType.knight) {
-                    unitsToKill.add(unit);
-                    nKilled++;
-                }
-            }
-        }
-        for (Unit doomedUnit: unitsToKill) {
-            killUnit(doomedUnit, reason);
-        }
+    public void woundAllTroops() {
         // Оставшиеся в живых войска становятся ранеными
         for (Unit unit: units) {
             unit.setWounded(true);
@@ -232,7 +206,10 @@ public class Army {
         int nKilled = 0;
         ArrayList<Unit> unitsToKill = new ArrayList<>();
         for (Unit unit: units) {
-            if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
+            // Осадные башни и раненые уничтожаются сразу
+            if (unit.getUnitType() == UnitType.siegeEngine || unit.isWounded()) {
+                unitsToKill.add(unit);
+            } else if (nKilled < numDoomedTroops && (unit.getUnitType() == UnitType.pawn || unit.getUnitType() == UnitType.ship)) {
                 unitsToKill.add(unit);
                 nKilled++;
             }
@@ -248,6 +225,27 @@ public class Army {
         }
         for (Unit unit: unitsToKill) {
             killUnit(unit, reason);
+        }
+    }
+
+    /**
+     * Метод топит определённое число кораблей. Отличается от killSomeUnits тем, что раненые корабли выживают
+     * @param numShips число кораблей, что подобает потопить
+     */
+    public void wreckSomeShips(int numShips) {
+        ArrayList<Unit> unitsToKill = new ArrayList<>();
+        int nKilled = 0;
+        for (Unit unit: units) {
+            if (unit.getUnitType() == UnitType.ship) {
+                unitsToKill.add(unit);
+                nKilled++;
+                if (nKilled == numShips) {
+                    break;
+                }
+            }
+        }
+        for (Unit unit: unitsToKill) {
+            killUnit(unit, KillingReason.navyLimit);
         }
     }
 

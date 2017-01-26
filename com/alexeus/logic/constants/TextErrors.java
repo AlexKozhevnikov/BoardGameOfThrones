@@ -83,4 +83,5 @@ public class TextErrors {
     public static final String LACK_OF_PAWNS_TO_UPGRADE_ERROR = "В области не хватает пехотинцев для улучшения!";
     public static final String WRONG_NUMBER_OF_KNIGHTS_TO_DO_ERROR = "Выбрано неверное количаство рыцарей!";
     public static final String LACK_OF_KNIGHTS_TO_DO_ERROR = "В области не хватает рыцарей!";
+    public static final String TOO_MANY_SHIPS_IN_PORT_ERROR = "В порту не может находиться более 3 кораблей!";
 }

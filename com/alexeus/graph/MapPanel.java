@@ -313,12 +313,12 @@ public class MapPanel extends JPanel{
                 (int) (WILDLINGS_CARD_WIDTH  / scale), (int) (WILDLINGS_CARD_HEIGHT / scale)));
     }
 
-    public void repaintActionString(int player, String text) {
+    /*public void repaintActionString(int player, String text) {
         activePlayer = player;
         actionText = text;
         Point location = getLocation();
         repaint();
-    }
+    }*/
 
     /**
      * Метод вызывается при изменении масштаба путём прокрутки мышиного колеса. Изменяет масштаб и текущую локацию.
@@ -335,12 +335,7 @@ public class MapPanel extends JPanel{
             scale = MAX_SCALE;
         }
         d = oldScale/ scale;
-        int scorlPaneWidth = getParent().getWidth();
-        if (mapImage.getWidth(null) / scale < scorlPaneWidth) {
-            indent = (int) (scorlPaneWidth - (mapImage.getWidth(null)) / scale) / 2;
-        } else {
-            indent = 0;
-        }
+        setIndent();
         int w = (int) (mapImage.getWidth(null) / scale)  + 2 * indent;
         int h = (int) (mapImage.getHeight(null) / scale);
         preferredSize.setSize(w, h);
@@ -350,6 +345,24 @@ public class MapPanel extends JPanel{
         int offY = (int)(p.y * d) - p.y;
         setLocation(getLocation().x - offX, getLocation().y - offY);
         getParent().doLayout();
+
+    }
+
+    public void adjustIndent() {
+        setIndent();
+        preferredSize.setSize((int) (mapImage.getWidth(null) / scale)  + 2 * indent,
+                (int) (mapImage.getHeight(null) / scale));
+        getParent().doLayout();
+        //repaint();
+    }
+
+    private void setIndent() {
+        int scrollPaneWidth = getParent().getWidth();
+        if (mapImage.getWidth(null) / scale < scrollPaneWidth) {
+            indent = (int) (scrollPaneWidth - (mapImage.getWidth(null)) / scale) / 2;
+        } else {
+            indent = 0;
+        }
     }
 
     /**

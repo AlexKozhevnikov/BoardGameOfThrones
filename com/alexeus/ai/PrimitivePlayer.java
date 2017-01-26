@@ -5,8 +5,8 @@ import com.alexeus.ai.struct.DummyArmy;
 import com.alexeus.ai.struct.OrderScheme;
 import com.alexeus.ai.struct.VotesForOrderInArea;
 import com.alexeus.ai.util.PlayerUtils;
-import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameUtils;
 import com.alexeus.logic.enums.*;
 import com.alexeus.logic.struct.*;
 import com.alexeus.map.GameOfThronesMap;
@@ -212,7 +212,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
         // Заполняем схему приказов
         OrderScheme orderScheme = new OrderScheme();
-        orderScheme.setOrderLimits(numOfOrderTypes);
         // Сбор войск - превыше всего
         if (numStars > 0 && numOfOrderTypes.get(OrderType.consolidatePower) > 0) {
             float numVotesForMuster = 0;
@@ -275,14 +274,18 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     break;
                 }
             }
-            if (random.nextFloat() * voteInAreaForOrder.getOrderVotesInArea(potentialMarchArea, Order.march) >
-                    voteInAreaForOrder.getTotalVotesInArea(potentialMarchArea)) {
+            if (voteInAreaForOrder.getOrderVotesInArea(potentialMarchArea, Order.march) >
+                    random.nextFloat() * voteInAreaForOrder.getTotalVotesInArea(potentialMarchArea)) {
                 // Поход состоялся
                 orderScheme.addOrderInArea(potentialMarchArea, Order.march);
+                numRestingMarches--;
+                numOfOrderTypes.put(OrderType.march, numOfOrderTypes.get(OrderType.march) - 1);
+                totalVotes -= voteInAreaForOrder.getOrderVotesInArea(potentialMarchArea, Order.march);
+                areasToCommand.remove(potentialMarchArea);
                 // Если закончились звёзды, то все остальные типы приказов режем безо всякого сожаления
-                if (--numRestingStars == 0) {
+                /*if (--numRestingStars == 0) {
                     cutOrdersWithoutStar();
-                }
+                }*/
             }
             // Вне зависимости от того, состоялся ли поход, удаляем область из списка первичных претендентов
             primaryMarchAreas.remove(potentialMarchArea);
@@ -291,10 +294,13 @@ public class PrimitivePlayer implements GotPlayerInterface{
             voteInAreaForOrder.forbidOrder(Order.march);
         }
         if (orderScheme.getNumOfOrders(Order.march) == 3) {
-            numRestingStars -= 1;
+            if (--numRestingStars == 0) {
+                cutOrdersWithoutStar();
+            }
         }
 
         // Оставшиеся приказы разыгрываем кое-как
+        // TODO Изредка проскакивает жопа мира. Почему?
         voteInAreaForOrder.forbidOrder(Order.consolidatePowerS);
         while (!areasToCommand.isEmpty()) {
             int area = LittleThings.getRandomElementOfSet(areasToCommand);
@@ -310,6 +316,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         cutOrdersWithoutStar();
                     }
                 }
+            }
+            if (numRestingStars < 0) {
+                System.out.println("Вот она, жопа мира");
             }
             areasToCommand.remove(area);
         }
@@ -421,7 +430,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public String useRaven() {
-        return MainConstants.RAVEN_SEES_WILDLINGS_CODE;
+        return RAVEN_SEES_WILDLINGS_CODE;
     }
 
     @Override
@@ -519,6 +528,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 game.getPowerTokenInArea(areaFrom) < 0;
         // Если в каком-то из вариантов походов побеждается нейтральный гарнизон, то выбор вариантов сужается.
         boolean isNeutralGarrisonDefeated = false;
+        boolean failFlag;
         // Возня с меняющимися индексами
         int armySize = myUnits.size();
         int numAreasToMove = areasToMove.size();
@@ -529,6 +539,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             // Проверка на количество начинающихся битв
             int nBattle = 0;
             int battleArea = -1;
+            failFlag = false;
             for (int indexIndex = 0; indexIndex < armySize; indexIndex++) {
                 int area = areasToMove.get(indexes[indexIndex]);
                 if (isBattleBeginInArea.get(area) && area != battleArea) {
@@ -552,7 +563,17 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 march.setLeaveToken(isLeaveToken);
                 march.setDestinationsOfMarch(destinationsOfMarch);
                 // Проверка на снабжение
-                if (game.supplyTestForMarch(march)) {
+                if (!game.supplyTestForMarch(march)) {
+                    failFlag = true;
+                }
+                // Проверка на число кораблей в порту
+                for (Map.Entry<Integer, ArrayList<UnitType>> entry: destinationsOfMarch.entrySet()){
+                    if (map.getAreaType(entry.getKey()) == AreaType.port &&
+                            entry.getValue().size() + game.getArmyInArea(entry.getKey()).getSize() > MAX_TROOPS_IN_PORT) {
+                        failFlag = true;
+                    }
+                }
+                if (!failFlag) {
                     // Если гарнизона нет, то добавляем вариант похода
                     if ((battleArea < 0 || !game.isNeutralGarrisonInArea(battleArea)) && !isNeutralGarrisonDefeated) {
                         marches.add(march);
@@ -627,7 +648,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         }
         int curActiveCardIndex = 0;
         int neededActiveCardIndex = random.nextInt(nActiveCards);
-        for (int curCard = 0; curCard < MainConstants.NUM_HOUSE_CARDS; curCard++) {
+        for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
             if (isCardActive[curCard]) {
                 if (curActiveCardIndex == neededActiveCardIndex) {
                     return curCard;
@@ -811,9 +832,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
         DisbandPlayed disbandVariant = new DisbandPlayed();
         int numDisbands;
         if (reason == DisbandReason.hordeCastle) {
+            // Нужно распустить 2 юнита в одном из своих замков и крепостей
             Set<Integer> disbandAreas = new HashSet<>();
             for (int area : areasWithTroopsOfPlayer) {
-                if (map.getNumCastle(area) > 0 || armyInArea.get(area).getSize() >= 2) {
+                if (map.getNumCastle(area) > 0 || armyInArea.get(area).getSize() >= reason.getNumDisbands()) {
                     disbandAreas.add(area);
                 }
             }
@@ -827,6 +849,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             return disbandVariant;
         }
         if (reason != DisbandReason.supply) {
+            // Нужно распустить фиксированное число юнитов
             numDisbands = reason.getNumDisbands();
             // Сначала снимаем "халяву": пешек и корабли, в областях с которыми уже есть юниты
             HashMap<Integer, Integer> numDisbandSwipe = PlayerUtils.getNumDisbandSwipe(armyInArea);
@@ -858,7 +881,25 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 numDisbands--;
             }
         } else {
-            return disbandVariant;
+            // Нужно распустить войска из-за снабжения
+            ArrayList<Integer> areasWithSuchArmies = new ArrayList<>();
+            int supplyLevel = game.getSupply(houseNumber);
+            Map<Integer, Integer> areasWithTroopsOfPlayerAndSize = new HashMap<>();
+            areasWithTroopsOfPlayerAndSize.putAll(game.getAreasWithTroopsOfPlayerAndSize(houseNumber));
+            do {
+                int breakingArmySize = GameUtils.getBreakingArmySize(areasWithTroopsOfPlayerAndSize, supplyLevel);
+                areasWithSuchArmies.clear();
+                for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayerAndSize.entrySet()) {
+                    if (entry.getValue() == breakingArmySize) {
+                        areasWithSuchArmies.add(entry.getKey());
+                    }
+                }
+                int area = areasWithSuchArmies.get(random.nextInt(areasWithSuchArmies.size()));
+                UnitType weakestUnit = armyInArea.get(area).getWeakestUnit();
+                armyInArea.get(area).removeUnit(weakestUnit);
+                disbandVariant.addDisbandedUnit(area, weakestUnit);
+                areasWithTroopsOfPlayerAndSize.put(area, areasWithTroopsOfPlayerAndSize.get(area) - 1);
+            } while (!GameUtils.supplyTest(areasWithTroopsOfPlayerAndSize, supplyLevel));
         }
         return disbandVariant;
     }
@@ -987,7 +1028,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     protected void say(String text) {
-        game.say(MainConstants.HOUSE[houseNumber] + ": " + text);
+        game.say(HOUSE[houseNumber] + ": " + text);
     }
 
     protected MusterPlayed musterInArea(int castleArea) {
@@ -1173,7 +1214,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     protected void addNewMusterVariant(HashSet<MusterPlayed> set, MusterPlayed muster) {
-        if (game.supplyTestForMuster(muster)) {
+        if (game.supplyTestForMuster(muster) && game.portTroopsTestForMuster(muster)) {
             set.add(muster);
         }
     }

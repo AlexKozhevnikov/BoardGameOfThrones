@@ -46,7 +46,7 @@ public class Settings {
     }
 
     public boolean isTrueAutoSwitchTabs() {
-        return autoSwitchTabs && playRegime != PlayRegimeType.playEnd;
+        return autoSwitchTabs && playRegime != PlayRegimeType.playEnd && playRegime != PlayRegimeType.nextTurn;
     }
 
     public boolean isPassByRegime() {
