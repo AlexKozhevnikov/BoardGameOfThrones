@@ -2,9 +2,12 @@ package com.alexeus.control;
 
 import com.alexeus.GotFrame;
 import com.alexeus.control.enums.PlayRegimeType;
+import com.alexeus.graph.EndGamePanel;
 import com.alexeus.graph.MapPanel;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.GamePhase;
+
+import javax.swing.*;
 
 import static com.alexeus.logic.constants.MainConstants.*;
 
@@ -55,6 +58,12 @@ public class Controller {
             }
         };
         currentGameThread.start();
+    }
+
+    public void endTheGame() {
+        currentGameThread.interrupt();
+        JOptionPane.showConfirmDialog(GotFrame.getInstance(), new EndGamePanel(), "Игра закончена.",
+                JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
     }
 
     public Game getGame() {

@@ -22,5 +22,7 @@ public enum AreaStatus {
     // Земля, рядом с которой есть вражеские территории
     borderLand,
     // Замок, в котором можно безопасно построить войска
-    musterCastle
+    musterCastle,
+    // Остров, окружённый врагом
+    invadedIsle
 }

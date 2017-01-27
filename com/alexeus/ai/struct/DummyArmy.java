@@ -60,7 +60,6 @@ public class DummyArmy {
 
     public UnitType getWeakestUnit() {
         boolean hasSiegeEngines = false;
-        UnitType currentWeakestUnit = null;
         for (UnitType unit : unitTypes) {
             if (unit.getStrength() == 1) {
                 return unit;
@@ -72,8 +71,14 @@ public class DummyArmy {
         return hasSiegeEngines ? UnitType.siegeEngine : UnitType.knight;
     }
 
-    public void setUnits(ArrayList<UnitType> unitTypes) {
-        this.unitTypes = unitTypes;
+    public int getStrength(boolean isAttackCastle) {
+        int strength = 0;
+        for (UnitType unit: unitTypes) {
+            if (isAttackCastle || unit != UnitType.siegeEngine) {
+                strength += unit.getStrength();
+            }
+        }
+        return strength;
     }
 
     @Override

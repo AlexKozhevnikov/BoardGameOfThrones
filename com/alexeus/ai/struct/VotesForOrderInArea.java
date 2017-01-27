@@ -1,6 +1,7 @@
 package com.alexeus.ai.struct;
 
 import com.alexeus.logic.enums.Order;
+import com.alexeus.map.GameOfThronesMap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,16 +31,20 @@ public class VotesForOrderInArea {
     }
 
     public void setOrderVotesInArea(int area, Order order, float votes) {
+        float prevOrderVotes = voteInAreaForOrder.get(area).containsKey(order) ? voteInAreaForOrder.get(area).get(order) : 0;
         voteInAreaForOrder.get(area).put(order, votes);
-        float prevVotes = numVotesInArea.containsKey(area) ? numVotesInArea.get(area) : 0;
-        numVotesInArea.put(area, votes + prevVotes);
+        float prevNumVotes = numVotesInArea.containsKey(area) ? numVotesInArea.get(area) : 0;
+        numVotesInArea.put(area, prevNumVotes + votes - prevOrderVotes);
     }
 
     public float getOrderVotesInArea(int area, Order order) {
-        return voteInAreaForOrder.get(area).get(order);
+        return voteInAreaForOrder.get(area).containsKey(order) ? voteInAreaForOrder.get(area).get(order) : 0;
     }
 
     public float getTotalVotesInArea(int area) {
+        if (!numVotesInArea.containsKey(area)) {
+            return 0;
+        }
         return numVotesInArea.get(area);
     }
 
@@ -57,17 +62,13 @@ public class VotesForOrderInArea {
         }
     }
 
-    public boolean removeArea(int area) {
-        if (voteInAreaForOrder.containsKey(area)) {
-            voteInAreaForOrder.remove(area);
-            numVotesInArea.remove(area);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public Order giveCommand(int area) {
+        if (!numVotesInArea.containsKey(area)) {
+            return null;
+        }
+        if (numVotesInArea.get(area) <= 0) {
+            return null;
+        }
         float trueVote = random.nextFloat() * numVotesInArea.get(area);
         float curVote = 0;
         for (Map.Entry<Order, Float> entry: voteInAreaForOrder.get(area).entrySet()) {
@@ -77,5 +78,29 @@ public class VotesForOrderInArea {
             }
         }
         return null;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        boolean firstFlag = true;
+        for (Map.Entry<Integer, HashMap<Order, Float>> entry: voteInAreaForOrder.entrySet()) {
+            if (!firstFlag) {
+                sb.append("; ");
+            }
+            sb.append(entry.getKey()).append(": ");
+            firstFlag = true;
+            for (Map.Entry<Order, Float> voteEntry: entry.getValue().entrySet()) {
+                if (!firstFlag) {
+                    sb.append(", ");
+                } else {
+                    firstFlag = false;
+                }
+                sb.append(voteEntry.getKey()).append(" - ").append(voteEntry.getValue());
+            }
+            sb.append(", sum=").append(numVotesInArea.get(entry.getKey()));
+            firstFlag = false;
+        }
+        return sb.toString();
     }
 }

@@ -325,12 +325,17 @@ public class Game {
         armyInArea[41].addUnit(UnitType.pawn, 5);
 
         // Баловство
-        armyInArea[46].addUnit(UnitType.pawn, 1);
-        armyInArea[49].addUnit(UnitType.pawn, 1);
-        armyInArea[52].addUnit(UnitType.pawn, 1);
-        armyInArea[38].addUnit(UnitType.pawn, 1);
-        armyInArea[1].addUnit(UnitType.ship, 1);
-        armyInArea[0].addUnit(UnitType.ship, 1);
+        /* armyInArea[39].addUnit(UnitType.knight, 1);
+        armyInArea[39].addUnit(UnitType.knight, 1);
+        armyInArea[39].addUnit(UnitType.knight, 1);
+        armyInArea[50].addUnit(UnitType.knight, 1);
+        armyInArea[49].addUnit(UnitType.knight, 2);
+        armyInArea[49].addUnit(UnitType.knight, 2);
+        armyInArea[49].addUnit(UnitType.knight, 2);
+        armyInArea[30].addUnit(UnitType.knight, 5);
+        armyInArea[30].addUnit(UnitType.knight, 5);
+        armyInArea[30].addUnit(UnitType.knight, 5);
+        armyInArea[28].addUnit(UnitType.knight, 5); */
 
         // Нейтральные лорды
         garrisonInArea[31] = 6;
@@ -968,7 +973,7 @@ public class Game {
         if (destinationsOfMarch.size() > 0) {
             // Дополнительные проверки в случае результативного похода
             int areaWhereBattleBegins = -1;
-            HashSet<Integer> accessibleAreas = null;
+            Set<Integer> accessibleAreas = null;
             int[] numUnitsOfType = new int[NUM_UNIT_TYPES];
             if (!map.getAreaType(from).isNaval()) {
                 /*
@@ -1168,6 +1173,7 @@ public class Game {
         if (portArea >= 0 && !armyInArea[portArea].isEmpty()) {
             int numShips = armyInArea[portArea].getSize();
             int exOwner = armyInArea[portArea].getOwner();
+            safeDeleteOrderInArea(portArea, exOwner);
             int numCapturedShips = Math.min(restingUnitsOfPlayerAndType[player][UnitType.ship.getCode()], numShips);
             areasWithTroopsOfPlayer.get(exOwner).remove(portArea);
             if (numShips > numCapturedShips) {
@@ -1224,15 +1230,19 @@ public class Game {
                 houseTabPanel.repaintHouse(exOwner);
             }
             armyInArea[portArea].killAllUnits(KillingReason.shipwreck);
-            if (orderInArea[portArea] != null) {
-                if (orderInArea[portArea].orderType() == OrderType.march) {
-                    areasWithMarches.get(exOwner).remove(portArea);
-                } else if (orderInArea[portArea].orderType() == OrderType.consolidatePower) {
-                    areasWithCPs.get(exOwner).remove(portArea);
-                }
-                orderInArea[portArea] = null;
-            }
+            safeDeleteOrderInArea(portArea, exOwner);
             renewArea(portArea, exOwner);
+        }
+    }
+
+    private void safeDeleteOrderInArea(int area, int player) {
+        if (orderInArea[area] != null) {
+            if (orderInArea[area].orderType() == OrderType.march) {
+                areasWithMarches.get(player).remove(area);
+            } else if (orderInArea[area].orderType() == OrderType.consolidatePower) {
+                areasWithCPs.get(player).remove(area);
+            }
+            orderInArea[area] = null;
         }
     }
 
@@ -1319,7 +1329,7 @@ public class Game {
      * @param player   игрок, для которого рассчитывается множество областей
      * @return множество с доступными для похода областями
      */
-    public HashSet<Integer> getAccessibleAreas(int areaFrom, int player) {
+    public Set<Integer> getAccessibleAreas(int areaFrom, int player) {
         HashSet<Integer> accessibleAreas = new HashSet<>();
         if (map.getAreaType(areaFrom).isNaval()) {
             // Для морских территорий просто выдаём список соседних территорий
@@ -1402,7 +1412,7 @@ public class Game {
                 }
             }
         } else {
-            HashSet<Integer> accessibleForPlayerAreas;
+            Set<Integer> accessibleForPlayerAreas;
             for (int player = 0; player < NUM_PLAYER; player++) {
                 if (player == areaOwner) continue;
                 accessibleForPlayerAreas = getAccessibleAreas(area, player);
@@ -1808,7 +1818,7 @@ public class Game {
             // Отступление
             if (retreatingArmy.getSize() > 0) {
                 int numRetreatingUnits = retreatingArmy.getSize();
-                HashSet<Integer> areasToRetreat = getAccessibleAreas(areaOfBattle, loser);
+                Set<Integer> areasToRetreat = getAccessibleAreas(areaOfBattle, loser);
                 HashSet<Integer> trueAreasToRetreat = new HashSet<>();
                 int minLosses = numRetreatingUnits;
                 int curLosses;
@@ -1997,8 +2007,8 @@ public class Game {
                                 if (accessibleAreaSet.contains(area)) {
                                     boolean success = armyInArea[area].changeType(UnitType.pawn, UnitType.knight);
                                     if (success) {
-                                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]--;
-                                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]++;
+                                        restingUnitsOfPlayerAndType[player][UnitType.pawn.getCode()]++;
+                                        restingUnitsOfPlayerAndType[player][UnitType.knight.getCode()]--;
                                         propertyUsed = true;
                                         if (!Settings.getInstance().isPassByRegime()) {
                                             houseTabPanel.repaintHouse(player);
@@ -3150,6 +3160,7 @@ public class Game {
                         playDisband(exclusiveBidder, DisbandReason.wildlingCommonDisband);
                     } else if (normCastles.size() == 1 && armyInArea[normCastles.get(0)].getSize() == 2) {
                         armyInArea[normCastles.get(0)].killAllUnits(KillingReason.wildlings);
+                        renewArea(normCastles.get(0), exclusiveBidder);
                     } else {
                         playDisband(exclusiveBidder, DisbandReason.hordeCastle);
                     }
@@ -3636,9 +3647,7 @@ public class Game {
     private void killAllUnits(int player, KillingReason reason) {
         for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
             armyInArea[area].killAllUnits(reason);
-            if (!Settings.getInstance().isPassByRegime()) {
-                mapPanel.repaintArea(area);
-            }
+            renewArea(area, player);
         }
         areasWithTroopsOfPlayer.get(player).clear();
         if (!Settings.getInstance().isPassByRegime()) {
@@ -4178,10 +4187,9 @@ public class Game {
                     chooseNewEvents();
                     playNewEvents();
                     break;
-                default:
+                case end:
                     adjustVictoryPoints();
-                    Thread.currentThread().interrupt();
-                    JOptionPane.showMessageDialog(GotFrame.getInstance(), "Игра закончена.");
+                    Controller.getInstance().endTheGame();
                     break;
             }
         }
