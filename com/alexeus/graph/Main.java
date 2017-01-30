@@ -3,6 +3,8 @@ package com.alexeus.graph;
 import com.alexeus.GotFrame;
 import com.alexeus.control.Controller;
 import com.alexeus.control.Settings;
+import com.alexeus.control.enums.GameStatus;
+import com.alexeus.control.enums.PlayRegimeType;
 import com.alexeus.logic.Game;
 
 import javax.swing.*;
@@ -49,7 +51,22 @@ public class Main {
 
         newGameItemMenu.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                Controller.getInstance().startNewGame();
+                if (Controller.getInstance().getGameRunning()) {
+                    try {
+                        Controller.getInstance().setGameStatus(GameStatus.interrupted);
+                        synchronized (Controller.getControllerMonitor()) {
+                            Controller.getControllerMonitor().notify();
+                            Controller.getControllerMonitor().wait();
+                        }
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                Settings.getInstance().setPlayRegime(PlayRegimeType.none);
+                synchronized (Controller.getControllerMonitor()) {
+                    Controller.getInstance().setGameRunning();
+                    Controller.getControllerMonitor().notify();
+                }
             }
         });
 

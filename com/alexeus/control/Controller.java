@@ -1,15 +1,13 @@
 package com.alexeus.control;
 
 import com.alexeus.GotFrame;
+import com.alexeus.control.enums.GameStatus;
 import com.alexeus.control.enums.PlayRegimeType;
 import com.alexeus.graph.EndGamePanel;
-import com.alexeus.graph.MapPanel;
 import com.alexeus.logic.Game;
 import com.alexeus.logic.enums.GamePhase;
 
 import javax.swing.*;
-
-import static com.alexeus.logic.constants.MainConstants.*;
 
 /**
  * Created by alexeus on 13.01.2017.
@@ -27,9 +25,17 @@ public class Controller {
 
     private int gameRound;
 
-    private Thread currentGameThread;
+    private String gameStateText;
 
-    //private MapPanel mapPanel;
+    private static final Object gameStateMonitor = new Object();
+
+    private static final Object controllerMonitor = new Object();
+
+    private volatile GameStatus gameStatus = GameStatus.none;
+
+    private volatile boolean isGameRunning;
+
+    private static int gameNumber = 0;
 
     private Controller() {
         settings = Settings.getInstance();
@@ -42,78 +48,131 @@ public class Controller {
         return instance;
     }
 
-    public void startNewGame() {
-        if (currentGameThread != null) {
-            currentGameThread.interrupt();
-            settings.setPlayRegime(PlayRegimeType.none);
-        }
-        currentGameThread = new Thread() {
-            @Override public void run() {
-                game = Game.getInstance();
-                game.prepareNewGame();
-                //mapPanel = game.getMapPanel();
-                timeFromLastInterrupt = System.currentTimeMillis();
-                gameRound = game.getTime();
-                game.setNewGamePhase(GamePhase.planningPhase);
+    public void startController() {
+        Thread.currentThread().setName("Controller Thread");
+        while (true) {
+            Thread currentGameThread = new Thread("Game thread " + ++gameNumber) {
+                @Override
+                public void run() {
+                    game = Game.getInstance();
+                    game.prepareNewGame();
+                    //mapPanel = game.getMapPanel();
+                    timeFromLastInterrupt = System.currentTimeMillis();
+                    gameRound = game.getTime();
+                    game.setNewGamePhase(GamePhase.planningPhase);
+                }
+            };
+            gameStatus = GameStatus.running;
+            GotFrame.getInstance().setTitle("Игра Престолов");
+            currentGameThread.start();
+            // Даём возможность игре установить начальные значения
+            synchronized (gameStateMonitor) {
+                try {
+                    gameStateMonitor.wait();
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
             }
-        };
-        currentGameThread.start();
-    }
+            isGameRunning = true;
 
-    public void endTheGame() {
-        currentGameThread.interrupt();
-        JOptionPane.showConfirmDialog(GotFrame.getInstance(), new EndGamePanel(), "Игра закончена.",
-                JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
+            // Основной цикл контроллера во время игры
+            while (gameStatus == GameStatus.running) {
+                GotFrame.getInstance().setTitle("Игра Престолов. " + game.getTime() + " раунд. " + gameStateText);
+                int previousGameTime = gameRound;
+                gameRound = game.getTime();
+                try {
+                    switch (settings.getPlayRegime()) {
+                        case none:
+                            synchronized (controllerMonitor) {
+                                controllerMonitor.wait();
+                            }
+                            break;
+                        case timeout:
+                            long timeToWait = timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis();
+                            if (timeToWait > 0) {
+                                synchronized (controllerMonitor) {
+                                    controllerMonitor.wait(timeToWait);
+                                }
+                                if (settings.getPlayRegime() != PlayRegimeType.timeout) {
+                                    continue;
+                                }
+                            }
+                            setTimer();
+                            break;
+                        case nextTurn:
+                            if (previousGameTime != gameRound) {
+                                synchronized (controllerMonitor) {
+                                    controllerMonitor.wait();
+                                }
+                            }
+                            break;
+                        case playEnd:
+                            break;
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                Game.wakeGame();
+                synchronized (gameStateMonitor) {
+                    try {
+                        gameStateMonitor.notify();
+                        gameStateMonitor.wait();
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+            currentGameThread.interrupt();
+            if (gameStatus == GameStatus.none) {
+                JOptionPane.showConfirmDialog(GotFrame.getInstance(), new EndGamePanel(), "Игра закончена.",
+                        JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
+            }
+            isGameRunning = false;
+            synchronized (controllerMonitor) {
+                if (gameStatus == GameStatus.interrupted) {
+                    controllerMonitor.notify();
+                }
+                while (!isGameRunning) {
+                    try {
+                        Thread.sleep(20);
+                        controllerMonitor.wait();
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     public Game getGame() {
         return game;
     }
 
-    public void controlPoint(String text) {
-        //mapPanel.repaintActionString(player, text.toString());
-        GotFrame.getInstance().setTitle("Игра Престолов. " + game.getTime() + " раунд. " + text);
-        waitingCore();
-    }
-
-    private void waitingCore() {
-        int previousGameTime = gameRound;
-        gameRound = game.getTime();
-        try {
-            switch (settings.getPlayRegime()) {
-                case none:
-                    synchronized (Game.getInstance()) {
-                        game.wait();
-                    }
-                    break;
-                case timeout:
-                    long timeToWait = timeFromLastInterrupt + settings.getTimeoutMillis() - System.currentTimeMillis();
-                    if (timeToWait > 0) {
-                        synchronized (Game.getInstance()) {
-                            game.wait(timeToWait);
-                        }
-                        if (settings.getPlayRegime() != PlayRegimeType.timeout) {
-                            waitingCore();
-                        }
-                    }
-                    setTimer();
-                    break;
-                case nextTurn:
-                    if (previousGameTime != gameRound) {
-                        synchronized (Game.getInstance()) {
-                            game.wait();
-                        }
-                    }
-                    break;
-                case playEnd:
-                    break;
-            }
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     public void setTimer() {
         timeFromLastInterrupt = System.currentTimeMillis();
+    }
+
+    public static Object getMonitor() {
+        return gameStateMonitor;
+    }
+
+    public static Object getControllerMonitor() {
+        return controllerMonitor;
+    }
+
+    public void setGameRunning() {
+        isGameRunning = true;
+    }
+
+    public boolean getGameRunning() {
+        return isGameRunning;
+    }
+
+    public void setGameStatus(GameStatus gameStatus) {
+        this.gameStatus = gameStatus;
+    }
+
+    public void setText(String text) {
+        gameStateText = text;
     }
 }

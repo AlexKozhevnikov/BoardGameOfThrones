@@ -1,10 +1,10 @@
 package com.alexeus.logic;
 
-import com.alexeus.GotFrame;
 import com.alexeus.ai.GotPlayerInterface;
 import com.alexeus.ai.PrimitivePlayer;
 import com.alexeus.control.Controller;
 import com.alexeus.control.Settings;
+import com.alexeus.control.enums.GameStatus;
 import com.alexeus.graph.MapPanel;
 import com.alexeus.graph.enums.TabEnum;
 import com.alexeus.graph.tab.EventTabPanel;
@@ -205,6 +205,8 @@ public class Game {
 
     private JTextArea chat;
 
+    private static volatile boolean isGameWaiting = false;
+
     /**
      * Конструктор.
      */
@@ -238,6 +240,8 @@ public class Game {
             orderInArea[area] = null;
         }
         battleInfo = null;
+        attackingArmy = null;
+        retreatingArmy = null;
         isSwordUsed = false;
         currentBidTrack = -1;
         preemptiveRaidCheater = -1;
@@ -453,7 +457,9 @@ public class Game {
     }
 
     /**
-     * Метод считает и изменяет количество замков у каждого из игроков
+     * Метод считает и изменяет количество замков у каждого из игроков.
+     * Кроме того, должен вызываться каждый раз, когда число замков какого-то из игроков
+     * меняется в положительную сторону, поскольку нужно отслеживать условие досрочной победы.
      */
     private void adjustVictoryPoints() {
         for (int player = 0; player < NUM_PLAYER; player++) {
@@ -507,10 +513,12 @@ public class Game {
                 }
             }
         }
-        Controller.getInstance().controlPoint(PLAYERS + GIVE_ORDERS);
+        controlPoint(PLAYERS + GIVE_ORDERS);
         // Ставки на ворону уже достаточно покрасовались, пора и честь знать
         currentBidTrack = -1;
-        setNewGamePhase(GamePhase.ravenPhase);
+        if (!Thread.currentThread().isInterrupted()) {
+            setNewGamePhase(GamePhase.ravenPhase);
+        }
     }
 
     /**
@@ -607,7 +615,10 @@ public class Game {
             // Ворононосец выбрал просмотр карты одичалых
             if (ravenUse.equals(RAVEN_SEES_WILDLINGS_CODE)) {
                 say(HOUSE[ravenHolder] + SEES_WILDLINGS_CARD);
-                Controller.getInstance().controlPoint(HOUSE[ravenHolder] + SEES_WILDLINGS);
+                controlPoint(HOUSE[ravenHolder] + SEES_WILDLINGS);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 if (!playerInterface[ravenHolder].leaveWildlingCardOnTop(wildlingDeck.getFirst())) {
                     WildlingCard card = wildlingDeck.pollFirst();
                     wildlingDeck.addLast(card);
@@ -620,7 +631,10 @@ public class Game {
             // Ворононосец выбрал замену приказа
             if (ravenUse.charAt(0) >= '0' && ravenUse.charAt(0) <= '9') {
                 say(HOUSE[ravenHolder] + CHANGES_ORDER);
-                Controller.getInstance().controlPoint(HOUSE[ravenHolder] + CHANGES_ORDER);
+                controlPoint(HOUSE[ravenHolder] + CHANGES_ORDER);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 String[] s = ravenUse.split(" ");
                 if (s.length != 2) {
                     say(RAVEN_CHANGE_ORDER_FORMAT_ERROR);
@@ -659,7 +673,10 @@ public class Game {
                     RaidOrderPlayed raid = playerInterface[player].playRaid();
                     // Проверяем вариант розыгрыша набега, полученный от игрока, на валидность
                     if (validateRaid(raid, player)) {
-                        Controller.getInstance().controlPoint(HOUSE[player] + PLAYS_RAID);
+                        controlPoint(HOUSE[player] + PLAYS_RAID);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         int from = raid.getAreaFrom();
                         int to = raid.getAreaTo();
                         if (to >= 0 && to < NUM_AREA && to != from) {
@@ -793,7 +810,10 @@ public class Game {
                     MarchOrderPlayed march = playerInterface[player].playMarch();
                     // Проверяем вариант розыгрыша похода, полученный от игрока, на валидность
                     if (validateMarch(march, player)) {
-                        Controller.getInstance().controlPoint(HOUSE[player] + PLAYS_MARCH);
+                        controlPoint(HOUSE[player] + PLAYS_MARCH);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         int from = march.getAreaFrom();
                         HashMap<Integer, ArrayList<UnitType>> destinationsOfMarch = march.getDestinationsOfMarch();
                         if (destinationsOfMarch.size() == 0) {
@@ -1108,7 +1128,10 @@ public class Game {
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     MusterPlayed musterVariant = playerInterface[player].playConsolidatePowerS(areaWithMuster[player]);
                     if (validateMuster(musterVariant, player)) {
-                        Controller.getInstance().controlPoint(HOUSE[player] + PLAYS_CP);
+                        controlPoint(HOUSE[player] + PLAYS_CP);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         if (Settings.getInstance().isTrueAutoSwitchTabs() &&
                                 tabPanel.getSelectedIndex() == TabEnum.fight.getCode()) {
                             tabPanel.setSelectedIndex(TabEnum.chat.getCode());
@@ -1190,7 +1213,10 @@ public class Game {
                 }
                 say(HOUSE[player] + CAN_CAPTURE_OR_DESTROY_SHIPS);
                 int restShips = playerInterface[player].getNumCapturedShips(portArea);
-                Controller.getInstance().controlPoint(HOUSE[player] + CAPTURES_SHIPS);
+                controlPoint(HOUSE[player] + CAPTURES_SHIPS);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 if (restShips > numCapturedShips) {
                     restShips = numCapturedShips;
                     System.out.println(FLEET_VIOLATION_ERROR);
@@ -1496,8 +1522,11 @@ public class Game {
             }
 
             if (supporters.size() > 0) {
-                Controller.getInstance().controlPoint(supporters.size() > 1 ? PLAYERS: HOUSE[supporters.iterator().next()] +
+                controlPoint(supporters.size() > 1 ? PLAYERS: HOUSE[supporters.iterator().next()] +
                         (supporters.size() > 1 ? ESTABLISH_SUPPORT: ESTABLISHES_SUPPORT));
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
             }
             for (int player : supporters) {
                 for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
@@ -1538,7 +1567,10 @@ public class Game {
         }
 
         // Выбираем карты дома
-        Controller.getInstance().controlPoint(PLAYERS + CHOOSE_CARD);
+        controlPoint(PLAYERS + CHOOSE_CARD);
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
         houseCardOfSide[0] = getHouseCard(battleInfo, playerOnSide[0]);
         houseCardOfSide[1] = getHouseCard(battleInfo, playerOnSide[1]);
 
@@ -1557,7 +1589,10 @@ public class Game {
                     case tyrionLannister:
                         boolean useTyrion = playerInterface[playerOnSide[heroSide]].useTyrion(battleInfo,
                                 houseCardOfSide[1 - heroSide]);
-                        Controller.getInstance().controlPoint(TYRION);
+                        controlPoint(TYRION);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         if (useTyrion) {
                             say(TYRION_CANCELS);
                             temporaryInactiveCard = houseCardOfSide[1 - heroSide];
@@ -1566,7 +1601,10 @@ public class Game {
                             if (Settings.getInstance().isTrueAutoSwitchTabs()) {
                                 tabPanel.setSelectedIndex(TabEnum.fight.getCode());
                             }
-                            Controller.getInstance().controlPoint(HOUSE[playerOnSide[1 - heroSide]] + CHOOSES_CARD);
+                            controlPoint(HOUSE[playerOnSide[1 - heroSide]] + CHOOSES_CARD);
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
                             houseCardOfSide[1 - heroSide] = getHouseCard(battleInfo, playerOnSide[1 - heroSide]);
                             countBattleVariables();
                         } else {
@@ -1615,7 +1653,10 @@ public class Game {
                                     houseCardOfSide[heroSide].getName());
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                                 int area = playerInterface[playerOnSide[heroSide]].chooseAreaQueenOfThorns(accessibleAreaSet);
-                                Controller.getInstance().controlPoint(QUEEN_OF_THORNS);
+                                controlPoint(QUEEN_OF_THORNS);
+                                if (Thread.currentThread().isInterrupted()) {
+                                    return;
+                                }
                                 // Если область меньше нуля, значит, игрок отказался использовать свойство карты
                                 if (area < 0) {
                                     break;
@@ -1666,7 +1707,10 @@ public class Game {
                         say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
                                 houseCardOfSide[heroSide].getName());
                         int trackToPissOff = playerInterface[playerOnSide[heroSide]].chooseInfluenceTrackDoran(battleInfo);
-                        Controller.getInstance().controlPoint(DORAN);
+                        controlPoint(DORAN);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         if (trackToPissOff >= 0 && trackToPissOff < NUM_TRACK) {
                             say(DORAN_ABUSES + HOUSE_GENITIVE[playerOnSide[1 - heroSide]] +
                                     TrackType.getTrack(trackToPissOff).onTheTrack());
@@ -1683,7 +1727,10 @@ public class Game {
                             say(HOUSE[playerOnSide[heroSide]] + CAN_USE_SPECIAL_PROPERTY_OF_CARD +
                                     houseCardOfSide[heroSide].getName());
                             boolean useDamphair = playerInterface[playerOnSide[heroSide]].useAeron(battleInfo);
-                            Controller.getInstance().controlPoint(AERON);
+                            controlPoint(AERON);
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
                             if (useDamphair) {
                                 say(AERON_RUNS_AWAY + HOUSE[playerOnSide[heroSide]] + MUST_CHOOSE_OTHER_CARD);
                                 propertyUsed = true;
@@ -1692,7 +1739,10 @@ public class Game {
                                 if (Settings.getInstance().isTrueAutoSwitchTabs()) {
                                     tabPanel.setSelectedIndex(TabEnum.fight.getCode());
                                 }
-                                Controller.getInstance().controlPoint(HOUSE[playerOnSide[heroSide]] + CHOOSES_CARD);
+                                controlPoint(HOUSE[playerOnSide[heroSide]] + CHOOSES_CARD);
+                                if (Thread.currentThread().isInterrupted()) {
+                                    return;
+                                }
                                 houseCardOfSide[heroSide] = getHouseCard(battleInfo, playerOnSide[heroSide]);
                                 countBattleVariables();
                             }
@@ -1712,7 +1762,10 @@ public class Game {
             if (Settings.getInstance().isTrueAutoSwitchTabs()) {
                 tabPanel.setSelectedIndex(TabEnum.fight.getCode());
             }
-            Controller.getInstance().controlPoint(HOUSE[swordsMan] + CAN_USE_SWORD);
+            controlPoint(HOUSE[swordsMan] + CAN_USE_SWORD);
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
             if (useSword) {
                 battleInfo.useSwordOnSide(playerOnSide[0] == swordsMan ? SideOfBattle.attacker : SideOfBattle.defender);
                 isSwordUsed = true;
@@ -1888,7 +1941,10 @@ public class Game {
                             if (!Settings.getInstance().isPassByRegime()) {
                                 mapPanel.repaintArea(areaOfBattle);
                             }
-                            Controller.getInstance().controlPoint(HOUSE[loser] + RETREATS);
+                            controlPoint(HOUSE[loser] + RETREATS);
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                                 int area = playerInterface[player].chooseAreaToRetreat(retreatingArmy, trueAreasToRetreat);
                                 say(HOUSE[loser] + RETREATS_IN +
@@ -1990,7 +2046,10 @@ public class Game {
                         }
                         if (accessibleAreaSet.size() > 0) {
                             say(RENLY_CAN_MAKE_KNIGHT);
-                            Controller.getInstance().controlPoint(RENLY);
+                            controlPoint(RENLY);
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                                 int area = playerInterface[player].areaToUseRenly(accessibleAreaSet);
                                 // Если область меньше нуля, значит, игрок отказался использовать свойство карты
@@ -2038,7 +2097,10 @@ public class Game {
                         accessibleAreaSet.remove(areaOfMarch);
                         if (accessibleAreaSet.size() > 0) {
                             say(CERSEI_CAN_REMOVE_ANY_ORDER);
-                            Controller.getInstance().controlPoint(CERSEI);
+                            controlPoint(CERSEI);
+                            if (Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
                             for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                                 int area = playerInterface[player].chooseAreaCerseiLannister(accessibleAreaSet);
                                 // Если область меньше нуля, значит, игрок отказался использовать свойство карты
@@ -2091,7 +2153,10 @@ public class Game {
             if (houseCardOfSide[curSide] == HouseCard.patchface) {
                 propertyUsed = false;
                 say(PATCHPACE_CAN_DELETE_ANY_CARD);
-                Controller.getInstance().controlPoint(PATCHFACE);
+                controlPoint(PATCHFACE);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 for (int attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     int card = playerInterface[playerOnSide[curSide]].chooseCardPatchface(playerOnSide[1 - curSide]);
                     // Если карта меньше нуля, значит, игрок отказался использовать свойство карты
@@ -2428,7 +2493,7 @@ public class Game {
         if (!Settings.getInstance().isPassByRegime()) {
             mapPanel.repaintWildlings();
         }
-        Controller.getInstance().controlPoint(EVENTS + event[0].getName() + "; " + event[1].getName() + "; " + event[2].getName());
+        controlPoint(EVENTS + event[0].getName() + "; " + event[1].getName() + "; " + event[2].getName());
     }
 
     /**
@@ -2452,7 +2517,10 @@ public class Game {
                 int attempt;
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     int kingChoice = playerInterface[king].eventToChoose(1);
-                    Controller.getInstance().controlPoint(HOUSE[king] + CHOOSES_EVENT);
+                    controlPoint(HOUSE[king] + CHOOSES_EVENT);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     if (kingChoice < 0 || kingChoice >= NUM_EVENT_CHOICES) {
                         say(WRONG_EVENT_CHOICE_ERROR);
                     } else {
@@ -2489,7 +2557,10 @@ public class Game {
                 int attempt;
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     int ravenChoice = playerInterface[ravenHolder].eventToChoose(2);
-                    Controller.getInstance().controlPoint(HOUSE[ravenHolder] + CHOOSES_EVENT);
+                    controlPoint(HOUSE[ravenHolder] + CHOOSES_EVENT);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     if (ravenChoice < 0 || ravenChoice >= NUM_EVENT_CHOICES) {
                         say(WRONG_EVENT_CHOICE_ERROR);
                     } else {
@@ -2516,6 +2587,9 @@ public class Game {
         switch ((Deck3Cards) event[2]) {
             case wildlingsAttack:
                 wildlingAttack();
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 break;
             case devotedToSword:
                 int swordsman = trackPlayerOnPlace[TrackType.valyrianSword.getCode()][0];
@@ -2523,7 +2597,10 @@ public class Game {
                 int attempt;
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     int swordChoice = playerInterface[swordsman].eventToChoose(3);
-                    Controller.getInstance().controlPoint(HOUSE[swordsman] + CHOOSES_EVENT);
+                    controlPoint(HOUSE[swordsman] + CHOOSES_EVENT);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     if (swordChoice < 0 || swordChoice >= NUM_EVENT_CHOICES) {
                         say(WRONG_EVENT_CHOICE_ERROR);
                     } else {
@@ -2624,7 +2701,10 @@ public class Game {
                 for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                     MusterPlayed musterVariant = playerInterface[player].muster(areasOfPlayerWithMuster.get(player));
                     if (validateMuster(musterVariant, player)) {
-                        Controller.getInstance().controlPoint(HOUSE[player] + MUSTERS);
+                        controlPoint(HOUSE[player] + MUSTERS);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         int nMusteredObjects = musterVariant.getNumberMusterUnits();
                         if (nMusteredObjects > 0) {
                             doMuster(musterVariant, player);
@@ -2672,7 +2752,10 @@ public class Game {
         for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
             MusterPlayed musterVariant = playerInterface[player].muster(areasWithMuster);
             if (validateMuster(musterVariant, player)) {
-                Controller.getInstance().controlPoint(HOUSE[player] + CAN_ONE_MUSTER);
+                controlPoint(HOUSE[player] + CAN_ONE_MUSTER);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 int nMusteredObjects = musterVariant.getNumberMusterUnits();
                 if (nMusteredObjects > 0) {
                     doMuster(musterVariant, player);
@@ -2727,7 +2810,10 @@ public class Game {
                     tempBids[player] = 0;
                 }
             }
-            Controller.getInstance().controlPoint(PLAYERS + BID[track]);
+            controlPoint(PLAYERS + BID[track]);
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
             currentBids = tempBids;
             currentBidTrack = track;
             for (int player = 0; player < NUM_PLAYER; player++) {
@@ -2741,7 +2827,10 @@ public class Game {
             // решение королём ничьих
             for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                 newPlayerOnPlace = playerInterface[king].kingChoiceInfluenceTrack(track, currentBids);
-                Controller.getInstance().controlPoint(HOUSE[king] + DECIDES_TIES);
+                controlPoint(HOUSE[king] + DECIDES_TIES);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 isPlayerCounted[newPlayerOnPlace[0]] = true;
                 boolean alrightFlag = true;
                 for (int place = 1; place < NUM_PLAYER; place++) {
@@ -2885,7 +2974,10 @@ public class Game {
                 tempBids[player] = 0;
             }
         }
-        Controller.getInstance().controlPoint(PLAYERS + FIGHT_WILDLINGS);
+        controlPoint(PLAYERS + FIGHT_WILDLINGS);
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
         currentBids = tempBids;
         currentBidTrack = -1;
         topWildlingCard = wildlingDeck.pollFirst();
@@ -2951,8 +3043,11 @@ public class Game {
             exclusiveBidder = curExBidders.get(0);
         } else {
             int king = trackPlayerOnPlace[TrackType.ironThrone.getCode()][0];
-            Controller.getInstance().controlPoint(HOUSE[king] + CHOOSES +
+            controlPoint(HOUSE[king] + CHOOSES +
                     (isNightWatchWon ? CHOOSES_TOP_BID : CHOOSES_BOTTOM_BID));
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
             for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                 exclusiveBidder = playerInterface[king].kingChoiceWildlings(topWildlingCard, curExBidders, isNightWatchWon);
                 if (curExBidders.contains(exclusiveBidder)) {
@@ -3048,7 +3143,10 @@ public class Game {
                         for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                             int card = playerInterface[player].massingOnTheMilkwaterLoseDecision();
                             if (card >= 0 && card < NUM_HOUSE_CARDS && houseCardOfPlayer[player][card].isActive()) {
-                                Controller.getInstance().controlPoint(HOUSE[player] + LOSES_ONE_CARD);
+                                controlPoint(HOUSE[player] + LOSES_ONE_CARD);
+                                if (Thread.currentThread().isInterrupted()) {
+                                    return;
+                                }
                                 chosenCard = houseCardOfPlayer[player][card];
                                 break;
                             }
@@ -3116,7 +3214,10 @@ public class Game {
                 if (isNightWatchWon) {
                     say(HOUSE[exclusiveBidder] + CAN_ENLIGHTEN_ON_TRACK);
                     track = playerInterface[exclusiveBidder].aKingBeyondTheWallTopDecision();
-                    Controller.getInstance().controlPoint(HOUSE[exclusiveBidder] + ENLIGHTENS);
+                    controlPoint(HOUSE[exclusiveBidder] + ENLIGHTENS);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     if (track != null) {
                         say(HOUSE[exclusiveBidder] + ENLIGHTENS_ON_TRACK + track.onTheTrack() + ".");
                         enlightenOnTrack(exclusiveBidder, track.getCode());
@@ -3133,7 +3234,10 @@ public class Game {
                         if (player == exclusiveBidder || player == preemptiveRaidCheater) continue;
                         say(HOUSE[player] + MUST_DESCEND_ON_TRACK);
                         track = playerInterface[player].aKingBeyondTheWallLoseDecision();
-                        Controller.getInstance().controlPoint(HOUSE[player] + IS_PISSED_UP);
+                        controlPoint(HOUSE[player] + IS_PISSED_UP);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         if (track == null || track == TrackType.ironThrone) {
                             track = TrackType.getTrack(random.nextInt(2) + 1);
                         }
@@ -3241,7 +3345,10 @@ public class Game {
                     }
                     for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
                         Object decision = playerInterface[exclusiveBidder].preemptiveRaidBottomDecision();
-                        Controller.getInstance().controlPoint(HOUSE[exclusiveBidder] + PREEMPTIVE_DECIDES);
+                        controlPoint(HOUSE[exclusiveBidder] + PREEMPTIVE_DECIDES);
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         if (decision instanceof TrackType) {
                             if (trackPlaceForPlayer[((TrackType) decision).getCode()][exclusiveBidder] == bestPlace) {
                                 say(HOUSE[exclusiveBidder] + PREEMPTIVE_RAID_TRACK + ((TrackType) decision).onTheTrack());
@@ -3316,7 +3423,10 @@ public class Game {
             UnitExecutionPlayed pawnUpgradeVariant = playerInterface[player].
                     crowKillersTopDecision(maxPawnsToUpgrade);
             if (validatePawnsToUpgrade(pawnUpgradeVariant, player, maxPawnsToUpgrade)) {
-                Controller.getInstance().controlPoint(HOUSE[player] + UPGRADES_PAWNS);
+                controlPoint(HOUSE[player] + UPGRADES_PAWNS);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 HashMap<Integer, Integer> numUnitsInArea = pawnUpgradeVariant.getNumberOfUnitsInArea();
                 for (int area : numUnitsInArea.keySet()) {
                     for (int index = 0; index < numUnitsInArea.get(area); index++) {
@@ -3390,7 +3500,10 @@ public class Game {
                 UnitExecutionPlayed variantToKillKnights = playerInterface[player].
                         crowKillersKillKnights(numKnightsToKill);
                 if (validateKnightsToDo(variantToKillKnights, player, numKnightsToKill)) {
-                    Controller.getInstance().controlPoint(HOUSE[player] + KILLS_KNIGHTS);
+                    controlPoint(HOUSE[player] + KILLS_KNIGHTS);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     // Спешиваем выбранных коней
                     HashMap<Integer, Integer> numUnitsInArea = variantToKillKnights.getNumberOfUnitsInArea();
                     for (int area : numUnitsInArea.keySet()) {
@@ -3444,7 +3557,10 @@ public class Game {
                 UnitExecutionPlayed executionVariant = playerInterface[player].
                         crowKillersLoseDecision(numKnightToDowngrade);
                 if (validateKnightsToDo(executionVariant, player, numKnightToDowngrade)) {
-                    Controller.getInstance().controlPoint(HOUSE[player] + DOWNGRADES_KNIGHTS);
+                    controlPoint(HOUSE[player] + DOWNGRADES_KNIGHTS);
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     HashMap<Integer, Integer> numUnitsInArea = executionVariant.getNumberOfUnitsInArea();
                     for (int area : numUnitsInArea.keySet()) {
                         for (int index = 0; index < numUnitsInArea.get(area); index++) {
@@ -3535,7 +3651,10 @@ public class Game {
         for (attempt = 0; attempt < MAX_TRIES_TO_GO; attempt++) {
             DisbandPlayed disbandVariant = playerInterface[player].disband(reason);
             if (validateDisband(disbandVariant, player, reason)) {
-                Controller.getInstance().controlPoint(HOUSE[player] + DISBANDS);
+                controlPoint(HOUSE[player] + DISBANDS);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
                 executeDisband(disbandVariant, player);
                 break;
             }
@@ -3567,11 +3686,25 @@ public class Game {
                     int area = LittleThings.getRandomElementOfSet(disbandAreas);
                     armyInArea[area].killWeakestUnit();
                     armyInArea[area].killWeakestUnit();
+                    if (map.getNumCastle(area) > 0 && armyInArea[area].isEmpty()) {
+                        int areaOwner = getAreaOwner(area);
+                        if (areaOwner != player) {
+                            victoryPoints[player]--;
+                            if (areaOwner < 0) {
+                                tryToDestroyNeutralShips(area);
+                            } else {
+                                adjustVictoryPoints();
+                                tryToCaptureShips(area, areaOwner);
+                            }
+                        }
+                    }
+                    tryToRenewEmptiedCastle(area, player);
                     renewArea(area, player);
                 } else {
                     for (int numDisbands = reason.getNumDisbands(); numDisbands > 0; numDisbands--) {
                         int area = LittleThings.getRandomElementOfSet(areasWithTroopsOfPlayer.get(player).keySet());
                         armyInArea[area].killWeakestUnit();
+                        tryToRenewEmptiedCastle(area, player);
                         renewArea(area, player);
                     }
                 }
@@ -3585,6 +3718,7 @@ public class Game {
             for (UnitType unitType: disbands.get(area)) {
                 armyInArea[area].killUnitOfType(unitType);
             }
+            tryToRenewEmptiedCastle(area, player);
             renewArea(area, player);
         }
         if (!Settings.getInstance().isPassByRegime()) {
@@ -3640,6 +3774,21 @@ public class Game {
         return true;
     }
 
+    private void tryToRenewEmptiedCastle(int area, int exOwner) {
+        if (map.getNumCastle(area) > 0 && armyInArea[area].isEmpty()) {
+            int areaOwner = getAreaOwner(area);
+            if (areaOwner != exOwner) {
+                victoryPoints[exOwner]--;
+                if (areaOwner < 0) {
+                    tryToDestroyNeutralShips(area);
+                } else {
+                    adjustVictoryPoints();
+                    tryToCaptureShips(area, areaOwner);
+                }
+            }
+        }
+    }
+
     /**
      * Метод уничтожает всех юнитов игрока
      * @param player номер игрока
@@ -3647,6 +3796,7 @@ public class Game {
     private void killAllUnits(int player, KillingReason reason) {
         for (int area: areasWithTroopsOfPlayer.get(player).keySet()) {
             armyInArea[area].killAllUnits(reason);
+            tryToRenewEmptiedCastle(area, player);
             renewArea(area, player);
         }
         areasWithTroopsOfPlayer.get(player).clear();
@@ -4154,6 +4304,27 @@ public class Game {
         }
     }
 
+    private void controlPoint(String text) {
+        Controller.getInstance().setText(text);
+        isGameWaiting = true;
+        while (isGameWaiting) {
+            synchronized (Controller.getMonitor()) {
+                Object monitor = Controller.getMonitor();
+                try {
+                    monitor.notify();
+                    monitor.wait();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    isGameWaiting = false;
+                }
+            }
+        }
+    }
+
+    public static void wakeGame() {
+        isGameWaiting = false;
+    }
+
     // Класс-слушатель, который реагирует на изменение состояния игры и вызывает необходимые методы
     private class GamePhaseChangeListener implements PropertyChangeListener {
         @Override
@@ -4185,11 +4356,27 @@ public class Game {
                 case westerosPhase:
                     nullifyOrdersAndVariables();
                     chooseNewEvents();
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     playNewEvents();
                     break;
                 case end:
                     adjustVictoryPoints();
-                    Controller.getInstance().endTheGame();
+                    Controller.getInstance().setGameStatus(GameStatus.none);
+                    isGameWaiting = true;
+                    while (isGameWaiting) {
+                        synchronized (Controller.getMonitor()) {
+                            Object monitor = Controller.getMonitor();
+                            try {
+                                monitor.notify();
+                                monitor.wait();
+                            } catch (InterruptedException ex) {
+                                Thread.currentThread().interrupt();
+                                isGameWaiting = false;
+                            }
+                        }
+                    }
                     break;
             }
         }

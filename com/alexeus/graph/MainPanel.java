@@ -102,15 +102,6 @@ public class MainPanel extends JPanel {
         JPanel buttonsPanel = new JPanel(new FlowLayout());
         JButton nextButton = new JButton("", nextIcon);
         nextButton.setPreferredSize(new Dimension(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE));
-        nextButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Settings.getInstance().setPlayRegime(PlayRegimeType.none);
-                synchronized (Game.getInstance()) {
-                    Game.getInstance().notify();
-                }
-            }
-        });
         JButton playButton = new JButton("", playIcon);
         playButton.setPreferredSize(new Dimension(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE));
         playButton.addActionListener(new ActionListener() {
@@ -122,10 +113,20 @@ public class MainPanel extends JPanel {
                         PlayRegimeType.none : PlayRegimeType.timeout);
                 // Если раньше режим был выключен, то теперь мы его ВКЛЮЧИЛИ, и должны прервать ожидание.
                 if (previousPlayRegime == PlayRegimeType.none) {
-                    synchronized (Game.getInstance()) {
+                    synchronized (Controller.getControllerMonitor()) {
                         Controller.getInstance().setTimer();
-                        Game.getInstance().notify();
+                        Controller.getControllerMonitor().notify();
                     }
+                }
+            }
+        });
+        nextButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                playButton.setIcon(playIcon);
+                Settings.getInstance().setPlayRegime(PlayRegimeType.none);
+                synchronized (Controller.getControllerMonitor()) {
+                    Controller.getControllerMonitor().notify();
                 }
             }
         });
@@ -134,9 +135,10 @@ public class MainPanel extends JPanel {
         nexTurnButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                playButton.setIcon(playIcon);
                 Settings.getInstance().setPlayRegime(PlayRegimeType.nextTurn);
-                synchronized (Game.getInstance()) {
-                    Game.getInstance().notify();
+                synchronized (Controller.getControllerMonitor()) {
+                    Controller.getControllerMonitor().notify();
                 }
             }
         });
@@ -145,9 +147,10 @@ public class MainPanel extends JPanel {
         playEndButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                playButton.setIcon(playIcon);
                 Settings.getInstance().setPlayRegime(PlayRegimeType.playEnd);
-                synchronized (Game.getInstance()) {
-                    Game.getInstance().notify();
+                synchronized (Controller.getControllerMonitor()) {
+                    Controller.getControllerMonitor().notify();
                 }
             }
         });
@@ -168,7 +171,7 @@ public class MainPanel extends JPanel {
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
                 }
-                Controller.getInstance().startNewGame();
+                Controller.getInstance().startController();
             }
         };
         t.start();
