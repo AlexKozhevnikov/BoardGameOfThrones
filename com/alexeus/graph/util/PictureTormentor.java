@@ -34,15 +34,17 @@ public class PictureTormentor {
 
     /**
      * Метод возвращает новую картинку, полученную поворотом старой картинки на 90 градусов
-     * @param image картинка для экзекуции
+     * @param image       картинка для экзекуции
+     * @param isClockwise true, если по часовой стрелке, и false в противном случае
      * @return измождённая поворотом картинка
      */
-    public static BufferedImage getRotatedPicture(BufferedImage image) {
+    public static BufferedImage getRotatedPicture(BufferedImage image, boolean isClockwise) {
         int w = image.getWidth(null), h = image.getHeight(null);
         GraphicsConfiguration gc = getDefaultConfiguration();
         BufferedImage result = gc.createCompatibleImage(h, w, Transparency.TRANSLUCENT);
         Graphics2D g = result.createGraphics();
-        g.rotate(Math.toRadians(90), w / 2, h / 2);
+        int centerOfRotation = isClockwise ? Math.max(w / 2, h / 2) : Math.min(w / 2, h / 2);
+        g.rotate(Math.toRadians(isClockwise ? 90: -90), centerOfRotation, centerOfRotation);
         g.drawRenderedImage(image, null);
         g.dispose();
         return result;

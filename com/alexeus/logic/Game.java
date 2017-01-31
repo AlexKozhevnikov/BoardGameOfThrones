@@ -110,6 +110,9 @@ public class Game {
     // Текущее количество замков у каждого дома
     private int[] victoryPoints = new int[NUM_PLAYER];
 
+    // Количество крепостей (двухэтажных замков) у каждого дома. Заполняется только в конце игры.
+    private int[] numFortress = new int[NUM_PLAYER];
+
     // Число доступных жетонов власти каждого дома
     private int[] nPowerTokensHouse = new int[NUM_PLAYER];
 
@@ -232,6 +235,7 @@ public class Game {
         for (int i = 0; i < NUM_PLAYER; i++) {
             playerInterface[i] = new PrimitivePlayer(this, i);
             currentBids[i] = 0;
+            numFortress[i] = 0;
         }
         for (int area = 0; area < NUM_AREA; area++) {
             powerTokenOnArea[area] = -1;
@@ -474,6 +478,14 @@ public class Game {
         for (int player = 0; player < NUM_PLAYER; player++) {
             if (victoryPoints[player] >= 7) {
                 setNewGamePhase(GamePhase.end);
+            }
+        }
+    }
+
+    private void fillNumFortress() {
+        for (int area = 0; area < NUM_AREA; area++) {
+            if (map.getNumCastle(area) == 2 && getAreaOwner(area) >= 0) {
+                numFortress[getAreaOwner(area)]++;
             }
         }
     }
@@ -3968,6 +3980,10 @@ public class Game {
         return victoryPoints[player];
     }
 
+    public int getNumFortress(int player) {
+        return numFortress[player];
+    }
+
     public Army getAttackingArmy() {
         return attackingArmy;
     }
@@ -4363,6 +4379,7 @@ public class Game {
                     break;
                 case end:
                     adjustVictoryPoints();
+                    fillNumFortress();
                     Controller.getInstance().setGameStatus(GameStatus.none);
                     isGameWaiting = true;
                     while (isGameWaiting) {

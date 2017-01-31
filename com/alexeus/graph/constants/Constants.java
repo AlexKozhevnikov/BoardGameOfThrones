@@ -40,6 +40,8 @@ public class Constants {
     public static final String NEXT = "next.png";
     public static final String PAUSE = "pause.png";
     public static final String WILDLING_TOKEN = "wildlingToken.png";
+    public static final String FORTRESS = "fortress.png";
+    public static final String THRONE = "throne.png";
 
     public static final String FIGHT_FOR = "Бой за ";
 
@@ -71,6 +73,9 @@ public class Constants {
     public static final int BUTTON_ICON_SIZE = (int) (BUTTON_PANEL_HEIGHT * 0.9);
     public static final int TAB_ICON_SIZE = 60;
     //public static final int COLLAPSE_ICON_SIZE = 100;
+    public static final int BID_TEXT_SIZE = 75;
+    public static final int BID_TEXT_X_INDENT = 23;
+    public static final int BID_TEXT_Y_INDENT = 29;
     public static final int EVENT_CARD_HEIGHT = TAB_PANEL_HEIGHT / 3 - 24;
     public static final int EVENT_CARD_WIDTH = (int) (EVENT_CARD_HEIGHT * 1.57);
     public static final int EVENT_TEXT_HEIGHT = 15;
@@ -94,7 +99,15 @@ public class Constants {
     public static final int FIGHT_STRING_SIZE = 41;
     public static final int FIGHT_SYMBOL_INDENT = 15;
     public static final float CARD_TORSO_KOEF = 0.4f;
-    public static final int BID_TEXT_SIZE = 75;
-    public static final int BID_TEXT_X_INDENT = 23;
-    public static final int BID_TEXT_Y_INDENT = 29;
+
+    public static final int ENDSPIEL_HEIGHT = 60;
+    public static final int ENDSPIEL_MAIN_TEXT_SIZE = 40;
+    public static final int ENDSPIEL_TEXT_SIZE = (int) (0.7f * ENDSPIEL_HEIGHT);
+    public static final int ENDSPIEL_MAIN_TEXT_Y_INDENT = ENDSPIEL_MAIN_TEXT_SIZE;
+    public static final int ENDSPIEL_TEXT_Y_INDENT = (int) (0.7f * ENDSPIEL_TEXT_SIZE);
+    public static final int ENDSPIEL_TABLE_Y = ENDSPIEL_MAIN_TEXT_SIZE * 2;
+    public static final int ENDSPIEL_EMBLEM_INDENT = ENDSPIEL_HEIGHT / 3;
+    public static final int ENDSPIEL_INDENT = 5;
+    public static final int ENDSPIEL_GROUP_INDENT = 10;
+    public static final int ENDSPIEL_TEXT_WIDTH = (int) (ENDSPIEL_TEXT_SIZE * 0.8f);
 }

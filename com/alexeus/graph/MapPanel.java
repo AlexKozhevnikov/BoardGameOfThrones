@@ -136,8 +136,9 @@ public class MapPanel extends JPanel{
                     areaFillImagePlayer[area][areaOwner] =
                             PictureTormentor.dye(areaFillImage[area], HOUSE_COLOR[areaOwner]);
                 }
-                g2d.drawImage(areaFillImagePlayer[area][areaOwner], indent + (int) (areaBeginX[area] / scale), (int) (areaBeginY[area] / scale),
-                        (int) (areaFillImage[area].getWidth(null) / scale), (int) (areaFillImage[area].getHeight(null) / scale), null);
+                g2d.drawImage(areaFillImagePlayer[area][areaOwner], indent + (int) (areaBeginX[area] / scale),
+                        (int) (areaBeginY[area] / scale), (int) (areaFillImage[area].getWidth(null) / scale),
+                        (int) (areaFillImage[area].getHeight(null) / scale), null);
             }
         }
         // Рисуем гарнизоны, юниты, жетоны власти и приказы
@@ -454,12 +455,13 @@ public class MapPanel extends JPanel{
             tokenImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + POWER);
             influenceImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + INFLUENCE);
             victoryImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + VICTORY);
-            supplyImage[player] = imageLoader.getImage(HOUSE_ENG[player] + "\\" + HOUSE_ENG[player] + SUPPLY);
+            supplyImage[player] = PictureTormentor.getRotatedPicture(imageLoader.getImage(HOUSE_ENG[player] + "\\" +
+                    HOUSE_ENG[player] + SUPPLY), false);
             for (UnitType unitType: UnitType.values()) {
                 unitImage[player][unitType.getCode()] = imageLoader.getImage(HOUSE_ENG[player] + "\\" +
                         HOUSE_ENG[player] + "_" + unitType.engName() + PNG);
                 woundUnitImage[player][unitType.getCode()] =
-                        PictureTormentor.getRotatedPicture(unitImage[player][unitType.getCode()]);
+                        PictureTormentor.getRotatedPicture(unitImage[player][unitType.getCode()], true);
             }
         }
         for (int area = 0; area < NUM_AREA; area++) {
