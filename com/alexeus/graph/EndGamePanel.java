@@ -148,10 +148,26 @@ public class EndGamePanel extends JPanel {
             playerOnPlace[place] = curPlayer;
             isPlayerCounted[curPlayer] = true;
         }
+        int prevPositionsToShow = 0;
+        int nextPositionsToShow;
+        maxPositionToShow = 0;
         for (int place = 0; place < NUM_PLAYER; place++) {
-            numPositionsToShowOnPlace[place] = 4;
+            int player = playerOnPlace[place];
+            if (place < NUM_PLAYER - 1) {
+                int nextPlayer = playerOnPlace[place + 1];
+                nextPositionsToShow = game.getVictoryPoints(player) != game.getVictoryPoints(nextPlayer) ? 0 :
+                        game.getNumFortress(player) != game.getNumFortress(nextPlayer) ? 1 :
+                        game.getSupply(player) != game.getSupply(nextPlayer) ? 2 :
+                        game.getNumPowerTokensHouse(player) != game.getNumPowerTokensHouse(nextPlayer) ? 3 : 4;
+            } else {
+                nextPositionsToShow = 0;
+            }
+            numPositionsToShowOnPlace[place] = Math.max(prevPositionsToShow, nextPositionsToShow);
+            if (numPositionsToShowOnPlace[place] > maxPositionToShow) {
+                maxPositionToShow = numPositionsToShowOnPlace[place];
+            }
+            prevPositionsToShow = nextPositionsToShow;
         }
-        maxPositionToShow = 4;
 
         Graphics2D g2d = throneImage.createGraphics();
         headerFont = new Font("Times New Roman", Font.BOLD, ENDSPIEL_MAIN_TEXT_SIZE);

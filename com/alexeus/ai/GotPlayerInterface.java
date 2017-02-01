@@ -39,6 +39,17 @@ public interface GotPlayerInterface {
      */
     boolean leaveWildlingCardOnTop(WildlingCard card);
 
+    /**
+     * Метод нужен для оповещения игрока о том, что текущая карта одичалых сброшена, и они должны обновить
+     * информацию о верхней карте одичалых, если таковая имеется
+     */
+    void tellWildlingsBuried();
+
+    /**
+     * Метод нужен для оповещения игрока о том, какая карта одичалых была только что сыграна
+     */
+    void showPlayedWildlingsCard(WildlingCard card);
+
     // Розыгрыш приказов
     /**
      * Разыграть один свой приказ набега

@@ -31,8 +31,6 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     protected final int houseNumber;
 
-    protected WildlingCard wildlingCardInfo = null;
-
     // здесь будут храниться области, в которых есть войска игрока
     protected Set<Integer> areasWithTroopsOfPlayer;
 
@@ -59,6 +57,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     protected OrderType forbiddenOrder;
 
+    /**
+     * Список карт одичалых, как его видит игрок. Если на определённом месте находится null, значит, игрок не знает,
+     * что это за карта одичалых
+     */
+    protected LinkedList<WildlingCard> listOfWildlingCards;
+
     private float raidPrice = 2, cpPrice = 4, defencePrice = 1, supportPrice = 1, filledSeaPrice = 7, musterPrice = 7;
 
     public PrimitivePlayer(Game newGame, int houseNumber) {
@@ -69,6 +73,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
         orderMap = new HashMap<>();
         areasWithStatus = new HashMap<>();
         numOfOrderTypes = new HashMap<>();
+        listOfWildlingCards = new LinkedList<>();
+        for (int i = 0; i < WildlingCard.values().length; i++) {
+            listOfWildlingCards.add(null);
+        }
         for (AreaStatus areaStatus: AreaStatus.values()) {
             areasWithStatus.put(areaStatus, new ArrayList<>());
         }
@@ -493,9 +501,20 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public boolean leaveWildlingCardOnTop(WildlingCard card) {
-        wildlingCardInfo = card;
-        System.out.println("Пацаны, я узнал карту одичалых: " + card);
-        return true;
+        System.out.println("Пацаны, я узнал карту одичалых: " + card + ". Но я не хочу оставляеть её наверху!");
+        listOfWildlingCards.set(0, card);
+        return false;
+    }
+
+    @Override
+    public void tellWildlingsBuried() {
+        WildlingCard card = listOfWildlingCards.pollFirst();
+        listOfWildlingCards.addLast(card);
+    }
+
+    public void showPlayedWildlingsCard(WildlingCard card) {
+        listOfWildlingCards.removeFirst();
+        listOfWildlingCards.addLast(card);
     }
 
     @Override
@@ -855,13 +874,41 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int wildlingBid(int strength) {
-        int bet = random.nextInt(10);
-        if (bet < 4) {
-            return 0;
-        } else if (bet < 9) {
-            return 1;
+        int money = game.getNumPowerTokensHouse(houseNumber);
+        float winProfit;
+        float loseProfit;
+        boolean firstFlag = true;
+        WildlingCard knownCard = null;
+        int numPossibleCards = 0;
+        Map<WildlingCard, Boolean> isCardForbidden = new HashMap<>();
+        for (WildlingCard card: listOfWildlingCards) {
+            if (firstFlag) {
+                firstFlag = false;
+                if (card != null) {
+                    knownCard = card;
+                    break;
+                }
+            }
+            if (card != null) {
+                isCardForbidden.put(card, true);
+            }
         }
-        return Math.min(2, game.getNumPowerTokensHouse(houseNumber));
+        for (WildlingCard card: WildlingCard.values()) {
+            if (!isCardForbidden.get(card)) {
+                isCardForbidden.put(card, knownCard == null || knownCard == card);
+            }
+        }
+        /*for (WildlingCard card: WildlingCard.values()) {
+            if (!isCardForbidden.get(card)) {
+                numPossibleCards++;
+                switch (card) {
+                    case shapechangerScout:
+                        winProfit +=
+                }
+            }
+        }*/
+
+        return 0;
     }
 
     @Override
@@ -1084,11 +1131,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
         return disband(DisbandReason.wildlingCommonDisband);
     }
 
-    protected void say(String text) {
+    private void say(String text) {
         game.say(HOUSE[houseNumber] + ": " + text);
     }
 
-    protected MusterPlayed musterInArea(int castleArea) {
+    private MusterPlayed musterInArea(int castleArea) {
         long time = System.currentTimeMillis();
         int numMusterPoints = map.getNumCastle(castleArea);
         if (numMusterPoints == 0) {
@@ -1134,7 +1181,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         return LittleThings.getRandomElementOfSet(musterVariants);
     }
 
-    protected HashSet<MusterPlayed> getMusterVariants(int castleArea, HashSet<Integer> navalAreas,
+    private HashSet<MusterPlayed> getMusterVariants(int castleArea, HashSet<Integer> navalAreas,
                                                       MusterPlayed template, int musterPoints, int curAvailableShips) {
         HashSet<MusterPlayed> musterVariants = new HashSet<>();
         MusterPlayed muster;
@@ -1270,47 +1317,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
         return musterVariants;
     }
 
-    protected void addNewMusterVariant(HashSet<MusterPlayed> set, MusterPlayed muster) {
+    private void addNewMusterVariant(HashSet<MusterPlayed> set, MusterPlayed muster) {
         if (game.supplyTestForMuster(muster) && game.portTroopsTestForMuster(muster)) {
             set.add(muster);
-        }
-    }
-
-    private void fillFirstTurnOrderMap() {
-        orderMap.clear();
-        switch (houseNumber) {
-            case 0:
-                orderMap.put(8, Order.support);
-                orderMap.put(9, Order.support);
-                orderMap.put(53, Order.consolidatePower);
-                orderMap.put(56, Order.marchS);
-                break;
-            case 1:
-                orderMap.put(3, Order.marchS);
-                orderMap.put(37, Order.consolidatePower);
-                orderMap.put(36, Order.consolidatePowerS);
-                break;
-            case 2:
-                orderMap.put(11, Order.marchS);
-                orderMap.put(25, Order.consolidatePower);
-                orderMap.put(21, Order.consolidatePowerS);
-                break;
-            case 3:
-                orderMap.put(7, Order.marchS);
-                orderMap.put(47, Order.consolidatePower);
-                orderMap.put(48, Order.consolidatePowerS);
-                orderMap.put(52, Order.defence);
-                break;
-            case 4:
-                orderMap.put(2, Order.marchB);
-                orderMap.put(13, Order.consolidatePower);
-                orderMap.put(33, Order.consolidatePower);
-                orderMap.put(57, Order.march);
-                break;
-            case 5:
-                orderMap.put(5, Order.marchB);
-                orderMap.put(43, Order.consolidatePower);
-                orderMap.put(41, Order.march);
         }
     }
 }

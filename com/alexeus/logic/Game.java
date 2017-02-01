@@ -634,6 +634,9 @@ public class Game {
                 if (!playerInterface[ravenHolder].leaveWildlingCardOnTop(wildlingDeck.getFirst())) {
                     WildlingCard card = wildlingDeck.pollFirst();
                     wildlingDeck.addLast(card);
+                    for (int player = 0; player < NUM_PLAYER; player++) {
+                        playerInterface[player].tellWildlingsBuried();
+                    }
                     say(AND_BURIES);
                 } else {
                     say(AND_LEAVES);
@@ -3003,6 +3006,7 @@ public class Game {
                 sb.append(", ");
             }
             sb.append(HOUSE[player]).append(": ").append(currentBids[player]);
+            playerInterface[player].showPlayedWildlingsCard(topWildlingCard);
         }
         say(sb.toString());
         say(WILDLINGS_ARE + topWildlingCard);
@@ -3994,6 +3998,10 @@ public class Game {
 
     public BattleInfo getBattleInfo() {
         return battleInfo;
+    }
+
+    public int getNumActiveCardsOfPlayer(int player) {
+        return numActiveHouseCardsOfPlayer[player];
     }
 
     public int getBattleArea() {

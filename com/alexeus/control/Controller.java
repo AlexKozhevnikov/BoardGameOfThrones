@@ -125,7 +125,7 @@ public class Controller {
             currentGameThread.interrupt();
             if (gameStatus == GameStatus.none) {
                 JOptionPane.showConfirmDialog(GotFrame.getInstance(), new EndGamePanel(), "Игра закончена.",
-                        JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
+                        JOptionPane.CLOSED_OPTION, JOptionPane.PLAIN_MESSAGE);
             }
             isGameRunning = false;
             synchronized (controllerMonitor) {
