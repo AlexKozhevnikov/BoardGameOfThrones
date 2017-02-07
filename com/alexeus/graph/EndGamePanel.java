@@ -2,6 +2,7 @@ package com.alexeus.graph;
 
 import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -59,7 +60,7 @@ public class EndGamePanel extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Game game = Game.getInstance();
+        GameModel model = Game.getInstance().getModel();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -80,14 +81,14 @@ public class EndGamePanel extends JPanel {
             curX += emblemTrueWidth + ENDSPIEL_EMBLEM_INDENT;
             g2d.drawImage(victoryImage[playerOnPlace[place]], curX, curHeight, victoryTrueWidth, ENDSPIEL_HEIGHT, null);
             curX += victoryTrueWidth + ENDSPIEL_INDENT;
-            String stringValue = String.valueOf(game.getVictoryPoints(playerOnPlace[place]));
+            String stringValue = String.valueOf(model.getVictoryPoints(playerOnPlace[place]));
             g2d.drawString(stringValue, curX + (maxVictoryWidth - metrics.stringWidth(stringValue)) / 2,
                     curHeight + (ENDSPIEL_HEIGHT + ENDSPIEL_TEXT_Y_INDENT) / 2);
             curX += maxVictoryWidth + ENDSPIEL_GROUP_INDENT;
             if (numPositionsToShowOnPlace[place] > 0) {
                 g2d.drawImage(fortressImage, curX, curHeight, fortressTrueWidth, ENDSPIEL_HEIGHT, null);
                 curX += fortressTrueWidth + ENDSPIEL_INDENT;
-                stringValue = String.valueOf(game.getNumFortress(playerOnPlace[place]));
+                stringValue = String.valueOf(model.getNumFortress(playerOnPlace[place]));
                 g2d.drawString(stringValue, curX + (maxFortressWidth - metrics.stringWidth(stringValue)) / 2,
                         curHeight + (ENDSPIEL_HEIGHT + ENDSPIEL_TEXT_Y_INDENT) / 2);
                 curX += maxFortressWidth + ENDSPIEL_GROUP_INDENT;
@@ -95,7 +96,7 @@ public class EndGamePanel extends JPanel {
             if (numPositionsToShowOnPlace[place] > 1) {
                 g2d.drawImage(supplyImage[playerOnPlace[place]], curX, curHeight, supplyTrueWidth, ENDSPIEL_HEIGHT, null);
                 curX += supplyTrueWidth + ENDSPIEL_INDENT;
-                stringValue = String.valueOf(game.getSupply(playerOnPlace[place]));
+                stringValue = String.valueOf(model.getSupply(playerOnPlace[place]));
                 g2d.drawString(stringValue, curX + (maxSupplyWidth - metrics.stringWidth(stringValue)) / 2,
                         curHeight + (ENDSPIEL_HEIGHT + ENDSPIEL_TEXT_Y_INDENT) / 2);
                 curX += maxSupplyWidth + ENDSPIEL_GROUP_INDENT;
@@ -104,7 +105,7 @@ public class EndGamePanel extends JPanel {
                 curX += ENDSPIEL_INDENT;
                 g2d.drawImage(tokenImage[playerOnPlace[place]], curX, curHeight, tokenTrueWidth, ENDSPIEL_HEIGHT, null);
                 curX += tokenTrueWidth + ENDSPIEL_INDENT;
-                stringValue = String.valueOf(game.getNumPowerTokensHouse(playerOnPlace[place]));
+                stringValue = String.valueOf(model.getNumPowerTokensHouse(playerOnPlace[place]));
                 g2d.drawString(stringValue, curX + (maxTokenWidth - metrics.stringWidth(stringValue)) / 2,
                         curHeight + (ENDSPIEL_HEIGHT + ENDSPIEL_TEXT_Y_INDENT) / 2);
                 curX += maxTokenWidth + ENDSPIEL_GROUP_INDENT;
@@ -112,7 +113,7 @@ public class EndGamePanel extends JPanel {
             if (numPositionsToShowOnPlace[place] > 3) {
                 g2d.drawImage(throneImage, curX, curHeight, throneTrueWidth, ENDSPIEL_HEIGHT, null);
                 curX += throneTrueWidth + ENDSPIEL_INDENT;
-                stringValue = String.valueOf(1 + game.getInfluenceTrackPlaceForPlayer(0, playerOnPlace[place]));
+                stringValue = String.valueOf(1 + model.getTrackPlaceForPlayer(0, playerOnPlace[place]));
                 g2d.drawString(stringValue, curX + (maxThroneWidth - metrics.stringWidth(stringValue)) / 2,
                         curHeight + (ENDSPIEL_HEIGHT + ENDSPIEL_TEXT_Y_INDENT) / 2);
             }
@@ -121,14 +122,14 @@ public class EndGamePanel extends JPanel {
     }
 
     private void fillInfo() {
-        Game game = Game.getInstance();
+        GameModel model = Game.getInstance().getModel();
         playerOnPlace = new int[NUM_PLAYER];
         numPositionsToShowOnPlace = new int[NUM_PLAYER];
         long[] valueOfPlayer = new long[NUM_PLAYER];
         for (int player = 0; player < NUM_PLAYER; player++) {
-            valueOfPlayer[player] = 5 - game.getInfluenceTrackPlaceForPlayer(0, player) +
-                    NUM_PLAYER * (game.getNumPowerTokensHouse(player) + MAX_TOKENS * (game.getSupply(player) +
-                            MAX_SUPPLY * (game.getNumFortress(player) + NUM_CASTLES_TO_WIN * game.getVictoryPoints(player))));
+            valueOfPlayer[player] = 5 - model.getTrackPlaceForPlayer(0, player) +
+                    NUM_PLAYER * (model.getNumPowerTokensHouse(player) + MAX_TOKENS * (model.getSupply(player) +
+                            MAX_SUPPLY * (model.getNumFortress(player) + NUM_CASTLES_TO_WIN * model.getVictoryPoints(player))));
         }
         boolean[] isPlayerCounted = new boolean[NUM_PLAYER];
         for (int i = 0; i < NUM_PLAYER; i++) {
@@ -155,10 +156,10 @@ public class EndGamePanel extends JPanel {
             int player = playerOnPlace[place];
             if (place < NUM_PLAYER - 1) {
                 int nextPlayer = playerOnPlace[place + 1];
-                nextPositionsToShow = game.getVictoryPoints(player) != game.getVictoryPoints(nextPlayer) ? 0 :
-                        game.getNumFortress(player) != game.getNumFortress(nextPlayer) ? 1 :
-                        game.getSupply(player) != game.getSupply(nextPlayer) ? 2 :
-                        game.getNumPowerTokensHouse(player) != game.getNumPowerTokensHouse(nextPlayer) ? 3 : 4;
+                nextPositionsToShow = model.getVictoryPoints(player) != model.getVictoryPoints(nextPlayer) ? 0 :
+                        model.getNumFortress(player) != model.getNumFortress(nextPlayer) ? 1 :
+                        model.getSupply(player) != model.getSupply(nextPlayer) ? 2 :
+                        model.getNumPowerTokensHouse(player) != model.getNumPowerTokensHouse(nextPlayer) ? 3 : 4;
             } else {
                 nextPositionsToShow = 0;
             }
@@ -178,24 +179,24 @@ public class EndGamePanel extends JPanel {
         metrics = g2d.getFontMetrics(commonFont);
         for (int place = 0; place < NUM_PLAYER; place++) {
             int player = playerOnPlace[place];
-            if (metrics.stringWidth(String.valueOf(game.getVictoryPoints(player))) > maxVictoryWidth) {
-                maxVictoryWidth = metrics.stringWidth(String.valueOf(game.getVictoryPoints(player)));
+            if (metrics.stringWidth(String.valueOf(model.getVictoryPoints(player))) > maxVictoryWidth) {
+                maxVictoryWidth = metrics.stringWidth(String.valueOf(model.getVictoryPoints(player)));
             }
-            if (metrics.stringWidth(String.valueOf(game.getNumFortress(player))) > maxFortressWidth &&
+            if (metrics.stringWidth(String.valueOf(model.getNumFortress(player))) > maxFortressWidth &&
                     numPositionsToShowOnPlace[place] > 0) {
-                maxFortressWidth = metrics.stringWidth(String.valueOf(game.getNumFortress(player)));
+                maxFortressWidth = metrics.stringWidth(String.valueOf(model.getNumFortress(player)));
             }
-            if (metrics.stringWidth(String.valueOf(game.getSupply(player))) > maxSupplyWidth &&
+            if (metrics.stringWidth(String.valueOf(model.getSupply(player))) > maxSupplyWidth &&
                     numPositionsToShowOnPlace[place] > 1) {
-                maxSupplyWidth = metrics.stringWidth(String.valueOf(game.getSupply(player)));
+                maxSupplyWidth = metrics.stringWidth(String.valueOf(model.getSupply(player)));
             }
-            if (metrics.stringWidth(String.valueOf(game.getNumPowerTokensHouse(player))) > maxTokenWidth &&
+            if (metrics.stringWidth(String.valueOf(model.getNumPowerTokensHouse(player))) > maxTokenWidth &&
                     numPositionsToShowOnPlace[place] > 2) {
-                maxTokenWidth = metrics.stringWidth(String.valueOf(game.getNumPowerTokensHouse(player)));
+                maxTokenWidth = metrics.stringWidth(String.valueOf(model.getNumPowerTokensHouse(player)));
             }
-            if (metrics.stringWidth(String.valueOf(game.getInfluenceTrackPlaceForPlayer(0, player))) > maxThroneWidth &&
+            if (metrics.stringWidth(String.valueOf(model.getTrackPlaceForPlayer(0, player))) > maxThroneWidth &&
                     numPositionsToShowOnPlace[place] > 3) {
-                maxThroneWidth = metrics.stringWidth(String.valueOf(game.getInfluenceTrackPlaceForPlayer(0, player)));
+                maxThroneWidth = metrics.stringWidth(String.valueOf(model.getTrackPlaceForPlayer(0, player)));
             }
         }
 

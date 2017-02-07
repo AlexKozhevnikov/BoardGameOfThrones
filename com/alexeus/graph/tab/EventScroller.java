@@ -2,6 +2,7 @@ package com.alexeus.graph.tab;
 
 import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.enums.Deck1Cards;
 import com.alexeus.logic.enums.Deck2Cards;
 import com.alexeus.logic.enums.Deck3Cards;
@@ -40,13 +41,14 @@ public class EventScroller extends JPanel {
         super.paintComponent(g);
         int curHeight = 0;
         Game game = Game.getInstance();
+        GameModel model = game.getModel();
         int numRemainingCards;
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        Happenable curEvent = game.getEvent(deckNumber);
+        Happenable curEvent = model.getEvent(deckNumber);
         g.drawImage(curEvent != null ? deckImages.get(curEvent) : deckClosedImage
                 , (getWidth() - EVENT_CARD_WIDTH) / 2, curHeight, EVENT_CARD_WIDTH, EVENT_CARD_HEIGHT, null);
         curHeight += EVENT_CARD_HEIGHT + EVENT_TEXT_HEIGHT;
@@ -54,10 +56,10 @@ public class EventScroller extends JPanel {
         g2d.setColor(Color.WHITE);
         for (Happenable h : deckNumber == 1 ? Deck1Cards.values() :
                 (deckNumber == 2 ? Deck2Cards.values() : Deck3Cards.values())) {
-            numRemainingCards = game.getNumRemainingCards(h);
+            numRemainingCards = model.getNumRemainingCards(h);
             if (numRemainingCards > 0) {
                 g.drawString(h.getName() + (numRemainingCards > 1 ?
-                        ": " + game.getNumRemainingCards(h) : ""), 0, curHeight);
+                        ": " + model.getNumRemainingCards(h) : ""), 0, curHeight);
                 curHeight += EVENT_TEXT_HEIGHT;
             }
         }
@@ -74,10 +76,10 @@ public class EventScroller extends JPanel {
 
     public void updatePreferredSize() {
         int numTextStrings = 0;
-        Game game = Game.getInstance();
+        GameModel model = Game.getInstance().getModel();
         for (Happenable h : deckNumber == 3 ? Deck3Cards.values() :
                 (deckNumber == 2 ? Deck2Cards.values() : Deck1Cards.values())) {
-            if (game.getNumRemainingCards(h) > 0) {
+            if (model.getNumRemainingCards(h) > 0) {
                 numTextStrings++;
             }
         }

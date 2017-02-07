@@ -1,9 +1,11 @@
 package com.alexeus.graph;
 
+import com.alexeus.control.Controller;
 import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.graph.util.PictureTormentor;
 import com.alexeus.graph.enums.UnitPackType;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.enums.*;
 import com.alexeus.logic.struct.Army;
@@ -14,6 +16,7 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 
 import static com.alexeus.graph.constants.Constants.*;
 import static com.alexeus.graph.enums.UnitPackType.*;
@@ -85,9 +88,7 @@ public class MapPanel extends JPanel{
 
     private AffineTransform heal, wound;
 
-    private int activePlayer;
-
-    private String actionText = "";
+    private boolean secrecy;
 
     private int defenceX[] = new int[NUM_AREA];
     private int defenceY[] = new int[NUM_AREA];
@@ -118,7 +119,7 @@ public class MapPanel extends JPanel{
 
     @Override
     public void paintComponent(Graphics g) {
-        Game game = Game.getInstance();
+        GameModel model = Game.getInstance().getModel();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(Color.BLACK);
@@ -130,7 +131,7 @@ public class MapPanel extends JPanel{
         Composite comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f);
         g2d.setComposite(comp);
         for (int area = 0; area < NUM_AREA; area++) {
-            int areaOwner = game.getAreaOwner(area);
+            int areaOwner = model.getAreaOwner(area);
             if (areaFillImage[area] != null && areaOwner >= 0) {
                 if (areaFillImagePlayer[area][areaOwner] == null) {
                     areaFillImagePlayer[area][areaOwner] =
@@ -144,33 +145,34 @@ public class MapPanel extends JPanel{
         // Рисуем гарнизоны, юниты, жетоны власти и приказы
         comp = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
         g2d.setComposite(comp);
-        GamePhase gamePhase = game.getGamePhase();
         for (int area = 0; area < NUM_AREA; area++) {
-            int areaOwner = game.getAreaOwner(area);
-            int garrison = game.getGarrisonInArea(area);
+            int areaOwner = model.getAreaOwner(area);
+            int garrison = model.getGarrisonInArea(area);
             if (garrison > 0) {
                 g2d.drawImage(defenceImage[garrison],
                         indent + (int) (defenceX[area] / scale), (int) (defenceY[area] / scale),
                         trueDefenceWidth, trueDefenceHeight, null);
             }
             // Жетон власти на области
-            if (game.getPowerTokenInArea(area) >= 0) {
+            if (model.getPowerTokenInArea(area) >= 0) {
                 g2d.drawImage(tokenImage[areaOwner], indent + (int) (tokenX[area] / scale),
                         (int) (tokenY[area] / scale), trueTokenWidth, trueTokenHeight, null);
             }
             // Приказы
-            Order order = game.getOrderInArea(area);
-            if (order != null) {
-                if (order == Order.closed || gamePhase == GamePhase.planningPhase) {
+            Order order = model.getOrderInArea(area);
+            if (secrecy) {
+                if (!model.getArmyInArea(area).isEmpty()) {
                     g2d.drawImage(influenceImage[areaOwner], indent + (int) (orderX[area] / scale),
                             (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
-                } else {
+                }
+            } else {
+                if (order != null) {
                     g2d.drawImage(orderImage[order.getCode()], indent + (int) (orderX[area] / scale),
                             (int) (orderY[area] / scale), trueOrderSize, trueOrderSize, null);
                 }
             }
             // Войска
-            Army army = game.getArmyInArea(area);
+            Army army = model.getArmyInArea(area);
             int armySize = army.getSize();
             if (armySize > 0) {
                 fillShifts(army, area);
@@ -185,10 +187,10 @@ public class MapPanel extends JPanel{
             }
         }
         // Рисуем юнитов-атакующих и юнитов-отступающих, если таковые имеются
-        Army army = game.getAttackingArmy() != null ? game.getAttackingArmy() : (game.getRetreatingArmy() != null ?
-                game.getRetreatingArmy() : null);
+        Army army = model.getAttackingArmy() != null && !model.getAttackingArmy().isEmpty() ?
+                model.getAttackingArmy() : model.getRetreatingArmy();
         if (army != null && !army.isEmpty()) {
-            int area = game.getBattleArea();
+            int area = model.getBattleArea();
             fillShifts(army, area);
             ArrayList<Unit> units = army.getUnits();
             for (int index = 0; index < army.getUnits().size(); index++) {
@@ -204,21 +206,21 @@ public class MapPanel extends JPanel{
         // Рисуем жетон времени
         g2d.drawImage(timeImage,
                 indent + (int) (TIME_BEGIN_X / scale),
-                (int) ((TIME_BEGIN_Y - game.getTime() * TIME_VERTICAL_INDENT) / scale),
+                (int) ((TIME_BEGIN_Y - Controller.getInstance().getTime() * TIME_VERTICAL_INDENT) / scale),
                 (int) (TIME_WIDTH / scale), (int) (TIME_HEIGHT / scale), null);
         // Рисуем жетон одичалых и карту одичалых
         g2d.drawImage(wildlingTokenImage,
-                indent + (int) ((WILDLINGS_TOKEN_X +WILDLINGS_HORIZONTAL_INDENT * game.getWildlingsStrength() /
+                indent + (int) ((WILDLINGS_TOKEN_X +WILDLINGS_HORIZONTAL_INDENT * model.getWildlingsStrength() /
                         MainConstants.WILDLING_STRENGTH_INCREMENT) / scale), (int) ((WILDLINGS_TOKEN_Y) / scale),
                 (int) (WILDLINGS_TOKEN_WIDTH / scale), (int) (WILDLINGS_TOKEN_HEIGHT / scale), null);
-        int wildCard = game.getTopWildlingsCardCode();
+        int wildCard = model.getTopWildlingsCardCode();
         if (wildCard >= 0) {
             g2d.drawImage(wildlingCardImage[wildCard],
                     indent + (int) (WILDLINGS_CARD_BEGIN_X / scale), (int) (WILDLINGS_CARD_BEGIN_Y / scale),
                     (int) (WILDLINGS_CARD_WIDTH / scale), (int) (WILDLINGS_CARD_HEIGHT / scale), null);
         }
         // Рисуем победные очки
-        int[] victoryPoints = game.getVictoryPoints();
+        int[] victoryPoints = model.getVictoryPoints();
         for (int victory = 1; victory <= MainConstants.NUM_CASTLES_TO_WIN; victory++) {
             chosenPlayers.clear();
             for (int player = 0; player < NUM_PLAYER; player++) {
@@ -235,7 +237,7 @@ public class MapPanel extends JPanel{
             }
         }
         // Рисуем снабжение
-        int[] supply = game.getSupply();
+        int[] supply = model.getSupply();
         for (int supplyLevel = 0; supplyLevel <= MAX_SUPPLY ; supplyLevel++) {
             chosenPlayers.clear();
             for (int player = 0; player < NUM_PLAYER; player++) {
@@ -253,17 +255,17 @@ public class MapPanel extends JPanel{
         }
         // Рисуем треки влияния
         int playerOnPlace[];
-        int curBiddingTrack = game.getCurrentBiddingTrack();
+        int curBiddingTrack = model.getCurrentBiddingTrack();
         g2d.setFont(new Font("Liberation Mono", Font.BOLD, (int) (BID_TEXT_SIZE / scale)));
         for (int track = 0; track < NUM_TRACK; track++) {
-            playerOnPlace = game.getInfluenceTrackPlayerOnPlace(track);
+            playerOnPlace = model.getTrackPlayerOnPlace(track);
             for (int place = 0; place < NUM_PLAYER; place++) {
                 g2d.drawImage(influenceImage[playerOnPlace[place]],
                         indent + (int) (TRACK_BEGIN_X[track] / scale),
                         (int) ((TRACK_BEGIN_Y - place * TRACK_VERTICAL_INDENT) / scale),
                         trueInfluenceSize, trueInfluenceSize, null);
                 if (curBiddingTrack == track) {
-                    int bid = game.getCurrentBidOfPlayer(playerOnPlace[place]);
+                    int bid = model.getCurrentBidOfPlayer(playerOnPlace[place]);
                     g2d.drawString(String.valueOf(bid),
                             indent + (int) ((TRACK_BEGIN_X[track] - (bid < 10 ? BID_TEXT_X_INDENT : 2 * BID_TEXT_X_INDENT)) / scale + trueInfluenceSize / 2f),
                             (int) ((TRACK_BEGIN_Y - place * TRACK_VERTICAL_INDENT + BID_TEXT_Y_INDENT) / scale + trueInfluenceSize / 2f));
@@ -915,5 +917,13 @@ public class MapPanel extends JPanel{
         wound = new AffineTransform();
         wound.rotate(Math.toRadians(90.0));
         heal.rotate(Math.toRadians(-90.0));
+    }
+
+    public boolean isSecrecy() {
+        return secrecy;
+    }
+
+    public void setSecrecy(boolean secrecy) {
+        this.secrecy = secrecy;
     }
 }

@@ -2,6 +2,7 @@ package com.alexeus.graph.tab;
 
 import com.alexeus.graph.util.ImageLoader;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.enums.HouseCard;
 import com.alexeus.logic.enums.SideOfBattle;
 import com.alexeus.logic.struct.BattleInfo;
@@ -41,13 +42,13 @@ public class FightTabPanel extends JPanel {
 
     @Override
     public void paintComponent(Graphics g) {
-        Game game = Game.getInstance();
+        GameModel model = Game.getInstance().getModel();
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, getWidth(), getHeight());
-        BattleInfo battleInfo = game.getBattleInfo();
+        BattleInfo battleInfo = model.getBattleInfo();
         if (battleInfo != null && battleInfo.getAreaOfBattle() >= 0) {
             int width = getWidth();
             int trueCardWidth = (int)((width - 3 * FIGHT_X_INDENT) / 2f);
@@ -55,7 +56,7 @@ public class FightTabPanel extends JPanel {
             // Рисуем заголовок и карты домов
             g2d.setColor(Color.LIGHT_GRAY);
             g2d.setFont(new Font("Liberation Mono", Font.BOLD, 25));
-            g2d.drawString(FIGHT_FOR + game.getMap().getAreaNameRusAccusative(battleInfo.getAreaOfBattle()),
+            g2d.drawString(FIGHT_FOR + model.getMap().getAreaNameRusAccusative(battleInfo.getAreaOfBattle()),
                     FIGHT_X_INDENT, FIGHT_TEXT_Y_INDENT);
             for (int side = 0; side < 2; side++) {
                 card[side] = battleInfo.getCardOnSide(side);
@@ -78,7 +79,7 @@ public class FightTabPanel extends JPanel {
                         trueCardWidth, failTrueHeight, null);
             }
             int curHeight = FIGHT_AFTER_TEXT_Y + trueCardHeight;
-            if (!game.getIsSwordUsed()) {
+            if (!model.getIsSwordUsed()) {
                 int trueSwordWidth = (int) (1f * SWORD_ICON_HEIGHT * swordIconWidth / swordIconHeight);
                 g2d.drawImage(swordImage, (int) ((width - trueSwordWidth) / 2f), curHeight + FIGHT_BEFORE_SWORD_Y_INDENT,
                         trueSwordWidth, SWORD_ICON_HEIGHT, null);

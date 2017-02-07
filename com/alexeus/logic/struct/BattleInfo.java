@@ -1,6 +1,6 @@
 package com.alexeus.logic.struct;
 
-import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.constants.TextErrors;
 import com.alexeus.logic.enums.*;
 
@@ -13,6 +13,8 @@ import static com.alexeus.logic.constants.MainConstants.NUM_PLAYER;
  * Класс представляет собой информацию об одной битве
  */
 public class BattleInfo {
+
+    private GameModel model;
 
     private int areaOfBattle;
 
@@ -43,8 +45,9 @@ public class BattleInfo {
     // Защищающиеся юниты и им сочувствующие
     private ArrayList<Unit> defenderUnits = new ArrayList<>();
 
-    public BattleInfo() {
+    public BattleInfo(GameModel model) {
         areaOfBattle = -1;
+        this.model = model;
     }
 
     public void setNewBattle(int attacker, int defender, int areaOfBattle, int marchModifier, boolean isThereACastle) {
@@ -228,6 +231,10 @@ public class BattleInfo {
         return winnerSide == null ? -1: winnerSide.getCode();
     }
 
+    public int[] getPlayersOnSides() {
+        return playerOnSide;
+    }
+
     /**
      * Метод рассчитывает стандартные переменные боя - сила карты, мечи, башни и бонусы к боевой силе из-за свойств карт
      */
@@ -239,18 +246,17 @@ public class BattleInfo {
             bonusStrengthOnSide[curSide] = 0;
         }
 
-        Game game = Game.getInstance();
         for (int side = 0; side < 2; side++) {
             if (houseCardOfSide[side] == null) continue;
             if (houseCardOfSide[side].getCardInitiative() == CardInitiative.bonus) {
                 switch (houseCardOfSide[side]) {
                     case stannisBaratheon:
-                        if (!game.isHigherOnThrone(playerOnSide[side], playerOnSide[1 - side])) {
+                        if (!model.isHigherOnThrone(playerOnSide[side], playerOnSide[1 - side])) {
                             bonusStrengthOnSide[side] = 1;
                         }
                         break;
                     case serDavosSeaworth:
-                        if (!game.isStannisActive()) {
+                        if (!model.isStannisActive()) {
                             bonusStrengthOnSide[side] = 1;
                             swordsOnSide[side] = 1;
                         }
@@ -269,7 +275,7 @@ public class BattleInfo {
                         }
                         break;
                     case catelynStark:
-                        int defenceBonus = game.getDefenceBonusInArea(areaOfBattle);
+                        int defenceBonus = model.getDefenceBonusInArea(areaOfBattle);
                         if (side == 1 && defenceBonus > 0) {
                             bonusStrengthOnSide[side] += defenceBonus;
                         }
@@ -288,7 +294,7 @@ public class BattleInfo {
                         }
                         break;
                     case theonGreyjoy:
-                        if (side == 1 && game.getMap().getNumCastle(areaOfBattle) > 0) {
+                        if (side == 1 && model.getMap().getNumCastle(areaOfBattle) > 0) {
                             bonusStrengthOnSide[side] = 1;
                             swordsOnSide[side] = 1;
                         }
@@ -312,7 +318,7 @@ public class BattleInfo {
         int attackerStrength = getStrengthOnSide(SideOfBattle.attacker);
         int defenderStrength = getStrengthOnSide(SideOfBattle.defender);
         winnerSide = attackerStrength > defenderStrength || attackerStrength == defenderStrength &&
-                Game.getInstance().isHigherOnSword(playerOnSide[0], playerOnSide[1]) ?
+                model.isHigherOnSword(playerOnSide[0], playerOnSide[1]) ?
                 SideOfBattle.attacker : SideOfBattle.defender;
         isFightResolved = true;
         return winnerSide;

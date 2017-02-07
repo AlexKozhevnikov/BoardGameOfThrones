@@ -113,9 +113,9 @@ public class MainPanel extends JPanel {
                         PlayRegimeType.none : PlayRegimeType.timeout);
                 // Если раньше режим был выключен, то теперь мы его ВКЛЮЧИЛИ, и должны прервать ожидание.
                 if (previousPlayRegime == PlayRegimeType.none) {
-                    synchronized (Controller.getControllerMonitor()) {
+                    synchronized (Controller.getGameMonitor()) {
                         Controller.getInstance().setTimer();
-                        Controller.getControllerMonitor().notify();
+                        Controller.getGameMonitor().notify();
                     }
                 }
             }
@@ -125,8 +125,8 @@ public class MainPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 playButton.setIcon(playIcon);
                 Settings.getInstance().setPlayRegime(PlayRegimeType.none);
-                synchronized (Controller.getControllerMonitor()) {
-                    Controller.getControllerMonitor().notify();
+                synchronized (Controller.getGameMonitor()) {
+                    Controller.getGameMonitor().notify();
                 }
             }
         });
@@ -137,8 +137,8 @@ public class MainPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 playButton.setIcon(playIcon);
                 Settings.getInstance().setPlayRegime(PlayRegimeType.nextTurn);
-                synchronized (Controller.getControllerMonitor()) {
-                    Controller.getControllerMonitor().notify();
+                synchronized (Controller.getGameMonitor()) {
+                    Controller.getGameMonitor().notify();
                 }
             }
         });
@@ -149,8 +149,8 @@ public class MainPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 playButton.setIcon(playIcon);
                 Settings.getInstance().setPlayRegime(PlayRegimeType.playEnd);
-                synchronized (Controller.getControllerMonitor()) {
-                    Controller.getControllerMonitor().notify();
+                synchronized (Controller.getGameMonitor()) {
+                    Controller.getGameMonitor().notify();
                 }
             }
         });

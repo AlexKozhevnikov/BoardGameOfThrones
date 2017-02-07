@@ -161,7 +161,6 @@ public class TextInfo {
     public static final String FAILED_TO_WILD = " не смог принять одичальническое решение!";
 
     /*************** Фазы игры ****************/
-    public static final String LINE_DELIMITER = "**************************************************";
     public static final String WESTEROS_PHASE = "Фаза Вестероса";
     public static final String PLANNING_PHASE = "Фаза замыслов.";
     public static final String RAVEN_PHASE = "Фаза действий. Посыльный ворон.";
@@ -169,5 +168,5 @@ public class TextInfo {
     public static final String MARCH_PHASE = "Фаза действий. Походы.";
     public static final String CONSOLIDATE_POWER_PHASE = "Фаза действий. Сбор власти.";
     public static final String END_OF_GAME = "Конец игры";
-    public static final String ROUND_NUMBER = "Раунд №";
+    public static final String ROUND_NUMBER = "**************************************************\nРаунд №";
 }

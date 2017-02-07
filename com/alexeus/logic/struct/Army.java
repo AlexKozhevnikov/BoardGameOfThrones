@@ -1,11 +1,13 @@
 package com.alexeus.logic.struct;
 
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.constants.MainConstants;
 import com.alexeus.logic.constants.TextErrors;
 import com.alexeus.logic.constants.TextInfo;
 import com.alexeus.logic.enums.KillingReason;
 import com.alexeus.logic.enums.UnitType;
+import com.alexeus.util.LittleThings;
 
 import java.util.ArrayList;
 
@@ -17,15 +19,11 @@ public class Army {
 
     private ArrayList<Unit> units;
 
-    private Game game;
-
-    public Army(Game game) {
+    public Army() {
         units = new ArrayList<>();
-        this.game = game;
     }
 
     public Army(Game game, ArrayList<UnitType> unitTypes, int player) {
-        this.game = game;
         units = new ArrayList<>();
         for (UnitType type: unitTypes) {
             units.add(new Unit(type, player));
@@ -89,6 +87,15 @@ public class Army {
         }
         System.out.println(TextErrors.DELETE_TROOP_ERROR);
         return false;
+    }
+
+    /**
+     * Метод удаляет из армии одного определённого юнита
+     * @param unit юнит, которого нужно удалить
+     * @return true, если удалось успешно удалить
+     */
+    public boolean deleteUnit(Unit unit) {
+        return units.remove(unit);
     }
 
     /**
@@ -164,11 +171,13 @@ public class Army {
     /**
      * Вызывается при проигрыше данной армии. Все юниты становятся ранеными
      */
-    public void woundAllTroops() {
+    public void woundAllTroops(GameModel model) {
         // Оставшиеся в живых войска становятся ранеными
         for (Unit unit: units) {
             unit.setWounded(true);
-            game.say(unit.getUnitType() + TextInfo.IS_WOUNDED);
+            if (model != null) {
+                model.say(unit.getUnitType() + TextInfo.IS_WOUNDED);
+            }
         }
     }
 
@@ -176,11 +185,11 @@ public class Army {
      * Метод убивает всех юнитов в армии
      * @param reason причина убийства
      */
-    public void killAllUnits(KillingReason reason) {
+    public void killAllUnits(KillingReason reason, GameModel model) {
         ArrayList<Unit> unitsToKill = new ArrayList<>();
         unitsToKill.addAll(units);
         for (Unit unit: unitsToKill) {
-            killUnit(unit, reason);
+            killUnit(unit, reason, model);
         }
     }
 
@@ -190,11 +199,13 @@ public class Army {
      * @param reason причина убийства
      * @return true, если удалось уничтожить юнита
      */
-    public boolean killUnit(Unit unit, KillingReason reason) {
-        game.say(unit.getUnitType() + (unit.isWounded() ? TextInfo.IS_FINISHED :
-                (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F : TextInfo.IS_DEFEATED_M +
-                " (" + reason + ")")));
-        game.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
+    public boolean killUnit(Unit unit, KillingReason reason, GameModel model) {
+        if (model != null) {
+            model.say(unit.getUnitType() + (unit.isWounded() ? TextInfo.IS_FINISHED :
+                    (unit.getUnitType() == UnitType.siegeEngine ? TextInfo.IS_DEFEATED_F : TextInfo.IS_DEFEATED_M +
+                            " (" + reason + ")")));
+            model.unitStoreIncreased(unit.getUnitType(), unit.getHouse());
+        }
         return units.remove(unit);
     }
 
@@ -202,7 +213,7 @@ public class Army {
      * Метод убивает несколько юнитов в армии
      * @param numDoomedTroops количество юнитов, которые должны быть уничтожены
      */
-    public void killSomeUnits(int numDoomedTroops, KillingReason reason) {
+    public void killSomeUnits(int numDoomedTroops, KillingReason reason, GameModel model) {
         int nKilled = 0;
         ArrayList<Unit> unitsToKill = new ArrayList<>();
         for (Unit unit: units) {
@@ -224,7 +235,7 @@ public class Army {
             }
         }
         for (Unit unit: unitsToKill) {
-            killUnit(unit, reason);
+            killUnit(unit, reason, model);
         }
     }
 
@@ -232,7 +243,7 @@ public class Army {
      * Метод топит определённое число кораблей. Отличается от killSomeUnits тем, что раненые корабли выживают
      * @param numShips число кораблей, что подобает потопить
      */
-    public void wreckSomeShips(int numShips) {
+    public void wreckSomeShips(int numShips, GameModel model) {
         ArrayList<Unit> unitsToKill = new ArrayList<>();
         int nKilled = 0;
         for (Unit unit: units) {
@@ -245,7 +256,7 @@ public class Army {
             }
         }
         for (Unit unit: unitsToKill) {
-            killUnit(unit, KillingReason.navyLimit);
+            killUnit(unit, KillingReason.navyLimit, model);
         }
     }
 
@@ -254,7 +265,7 @@ public class Army {
      * @param type тип юнита, который должен быть уничтожен
      * @return true, если удалось успешно уничтожить юнит
      */
-    public boolean killUnitOfType(UnitType type) {
+    public boolean killUnitOfType(UnitType type, GameModel model) {
         Unit unitToKill = null;
         for (Unit unit: units) {
             if (unit.getUnitType() == type) {
@@ -266,7 +277,7 @@ public class Army {
             System.out.println(TextErrors.NO_TROOP_TO_KILL);
             return false;
         } else {
-            return killUnit(unitToKill, KillingReason.wildlings);
+            return killUnit(unitToKill, KillingReason.wildlings, model);
         }
     }
 
@@ -274,20 +285,20 @@ public class Army {
      * Метод убивает в армии самого слабого юнита. Считается, что осадная башня слабее рыцаря, но сильнее пехотинца
      * @return true, если удалось успешно уничтожить юнит
      */
-    public boolean killWeakestUnit() {
+    public boolean killWeakestUnit(GameModel model) {
         if (getSize() == 0) {
             return false;
         } else {
             boolean hasSiegeEngines = false;
             for (Unit unit : units) {
                 if (unit.getStrength() == 1) {
-                    return killUnitOfType(unit.getUnitType());
+                    return killUnitOfType(unit.getUnitType(), model);
                 }
                 if (unit.getUnitType() == UnitType.siegeEngine) {
                     hasSiegeEngines = true;
                 }
             }
-            return killUnitOfType(hasSiegeEngines ? UnitType.siegeEngine : UnitType.knight);
+            return killUnitOfType(hasSiegeEngines ? UnitType.siegeEngine : UnitType.knight, model);
         }
     }
 
@@ -377,21 +388,6 @@ public class Army {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        int n = units.size();
-        if (n > 0) {
-            for (int i = 0; i < n; i++) {
-                if (i == n - 1 && i != 0) {
-                    sb.append(" и ");
-                } else if (i != 0) {
-                    sb.append(", ");
-                }
-                sb.append(units.get(i).getUnitType());
-            }
-            sb.append(" ").append(MainConstants.HOUSE_GENITIVE[units.get(0).getHouse()]);
-        } else {
-            sb.append(TextInfo.NOBODY);
-        }
-        return sb.toString();
+        return LittleThings.unitsToString(units);
     }
 }

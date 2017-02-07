@@ -1,9 +1,15 @@
 package com.alexeus.util;
 
+import com.alexeus.logic.enums.UnitType;
+import com.alexeus.logic.struct.Unit;
 import com.sun.javaws.exceptions.InvalidArgumentException;
 
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
+
+import static com.alexeus.logic.constants.MainConstants.HOUSE_GENITIVE;
+import static com.alexeus.logic.constants.TextInfo.NOBODY;
 
 /**
  * Created by alexeus on 12.01.2017.
@@ -48,6 +54,43 @@ public class LittleThings {
             }
         }
         return chosenElement;
+    }
+
+    public static String unitsToString(ArrayList<Unit> units) {
+        StringBuilder sb = new StringBuilder();
+        int n = units.size();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                if (i == n - 1 && i != 0) {
+                    sb.append(" и ");
+                } else if (i != 0) {
+                    sb.append(", ");
+                }
+                sb.append(units.get(i).getUnitType());
+            }
+            sb.append(" ").append(HOUSE_GENITIVE[units.get(0).getHouse()]);
+        } else {
+            sb.append(NOBODY);
+        }
+        return sb.toString();
+    }
+
+    public static String unitTypesToString(ArrayList<UnitType> units) {
+        StringBuilder sb = new StringBuilder();
+        int n = units.size();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                if (i == n - 1 && i != 0) {
+                    sb.append(" и ");
+                } else if (i != 0) {
+                    sb.append(", ");
+                }
+                sb.append(units.get(i));
+            }
+        } else {
+            sb.append(NOBODY);
+        }
+        return sb.toString();
     }
 
     /**

@@ -1,7 +1,9 @@
 package com.alexeus.ai.util;
 
 import com.alexeus.ai.struct.DummyArmy;
+import com.alexeus.control.Controller;
 import com.alexeus.logic.Game;
+import com.alexeus.logic.GameModel;
 import com.alexeus.logic.enums.UnitType;
 import com.alexeus.logic.struct.Army;
 import com.alexeus.logic.struct.Unit;
@@ -30,7 +32,7 @@ public class PlayerUtils {
 
     private boolean isNumFightsActual;
 
-    private Game game;
+    private GameModel model;
 
     // Время в игре. Нужно учитывать, чтобы вовремя заполнять вспомогательные массивы и коллекции
     private int time;
@@ -41,8 +43,8 @@ public class PlayerUtils {
         numAreasToRaidFrom = new int[NUM_AREA];
         numAreasToRaid = new int[NUM_AREA];
         isNumFightsActual = false;
-        game = Game.getInstance();
-        time = game.getTime();
+        model = Game.getInstance().getModel();
+        time = Controller.getInstance().getTime();
     }
 
     public static PlayerUtils getInstance() {
@@ -68,9 +70,9 @@ public class PlayerUtils {
 
     public HashMap<Integer, DummyArmy> makeDummyArmies(int player) {
         HashMap<Integer, DummyArmy> dummyArmyInArea = new HashMap<>();
-        Set<Integer> areasWithTroops = game.getAreasWithTroopsOfPlayer(player);
+        Set<Integer> areasWithTroops = model.getAreasWithTroopsOfPlayer(player);
         for (int area: areasWithTroops) {
-            dummyArmyInArea.put(area, makeDummyArmyFromNormalArmy(game.getArmyInArea(area)));
+            dummyArmyInArea.put(area, makeDummyArmyFromNormalArmy(model.getArmyInArea(area)));
         }
         return dummyArmyInArea;
     }
@@ -98,7 +100,7 @@ public class PlayerUtils {
         int numFightsToSupport = numPassiveFightsToSupportFrom[area];
         if (areasWithMarches != null) {
             for (int marchArea : areasWithMarches) {
-                Set<Integer> accessibleAreas = game.getAccessibleAreas(marchArea, area);
+                Set<Integer> accessibleAreas = model.getAccessibleAreas(marchArea, area);
                 if (accessibleAreas.contains(area)) {
                     numFightsToSupport++;
                 }
@@ -127,12 +129,12 @@ public class PlayerUtils {
         int areaOwner, marchAreaOwner;
         for (int area = 0; area < NUM_AREA; area++) {
             numPassiveFightsInArea[area] = 0;
-            areaOwner = game.getTroopsOrGarrisonOwner(area);
+            areaOwner = model.getTroopsOrGarrisonOwner(area);
             // Пассивные бои могут происходить только на чьей-то территории
             if (areaOwner < 0) continue;
-            HashSet<Integer> probableMarchAreas = game.getAreasWithProbableMarch(area);
+            HashSet<Integer> probableMarchAreas = model.getAreasWithProbableMarch(area);
             for (int marchArea: probableMarchAreas) {
-                marchAreaOwner = game.getTroopsOwner(marchArea);
+                marchAreaOwner = model.getTroopsOwner(marchArea);
                 if (marchAreaOwner != areaOwner) {
                     doesPlayerFight[marchAreaOwner] = true;
                 }
@@ -152,15 +154,15 @@ public class PlayerUtils {
      */
     private void fillNumPassiveFightsToSupportFrom() {
         int areaOfSupportOwner;
-        GameOfThronesMap map = game.getMap();
+        GameOfThronesMap map = model.getMap();
         for (int areaOfSupport = 0; areaOfSupport < NUM_AREA; areaOfSupport++) {
             numPassiveFightsToSupportFrom[areaOfSupport] = 0;
-            areaOfSupportOwner = game.getTroopsOwner(areaOfSupport);
+            areaOfSupportOwner = model.getTroopsOwner(areaOfSupport);
             if (areaOfSupportOwner >= 0) {
                 HashSet<Integer> adjacentAreas = map.getAdjacentAreas(areaOfSupport);
                 for (int adjArea: adjacentAreas) {
                     if (map.getAdjacencyType(areaOfSupport, adjArea).supportOrRaidAvailable() &&
-                            areaOfSupportOwner == game.getTroopsOrGarrisonOwner(adjArea)) {
+                            areaOfSupportOwner == model.getTroopsOrGarrisonOwner(adjArea)) {
                         numPassiveFightsToSupportFrom[areaOfSupport] += numPassiveFightsInArea[adjArea];
                     }
                 }
@@ -174,15 +176,15 @@ public class PlayerUtils {
      */
     private void fillNumAreasToRaid() {
         int areaOwner;
-        GameOfThronesMap map = game.getMap();
+        GameOfThronesMap map = model.getMap();
         for (int area = 0; area < NUM_AREA; area++) {
             numAreasToRaidFrom[area] = 0;
             numAreasToRaid[area] = 0;
-            areaOwner = game.getAreaOwner(area);
+            areaOwner = model.getAreaOwner(area);
             if (areaOwner >= 0) {
                 HashSet<Integer> adjacentAreas = map.getAdjacentAreas(area);
                 for (int adjacentArea: adjacentAreas) {
-                    int adjacentAreaOwner = game.getTroopsOwner(adjacentArea);
+                    int adjacentAreaOwner = model.getTroopsOwner(adjacentArea);
                     if (adjacentAreaOwner >= 0 && areaOwner != adjacentAreaOwner) {
                         if (map.getAdjacencyType(area, adjacentArea).supportOrRaidAvailable()) {
                             numAreasToRaidFrom[area]++;
@@ -197,9 +199,9 @@ public class PlayerUtils {
     }
 
     private void renewIfNewRound() {
-        if (game.getTime() != time) {
+        if (Controller.getInstance().getTime() != time) {
             isNumFightsActual = false;
-            time = game.getTime();
+            time = Controller.getInstance().getTime();
         }
         if (!isNumFightsActual) {
             fillNumPassiveFights();

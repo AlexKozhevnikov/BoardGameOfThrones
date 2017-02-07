@@ -51,20 +51,13 @@ public class Main {
 
         newGameItemMenu.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                if (Controller.getInstance().getGameRunning()) {
-                    try {
-                        Controller.getInstance().setGameStatus(GameStatus.interrupted);
-                        synchronized (Controller.getControllerMonitor()) {
-                            Controller.getControllerMonitor().notify();
-                            Controller.getControllerMonitor().wait();
-                        }
-                    } catch (InterruptedException ex) {
-                        ex.printStackTrace();
-                    }
+                Controller controller = Controller.getInstance();
+                if (controller.getGameStatus() == GameStatus.running) {
+                    controller.setGameStatus(GameStatus.interrupted);
+                } else if (controller.getGameStatus() == GameStatus.end) {
+                    controller.setGameStatus(GameStatus.start);
                 }
-                Settings.getInstance().setPlayRegime(PlayRegimeType.none);
                 synchronized (Controller.getControllerMonitor()) {
-                    Controller.getInstance().setGameRunning();
                     Controller.getControllerMonitor().notify();
                 }
             }
@@ -87,12 +80,5 @@ public class Main {
         {
             System.out.println(font);
         }
-    }
-
-    private static void testBids() {
-        Settings.getInstance().setPassByRegime(true);
-        Game game = Game.getInstance();
-        game.prepareNewGame();
-        game.forceBid();
     }
 }
