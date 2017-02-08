@@ -34,7 +34,7 @@ public class Settings {
     private Settings() {
         // TODO загрузка настроек по умолчанию из файла
         playRegime = PlayRegimeType.none;
-        autoSwitchTabs = false;
+        autoSwitchTabs = true;
         timeoutMillis = 2000;
     }
 

@@ -87,7 +87,7 @@ public class TextInfo {
     public static final String IS_FINISHED = " добит!";
     public static final String IS_WOUNDED = " ранен!";
     public static final String LORAS_RULES = "Лорас Тирелл перегруппировывает войска.";
-    public static final String ARIANNA_RULES_AND_PUTS_BACK = "Арианна Мартелл отбрасывает атакующие войска назад ";
+    public static final String ARIANNA_RULES_AND_PUTS_BACK = "Арианна Мартелл отбрасывает атакующие войска назад в ";
     public static final String MINIMAL_LOSSES = "Минимальные потери при отступлении: ";
     public static final String MUST_RETREAT = " должен отсупить побеждёнными войсками.";
     public static final String RETREATS_IN = " отступает в ";

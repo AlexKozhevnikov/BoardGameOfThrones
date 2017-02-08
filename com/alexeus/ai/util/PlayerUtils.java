@@ -54,7 +54,27 @@ public class PlayerUtils {
         return instance;
     }
 
-    public static HashMap<Integer, Integer> getNumDisbandSwipe(HashMap<Integer, DummyArmy> armyInArea) {
+    /**
+     * Метод возвращает количество дешёвых юнитов, которых можно убрать с карты без потери области
+     * @param armyInArea карта с армиями игрока
+     * @return количество удалябельных юнитов
+     */
+    public static int getNumDisbandSwipe(HashMap<Integer, DummyArmy> armyInArea) {
+        int numSwipe = 0;
+        for (Map.Entry<Integer, DummyArmy> entry: armyInArea.entrySet()) {
+            DummyArmy army = entry.getValue();
+            numSwipe += (army.hasUnitOfType(UnitType.knight) || army.hasUnitOfType(UnitType.siegeEngine)) ?
+                    army.getNumUnitsOfType(UnitType.pawn) : army.getSize() - 1;
+        }
+        return numSwipe;
+    }
+
+    /**
+     * Метод возвращает карту с местонахождениями дешёвых юнитов, которых можно убрать с карты без потери области
+     * @param armyInArea карта с армиями игрока
+     * @return карта с местоположением всех удалябельных юнитов игрока
+     */
+    public static HashMap<Integer, Integer> getDisbandSwipes(HashMap<Integer, DummyArmy> armyInArea) {
         HashMap<Integer, Integer> numDisbandSwipe = new HashMap<>();
         int numSwipe;
         for (Map.Entry<Integer, DummyArmy> entry: armyInArea.entrySet()) {

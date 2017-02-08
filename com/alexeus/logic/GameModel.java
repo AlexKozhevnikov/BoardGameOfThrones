@@ -125,6 +125,11 @@ public class GameModel {
     private int[][] restingUnitsOfPlayerAndType = new int[NUM_PLAYER][NUM_UNIT_TYPES];
 
     /*
+     * Максимальное количество юнитов у каждого из домов
+     */
+    private int[][] maxUnitsOfPlayerAndType = new int[NUM_PLAYER][NUM_UNIT_TYPES];
+
+    /*
      * **** Вспомогательные переменные для методов ****
      */
 
@@ -211,7 +216,7 @@ public class GameModel {
         random = new Random();
     }
 
-    public void prepareNewGame() {
+    public void prepareNewGame(InitialPosition ini) {
         for (int i = 0; i < NUM_PLAYER; i++) {
             currentBids[i] = 0;
             numFortress[i] = 0;
@@ -241,6 +246,7 @@ public class GameModel {
             event[deckNumber] = null;
         }
         wildlingDeck = new LinkedList<>();
+        topWildlingCard = null;
 
         // Инициализация вспомогательных множеств
         areasWithTroopsOfPlayer.clear();
@@ -257,9 +263,16 @@ public class GameModel {
         houseCardOfPlayer = new HouseCard[NUM_PLAYER][NUM_HOUSE_CARDS];
         initializeDecks();
         // Ставим начальные войска/гарнизоны и обновляем информацию во вспомогательных множествах
-        setInitialPosition();
-        adjustSupply();
+        switch(ini) {
+            case standard:
+                setInitialPosition();
+                break;
+            case trash:
+                setTrashPosition();
+        }
+        renewHousesTroopsInAllAreas();
         adjustVictoryPoints();
+        adjustSupply();
     }
 
 
@@ -319,6 +332,7 @@ public class GameModel {
         // Нейтральные лорды
         garrisonInArea[31] = 6;
         garrisonInArea[54] = 5;
+        // Гарнизоны
         houseHomeLandInArea[56] = 0;
         garrisonInArea[56] = 2;
         houseHomeLandInArea[36] = 1;
@@ -331,42 +345,45 @@ public class GameModel {
         garrisonInArea[57] = 2;
         houseHomeLandInArea[41] = 5;
         garrisonInArea[41] = 2;
+        // Дикие люди
         wildlingsStrength = 2;
         // Устанавливаем начальные количаства жетонов власти
         for (int player = 0; player < NUM_PLAYER; player++) {
             nPowerTokensHouse[player] = INITIAL_TOKENS;
             maxPowerTokensHouse[player] = MAX_TOKENS;
+            System.arraycopy(MAX_NUM_OF_UNITS, 0, maxUnitsOfPlayerAndType[player], 0, NUM_UNIT_TYPES);
         }
         // Устанавливаем начальные позиции на треках влияния
         for (int track = 0; track < NUM_TRACK; track++) {
             System.arraycopy(INITIAL_INFLUENCE_TRACKS_PLAYER_ON_PLACE[track], 0, trackPlayerOnPlace[track], 0, NUM_PLAYER);
             fillTrackPlaceForPlayer(track);
         }
-        renewHousesTroopsInAllAreas();
     }
 
-    public void prepareNewShit(int shittingPlayer) {
-        garrisonInArea[31] = 6;
-        garrisonInArea[54] = 5;
+    private void setTrashPosition() {
         houseHomeLandInArea[56] = 0;
-        garrisonInArea[56] = 2;
+        garrisonInArea[56] = 3;
         houseHomeLandInArea[36] = 1;
-        garrisonInArea[36] = 2;
+        garrisonInArea[36] = 3;
         houseHomeLandInArea[21] = 2;
-        garrisonInArea[21] = 2;
+        garrisonInArea[21] = 3;
         houseHomeLandInArea[48] = 3;
-        garrisonInArea[48] = 2;
+        garrisonInArea[48] = 3;
         houseHomeLandInArea[57] = 4;
-        garrisonInArea[57] = 2;
+        garrisonInArea[57] = 3;
         houseHomeLandInArea[41] = 5;
-        garrisonInArea[41] = 2;
+        garrisonInArea[41] = 3;
+        wildlingsStrength = 10;
         for (int i = 0; i < NUM_AREA; i++) {
             armyInArea[i].deleteAllUnits();
             if (i >= 12 && i < 20) {
                 continue;
             }
-            int owner = houseHomeLandInArea[i] >= 0 ? houseHomeLandInArea[i] : shittingPlayer;
-            armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship : UnitType.pawn, owner);
+            int owner = houseHomeLandInArea[i] >= 0 ? houseHomeLandInArea[i] : random.nextInt(NUM_PLAYER);
+            for (int j = 0; j < 3; j++) {
+                armyInArea[i].addUnit(map.getAreaType(i).isNaval() ? UnitType.ship :
+                        random.nextFloat() > 0.7 ? UnitType.knight : UnitType.pawn, owner);
+            }
         }
         for (int i = 12; i < 20; i++) {
             int castleOwner = getAreaOwner(map.getCastleWithPort(i));
@@ -375,20 +392,56 @@ public class GameModel {
             }
         }
         for (int player = 0; player < NUM_PLAYER; player++) {
+            maxUnitsOfPlayerAndType[player][UnitType.pawn.getCode()] = 20;
+            maxUnitsOfPlayerAndType[player][UnitType.ship.getCode()] = 20;
+            maxUnitsOfPlayerAndType[player][UnitType.siegeEngine.getCode()] = 2;
+            maxUnitsOfPlayerAndType[player][UnitType.knight.getCode()] = 10;
             for (int card = 0; card < NUM_HOUSE_CARDS; card++) {
-                houseCardOfPlayer[player][card].setActive(random.nextBoolean());
+                boolean isActive = random.nextBoolean();
+                houseCardOfPlayer[player][card].setActive(isActive);
+                if (!isActive) {
+                    numActiveHouseCardsOfPlayer[player]--;
+                }
+            }
+            if (numActiveHouseCardsOfPlayer[player] == 0) {
+                int activeCardIndex = random.nextInt(NUM_HOUSE_CARDS);
+                houseCardOfPlayer[player][activeCardIndex].setActive(true);
+                numActiveHouseCardsOfPlayer[player] = 1;
             }
         }
-
-        renewHousesTroopsInAllAreas();
+        // Устанавливаем начальные количаства жетонов власти
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            maxPowerTokensHouse[player] = MAX_TOKENS;
+            nPowerTokensHouse[player] = random.nextInt(MAX_TOKENS / 2) + 3;
+        }
+        // Устанавливаем начальные позиции на треках влияния
+        for (int track = 0; track < NUM_TRACK; track++) {
+            boolean[] isChosen = new boolean[NUM_PLAYER];
+            for (int place = 0; place < NUM_PLAYER; place++) {
+                int aimBet = random.nextInt(NUM_PLAYER - place);
+                int curBet = 0;
+                for (int player = 0; player < NUM_PLAYER; player++) {
+                    if (!isChosen[player]) {
+                        if (aimBet == curBet) {
+                            isChosen[player] = true;
+                            trackPlayerOnPlace[track][place] = player;
+                            break;
+                        } else {
+                            curBet++;
+                        }
+                    }
+                }
+            }
+            fillTrackPlaceForPlayer(track);
+        }
     }
 
     /**
      * Метод обновляет значения areasWithTroopsOfPlayer для всех игроков
      */
-    public void renewHousesTroopsInAllAreas() {
+    private void renewHousesTroopsInAllAreas() {
         for (int player = 0; player < NUM_PLAYER; player++) {
-            System.arraycopy(MAX_NUM_OF_UNITS, 0, restingUnitsOfPlayerAndType[player], 0, NUM_UNIT_TYPES);
+            System.arraycopy(maxUnitsOfPlayerAndType[player], 0, restingUnitsOfPlayerAndType[player], 0, NUM_UNIT_TYPES);
         }
         for (int player = 0; player < NUM_PLAYER; player++) {
             areasWithTroopsOfPlayer.get(player).clear();
@@ -1209,13 +1262,27 @@ public class GameModel {
     }
 
     /**
-     * Метод возвращает первую активную карту игрока
+     * Метод возвращает высшую по боевой силе активную карту игрока
      * @param player номер игрока
      * @return первая активная карта дома
      */
-    HouseCard getFirstActiveHouseCard(int player) {
+    public HouseCard getFirstActiveHouseCard(int player) {
         for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
             if (houseCardOfPlayer[player][i].isActive()) {
+                return houseCardOfPlayer[player][i];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Метод возвращает высшую по боевой силе неактивную карту игрока
+     * @param player номер игрока
+     * @return первая активная карта дома
+     */
+    public HouseCard getFirstPassiveHouseCard(int player) {
+        for (int i = 0; i < NUM_HOUSE_CARDS; i++) {
+            if (!houseCardOfPlayer[player][i].isActive()) {
                 return houseCardOfPlayer[player][i];
             }
         }
@@ -2123,11 +2190,11 @@ public class GameModel {
         }
     }
 
-    public WildlingCard getFirstWildlingsCard() {
+    WildlingCard getFirstWildlingsCard() {
         return wildlingDeck.getFirst();
     }
 
-    public void buryWildlings() {
+    void buryWildlings() {
         WildlingCard card = wildlingDeck.pollFirst();
         wildlingDeck.addLast(card);
     }
@@ -2156,7 +2223,7 @@ public class GameModel {
      * @param place место
      * @return место
      */
-    int getTrackPlayerOnPlace(int track, int place) {
+    public int getTrackPlayerOnPlace(int track, int place) {
         return trackPlayerOnPlace[track][place];
     }
 
@@ -2327,8 +2394,8 @@ public class GameModel {
             armyInArea[to].addUnit(unit);
         }
         renewArea(from, player);
-        renewArea(to, -1);
-        if (map.getNumCastle(to) > 0 && exOwner != player) {
+        renewArea(to, exOwner);
+        if (map.getNumCastle(to) > 0) {
             adjustVictoryPoints();
         }
     }
@@ -2582,6 +2649,9 @@ public class GameModel {
 
     void playerPays(int player, int sum) {
         nPowerTokensHouse[player] -= sum;
+        if (!Settings.getInstance().isPassByRegime()) {
+            houseTabPanel.repaintHouse(player);
+        }
     }
 
     void setTrackPlayerOnPlace(int trackCode, int place, int player) {
@@ -2597,7 +2667,7 @@ public class GameModel {
         mapPanel.repaintWildlingsCard();
     }
 
-    int getPreemptiveRaidCheater() {
+    public int getPreemptiveRaidCheater() {
         return preemptiveRaidCheater;
     }
 
@@ -2687,7 +2757,12 @@ public class GameModel {
         }
     }
 
-    ArrayList<Integer> getHordeVulnerableCastles(int player) {
+    /**
+     * Метод возвращает список областей, где есть замок, и как минимум два отряда
+     * @param player номер Дома
+     * @return список уязвимых к низшей ставке областей
+     */
+    public ArrayList<Integer> getHordeVulnerableCastles(int player) {
         ArrayList<Integer> normCastles = new ArrayList<>();
         for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayer.get(player).entrySet()) {
             if (map.getNumCastle(entry.getKey()) > 0 && entry.getValue() > 1) {
@@ -2697,14 +2772,33 @@ public class GameModel {
         return normCastles;
     }
 
+    /**
+     * Метод отвечает, грозит ли игроку потерять двух юнитов в замке, если он окажется низшей ставкой
+     * при "нашествии орды"
+     * @param player номер игрока
+     * @return true, если есть хотя бы один такой замок
+     */
+    public boolean isVulnerableToHorde(int player) {
+        for (Map.Entry<Integer, Integer> entry: areasWithTroopsOfPlayer.get(player).entrySet()) {
+            if (map.getNumCastle(entry.getKey()) > 0 && entry.getValue() > 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void killAllUnitsInArea(int area) {
         int player = armyInArea[area].getOwner();
         armyInArea[area].killAllUnits(KillingReason.wildlings, this);
         renewArea(area, player);
     }
 
-    int getNumAliveUnits(int player, UnitType unitType) {
-        return MAX_NUM_OF_UNITS[unitType.getCode()] - restingUnitsOfPlayerAndType[player][unitType.getCode()];
+    public int getMaxUnitsOfPlayerAndType(int player, UnitType unitType) {
+        return maxUnitsOfPlayerAndType[player][unitType.getCode()];
+    }
+
+    public int getNumAliveUnits(int player, UnitType unitType) {
+        return maxUnitsOfPlayerAndType[player][unitType.getCode()] - restingUnitsOfPlayerAndType[player][unitType.getCode()];
     }
 
     void setPreemptiveRaidCheater(int player) {

@@ -30,6 +30,8 @@ public class HouseTabPanel extends JPanel {
     private BufferedImage[] tokenImage = new BufferedImage[NUM_PLAYER];
     private BufferedImage[] backImage = new BufferedImage[NUM_PLAYER];
 
+    private Font digitFont, textFont;
+
     public HouseTabPanel() {
         loadPics();
         loadVariables();
@@ -47,7 +49,7 @@ public class HouseTabPanel extends JPanel {
         g2d.setColor(HOUSE_BACKGROUND_COLOR);
         g2d.fillRect(0, 0, width, height);
         g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Liberation Mono", Font.BOLD, 20));
+        g2d.setFont(digitFont);
         for (int player = 0; player < NUM_PLAYER; player++) {
             for (int cardIndex = 0; cardIndex < NUM_HOUSE_CARDS; cardIndex++) {
                 g2d.drawImage(model.isCardActive(player, cardIndex) ?
@@ -62,7 +64,7 @@ public class HouseTabPanel extends JPanel {
                         (int) (1f * height / NUM_PLAYER * player + TEXT_HOUSE_Y_INDENT));
             }
         }
-        g2d.setFont(new Font("Serif", Font.BOLD, 22));
+        g2d.setFont(textFont);
         g2d.setColor(Color.BLACK);
         for (int player = 0; player < NUM_PLAYER; player++) {
             int curX = width;
@@ -81,8 +83,8 @@ public class HouseTabPanel extends JPanel {
                 g2d.drawImage(unitImage[player][type.getCode()],
                         curX, (int) (1f * height / NUM_PLAYER * player + cardHeight) + 1,
                         TRUE_HOLE_IMAGE_SIZE, TRUE_HOLE_IMAGE_SIZE, null);
-                g2d.drawString((MAX_NUM_OF_UNITS[type.getCode()] - model.getRestingUnits(player, type)) + "/" +
-                                MAX_NUM_OF_UNITS[type.getCode()],
+                g2d.drawString(model.getNumAliveUnits(player, type) + "/" +
+                                model.getMaxUnitsOfPlayerAndType(player, type),
                         curX + TRUE_HOLE_IMAGE_SIZE + TEXT_HOUSE_UNITS_X_INDENT,
                         (int) (1f * height / NUM_PLAYER * player + cardHeight) + 1 + TEXT_HOUSE_UNITS_Y_INDENT);
             }
@@ -131,5 +133,7 @@ public class HouseTabPanel extends JPanel {
         TRUE_HOLE_IMAGE_SIZE = HOUSE_TEXT_HEIGHT - 2;
         TRUE_TOKEN_WIDTH = (int) (1f * tokenImage[0].getWidth() / tokenImage[0].getHeight() * TRUE_HOLE_IMAGE_SIZE);
         TRUE_BACK_WIDTH = (int) (1f * backImage[0].getWidth() / backImage[0].getHeight() * TRUE_HOLE_IMAGE_SIZE);
+        textFont = new Font("Serif", Font.BOLD, 22);
+        digitFont = new Font("Liberation Mono", Font.BOLD, 20);
     }
 }

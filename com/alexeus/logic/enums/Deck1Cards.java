@@ -42,7 +42,7 @@ public enum Deck1Cards implements Happenable {
             case supply:
                 return 3;
             case throneOfSwords:
-                return 0;
+                return 2;
         }
         return 1;
     }

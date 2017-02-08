@@ -85,15 +85,17 @@ public class Game {
         for (int i = 0; i < NUM_PLAYER; i++) {
             playerInterface[i] = new PrimitivePlayer(this, i);
         }
-        model.prepareNewGame();
+        model.prepareNewGame(InitialPosition.trash);
         chat.setText("");
         eventTabPanel.repaint();
         fightTabPanel.repaint();
         houseTabPanel.repaint();
+        mapPanel.repaint();
         say(NEW_GAME_BEGINS);
         for (int player = 0; player < NUM_PLAYER; player++) {
             playerInterface[player].nameYourself();
         }
+        verifyNewSupplyLimits();
     }
 
     public void getPlans() {
@@ -357,7 +359,15 @@ public class Game {
                 if (model.getOrderInArea(area) == Order.consolidatePowerS && map.getNumCastle(area) > 0) {
                     areaWithMuster[player] = area;
                 } else {
-                    earning += map.getNumCrown(area) + 1;
+                    // Если море рядом с портом оккупировано вражиной, то власть там не собирается
+                    if (map.getAreaType(area) == AreaType.port) {
+                        int seaOwner = model.getAreaOwner(map.getSeaNearPort(area));
+                        if (seaOwner < 0 || seaOwner == player) {
+                            earning++;
+                        }
+                    } else {
+                        earning += map.getNumCrown(area) + 1;
+                    }
                     model.setOrderInArea(area, null);
                     if (!Settings.getInstance().isPassByRegime()) {
                         mapPanel.repaintArea(area);
@@ -583,7 +593,7 @@ public class Game {
                                     say(INVALID_AREA_ERROR);
                                 } else {
                                     propertyUsed = true;
-                                    model.playQueenOfThorns(area, 1 - heroSide);
+                                    model.playQueenOfThorns(area, playerOnSide[1 - heroSide]);
                                     break;
                                 }
                             }
@@ -1618,7 +1628,8 @@ public class Game {
      * @param player номер игрока
      */
     private void killAllUnits(int player, KillingReason reason) {
-        for (int area: model.getAreasWithTroopsOfPlayer(player)) {
+        Set<Integer> areas = model.getAreasWithTroopsOfPlayer(player);
+        for (int area: areas) {
             model.getArmyInArea(area).killAllUnits(reason, model);
             tryToRenewEmptiedCastle(area, player);
         }

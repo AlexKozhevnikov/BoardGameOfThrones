@@ -32,8 +32,6 @@ public class Controller {
 
     private volatile GameStatus gameStatus;
 
-    private volatile boolean isGameRunning;
-
     private Controller() {
         settings = Settings.getInstance();
         game = Game.getInstance();
@@ -52,12 +50,12 @@ public class Controller {
             Thread t = new Thread("Game Thread") {
                 @Override
                 public void run() {
+                    time = 1;
                     game.prepareNewGame();
                     previousGameTime = 0;
                     GotFrame.getInstance().setTitle("Игра Престолов");
-                    isGameRunning = true;
                     timeFromLastInterrupt = System.currentTimeMillis();
-                    for (time = 1; time <= LAST_TURN && gameStatus == GameStatus.running; time++) {
+                    for (; time <= LAST_TURN && gameStatus == GameStatus.running; time++) {
                         if (time > 1) {
                             game.playEvents();
                         }
@@ -192,14 +190,6 @@ public class Controller {
 
     public static Object getControllerMonitor() {
         return controllerMonitor;
-    }
-
-    public void setGameRunning() {
-        isGameRunning = true;
-    }
-
-    public boolean getGameRunning() {
-        return isGameRunning;
     }
 
     public GameStatus getGameStatus() {

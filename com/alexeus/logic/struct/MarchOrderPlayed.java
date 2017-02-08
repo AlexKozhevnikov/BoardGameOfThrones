@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.alexeus.logic.constants.MainConstants.MAX_TROOPS_IN_AREA;
 import static com.alexeus.logic.constants.MainConstants.NUM_UNIT_TYPES;
 import static com.alexeus.logic.constants.MainConstants.TROOPS_HASH_MULTIPLYER;
 import static com.alexeus.map.GameOfThronesMap.NUM_AREA;

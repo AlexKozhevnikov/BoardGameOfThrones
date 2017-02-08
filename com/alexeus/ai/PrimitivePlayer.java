@@ -30,7 +30,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     protected GameOfThronesMap map;
 
-    protected final int houseNumber;
+    protected final int me;
 
     // здесь будут храниться области, в которых есть войска игрока
     protected Set<Integer> areasWithTroopsOfPlayer;
@@ -66,11 +66,28 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     private float raidPrice = 2, cpPrice = 4, defencePrice = 1, supportPrice = 1, filledSeaPrice = 7, musterPrice = 7;
 
-    public PrimitivePlayer(Game newGame, int houseNumber) {
+    /**
+     * Вспомогательный массив индексов, нужный для генерации множества возможных походов
+     */
+    protected int[] indexes = new int[MAX_TROOPS_IN_AREA];
+
+    /**
+     * Вспомогательный массив, в котором хранятся индексы предыдущего юнита определённого типа.
+     * Нужен для генерации множества возможных походов.
+     */
+    protected int[] indexOfLastSuchUnit = new int[NUM_UNIT_TYPES];
+
+    /**
+     * Вспомогательный массив, в котором хранится индекс для данного индекса с таким же типом юнита.
+     * Нужен для генерации множества возможных походов
+     */
+    protected int[] indexToAlign = new int[MAX_TROOPS_IN_AREA];
+
+    public PrimitivePlayer(Game newGame, int me) {
         model = newGame.getModel();
         random = new Random();
         map = model.getMap();
-        this.houseNumber = houseNumber;
+        this.me = me;
         orderMap = new HashMap<>();
         areasWithStatus = new HashMap<>();
         numOfOrderTypes = new HashMap<>();
@@ -86,20 +103,20 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public void nameYourself() {
-        say("Я - Примитивный игрок за " + HOUSE_GENITIVE[houseNumber] + "!");
+        say("Я - Примитивный игрок за " + HOUSE_GENITIVE[me] + "!");
     }
 
     @Override
     public HashMap<Integer, Order> giveOrders() {
-        areasWithTroopsOfPlayer = model.getAreasWithTroopsOfPlayer(houseNumber);
-        Map<Integer, Integer> troopsNumberMap = model.getAreasWithTroopsOfPlayerAndSize(houseNumber);
-        armyInArea = playerUtils.makeDummyArmies(houseNumber);
+        areasWithTroopsOfPlayer = model.getAreasWithTroopsOfPlayer(me);
+        Map<Integer, Integer> troopsNumberMap = model.getAreasWithTroopsOfPlayerAndSize(me);
+        armyInArea = playerUtils.makeDummyArmies(me);
 
         // Множество с областями игрока, из которого мы будем удалять области, когда им уже отданы приказы
         Set<Integer> areasToCommand = new HashSet<>();
         areasToCommand.addAll(areasWithTroopsOfPlayer);
         int numFightsCanBegin;
-        int numStars = model.getNumStars(houseNumber);
+        int numStars = model.getNumStars(me);
         int numRestingStars = numStars;
         forbiddenOrder = model.getForbiddenOrder();
         numOfOrderTypes.clear();
@@ -123,7 +140,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             switch (map.getAreaType(area)) {
                 case port:
                     int seaOwner = model.getTroopsOwner(map.getSeaNearPort(area));
-                    if (seaOwner == houseNumber) {
+                    if (seaOwner == me) {
                         status = AreaStatus.myPort;
                     } else if (seaOwner < 0) {
                         status = AreaStatus.freePort;
@@ -198,7 +215,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         break;
                     case musterCastle:
                         int biggestFreeSupplyGroup =
-                                GameUtils.getBiggestFreeArmySize(troopsNumberMap, model.getSupply(houseNumber));
+                                GameUtils.getBiggestFreeArmySize(troopsNumberMap, model.getSupply(me));
                         if (biggestFreeSupplyGroup <= armySize) {
                             voteInAreaForOrder.setOrderVotesInArea(area, Order.consolidatePowerS, 0);
                         } else {
@@ -502,9 +519,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public boolean leaveWildlingCardOnTop(WildlingCard card) {
-        System.out.println("Пацаны, я узнал карту одичалых: " + card + ". Но я не хочу оставляеть её наверху!");
+        System.out.println("Пацаны, я узнал карту одичалых: " + card);
         listOfWildlingCards.set(0, card);
-        return false;
+        return true;
     }
 
     @Override
@@ -521,7 +538,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public RaidOrderPlayed playRaid() {
         areasWithRaidsOfPlayer = model.getAreasWithRaidsOfPlayer();
-        Iterator<Integer> iterator = areasWithRaidsOfPlayer.get(houseNumber).iterator();
+        Iterator<Integer> iterator = areasWithRaidsOfPlayer.get(me).iterator();
         int bestAreaToRaid = -1;
         int raidPrice = 0;
         Order orderDestination;
@@ -529,7 +546,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
             int areaOfRaid = iterator.next();
             HashSet<Integer> adjacentAreas = map.getAdjacentAreas(areaOfRaid);
             for (int destination : adjacentAreas) {
-                if (model.getTroopsOwner(destination) == houseNumber || model.getTroopsOwner(destination) < 0) continue;
+                if (model.getTroopsOwner(destination) == me || model.getTroopsOwner(destination) < 0) continue;
                 orderDestination = model.getOrderInArea(destination);
                 if (orderDestination == null || orderDestination.orderType() == OrderType.march ||
                         orderDestination.orderType() == OrderType.defence && model.getOrderInArea(areaOfRaid) == Order.raid ||
@@ -575,7 +592,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public MarchOrderPlayed playMarch() {
         areasWithMarchesOfPlayer = model.getAreasWithMarchesOfPlayer();
-        int numAreasWithMarches = areasWithMarchesOfPlayer.get(houseNumber).size();
+        int numAreasWithMarches = areasWithMarchesOfPlayer.get(me).size();
         if (numAreasWithMarches == 0) {
             say("Объявляю забастовку: нет у меня никаких походов!");
             return null;
@@ -583,18 +600,18 @@ public class PrimitivePlayer implements GotPlayerInterface{
         boolean allVariantsConsidered = false;
         HashSet<MarchOrderPlayed> marches = new HashSet<>();
         // Случайно выбираем поход, который собираемся разыграть
-        int areaFrom = LittleThings.getRandomElementOfSet(areasWithMarchesOfPlayer.get(houseNumber));
+        int areaFrom = LittleThings.getRandomElementOfSet(areasWithMarchesOfPlayer.get(me));
         ArrayList<Integer> areasToMove = new ArrayList<>();
-        areasToMove.addAll(model.getAccessibleAreas(areaFrom, houseNumber));
+        areasToMove.addAll(model.getAccessibleAreas(areaFrom, me));
         HashMap<Integer, Boolean> isBattleBeginInArea = new HashMap<>();
         // Удаление лишних областей
         ArrayList<Integer> areasToRemove = new ArrayList<>();
         for (int area: areasToMove) {
-            if (map.getAreaType(area) == AreaType.port && model.getTroopsOwner(area) == houseNumber) {
+            if (map.getAreaType(area) == AreaType.port && model.getTroopsOwner(area) == me) {
                 areasToRemove.add(area);
                 continue;
             }
-            isBattleBeginInArea.put(area, model.isBattleBeginInArea(area, houseNumber));
+            isBattleBeginInArea.put(area, model.isBattleBeginInArea(area, me));
         }
         areasToMove.removeAll(areasToRemove);
 
@@ -602,7 +619,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         areasToMove.add(-1);
         isBattleBeginInArea.put(-1, false);
         ArrayList<Unit> myUnits = model.getArmyInArea(areaFrom).getHealthyUnits();
-        boolean isLeaveToken = !map.getAreaType(areaFrom).isNaval() && model.getNumPowerTokensHouse(houseNumber) > 0 &&
+        boolean isLeaveToken = !map.getAreaType(areaFrom).isNaval() && model.getNumPowerTokensHouse(me) > 0 &&
                 model.getPowerTokenInArea(areaFrom) < 0;
         // Если в каком-то из вариантов походов побеждается нейтральный гарнизон, то выбор вариантов сужается.
         boolean isNeutralGarrisonDefeated = false;
@@ -611,9 +628,20 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int armySize = myUnits.size();
         int numAreasToMove = areasToMove.size();
         int leadIndex;
-        int[] indexes = new int[armySize];
+        for (UnitType type: UnitType.values()) {
+            indexOfLastSuchUnit[type.getCode()] = -1;
+        }
+        for (int i = 0; i < armySize; i++) {
+            int unitTypeCode = myUnits.get(i).getUnitType().getCode();
+            indexToAlign[i] = indexOfLastSuchUnit[unitTypeCode] < 0 ? -1 : indexOfLastSuchUnit[unitTypeCode];
+            indexOfLastSuchUnit[unitTypeCode] = i;
+            indexes[i] = 0;
+        }
 
         while (!allVariantsConsidered) {
+            for (int i = 0; i < armySize; i++) {
+                System.out.print((i > 0 ? ", " : "") + indexes[i] + (i == armySize - 1 ? "\n" : ""));
+            }
             // Проверка на количество начинающихся битв
             int nBattle = 0;
             int battleArea = -1;
@@ -659,7 +687,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     } else {
                         // Если гарнизон есть, и мы его пробиваем, то всё ещё лучше
                         if (battleArea >= 0 && model.isNeutralGarrisonInArea(battleArea) &&
-                                model.calculatePowerOfPlayerVersusGarrison(houseNumber, battleArea,
+                                model.calculatePowerOfPlayerVersusGarrison(me, battleArea,
                                         destinationsOfMarch.get(battleArea), model.getOrderInArea(areaFrom).getModifier()) >=
                                         model.getGarrisonInArea(battleArea)) {
                             if (!isNeutralGarrisonDefeated) {
@@ -684,7 +712,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 // Ведущий индекс увеличивается на единицу, следующие за ним становятся нулями
                 indexes[leadIndex]++;
                 for (int index = leadIndex + 1; index < armySize; index++) {
-                    indexes[index] = 0;
+                    indexes[index] = indexToAlign[index] < 0 ? 0 : indexes[indexToAlign[index]];
                 }
             }
         }
@@ -699,9 +727,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public SideOfBattle sideToSupport(BattleInfo battleInfo) {
-        if (houseNumber == battleInfo.getAttacker()) {
+        if (me == battleInfo.getAttacker()) {
             return SideOfBattle.attacker;
-        } else if (houseNumber == battleInfo.getDefender()) {
+        } else if (me == battleInfo.getDefender()) {
             return SideOfBattle.defender;
         } else {
             float bet = random.nextFloat();
@@ -721,7 +749,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         boolean[] isCardActive = new boolean[NUM_HOUSE_CARDS];
         int nActiveCards = 0;
         for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
-            isCardActive[curCard] = model.isCardActive(houseNumber, curCard);
+            isCardActive[curCard] = model.isCardActive(me, curCard);
             if (isCardActive[curCard]) nActiveCards++;
         }
         if (nActiveCards > 0) {
@@ -748,7 +776,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int chooseInfluenceTrackDoran(BattleInfo battleInfo) {
-        int enemy = battleInfo.getAttacker() == houseNumber ? battleInfo.getDefender() : battleInfo.getAttacker();
+        int enemy = battleInfo.getAttacker() == me ? battleInfo.getDefender() : battleInfo.getAttacker();
         int[] pos = new int[NUM_TRACK];
         int bestPos = NUM_PLAYER;
         int bestTrack = TrackType.raven.getCode();
@@ -775,11 +803,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public boolean useSword(BattleInfo battleInfo) {
-        if (battleInfo.getAttacker() == houseNumber) {
+        if (battleInfo.getAttacker() == me) {
             return battleInfo.getStrengthOnSide(SideOfBattle.attacker) + 1 ==
                    battleInfo.getStrengthOnSide(SideOfBattle.defender);
         } else {
-            assert(battleInfo.getDefender() == houseNumber);
+            assert(battleInfo.getDefender() == me);
             return battleInfo.getStrengthOnSide(SideOfBattle.defender) + 1 ==
                     battleInfo.getStrengthOnSide(SideOfBattle.attacker);
         }
@@ -829,7 +857,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int bid(int track) {
         // считаем количество всевозможных комбинаций ставок на (3 - track) треков и выбираем случайную из них!
-        int numTokens = model.getNumPowerTokensHouse(houseNumber);
+        int numTokens = model.getNumPowerTokensHouse(me);
         int totalCombinations = (int) (LittleThings.numCombinations(NUM_TRACK - track, numTokens + NUM_TRACK - track));
         int chosenCombination = random.nextInt(totalCombinations);
         int threshold = 0;
@@ -859,10 +887,10 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 }
             }
             while(!pretenders.isEmpty()) {
-                if (pretenders.contains(houseNumber)) {
-                    newPlayerOnPlace[curPlace] = houseNumber;
-                    isPlayerCounted[houseNumber] = true;
-                    pretenders.remove((Integer) houseNumber);
+                if (pretenders.contains(me)) {
+                    newPlayerOnPlace[curPlace] = me;
+                    isPlayerCounted[me] = true;
+                    pretenders.remove((Integer) me);
                 } else {
                     int nextOnTrackIndex = random.nextInt(pretenders.size());
                     newPlayerOnPlace[curPlace] = pretenders.get(nextOnTrackIndex);
@@ -877,9 +905,11 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public int wildlingBid(int strength) {
-        int money = model.getNumPowerTokensHouse(houseNumber);
-        float winProfit;
-        float loseProfit;
+        int money = model.getNumPowerTokensHouse(me);
+        float unitPrice = 4;
+        float winProfit = 0;
+        float loseProfit = 0;
+        boolean isKing = model.getTrackPlayerOnPlace(0, 0) == me;
         boolean firstFlag = true;
         WildlingCard knownCard = null;
         int numPossibleCards = 0;
@@ -903,27 +933,132 @@ public class PrimitivePlayer implements GotPlayerInterface{
                 }
             }
         }
-        /*for (WildlingCard card: WildlingCard.values()) {
-            if (!isCardForbidden.get(card)) {
+        // Подготовительная информация
+        int sumPositions = 0;
+        int worsePosition = 0;
+        int bestPosition = NUM_PLAYER;
+        int bestSwordOrRavenPosition = NUM_PLAYER;
+        int preemptiveRaidCheater = model.getPreemptiveRaidCheater();
+        int sumMoney = 0;
+        int minOtherMoney = Integer.MAX_VALUE;
+        int pos;
+        for (int track = 0; track < NUM_TRACK; track++) {
+            pos = model.getTrackPlaceForPlayer(track, me);
+            sumPositions += pos;
+            if (pos > worsePosition) {
+                pos = worsePosition;
+            }
+            if (bestPosition > pos) {
+                bestPosition = pos;
+            }
+            if (track > 0 && bestSwordOrRavenPosition > pos) {
+                bestSwordOrRavenPosition = pos;
+            }
+        }
+        for (int player = 0; player < NUM_PLAYER; player++) {
+            if (player != preemptiveRaidCheater) {
+                int playerMoney = model.getNumPowerTokensHouse(player);
+                sumMoney += playerMoney;
+                if (player != me && playerMoney < minOtherMoney) {
+                    minOtherMoney = playerMoney;
+                }
+            }
+        }
+        HashMap<Integer, DummyArmy> armyInArea = playerUtils.makeDummyArmies(me);
+        int numDisbandSwipe = PlayerUtils.getNumDisbandSwipe(armyInArea);
+        Map<Integer, Integer> troopsNumberMap = model.getAreasWithTroopsOfPlayerAndSize(me);
+        int biggestFreeSupplyCell = GameUtils.getBiggestFreeArmySize(troopsNumberMap, model.getSupply(me));
+        int firstActiveCardStrength = model.getFirstActiveHouseCard(me).getStrength();
+        int firstPassiveCardStrength = model.getFirstPassiveHouseCard(me) != null ?
+                model.getFirstPassiveHouseCard(me).getStrength() : 0;
+
+        // Считаем пользу от выигрыша и вред от проигрыша
+        for (WildlingCard card: WildlingCard.values()) {
+            if (!forbiddenCards.contains(card)) {
                 numPossibleCards++;
                 switch (card) {
                     case shapechangerScout:
-                        winProfit +=
+                        winProfit += 2;
+                        loseProfit += Math.max(money - 2, 0);
+                        break;
+                    case rattleShirtRaiders:
+                        winProfit += model.getSupply(me) == MAX_SUPPLY ? 0 : 2;
+                        loseProfit += model.getSupply(me) == 0 ? 0 : 3;
+                        break;
+                    case crowKillers:
+                        int numAliveKnights = model.getNumAliveUnits(me, UnitType.knight);
+                        winProfit += unitPrice * Math.min(2, MAX_NUM_OF_UNITS[UnitType.knight.getCode()] - numAliveKnights);
+                        loseProfit += unitPrice * Math.max(0, numAliveKnights - 2);
+                        break;
+                    case aKingBeyondTheWall:
+                        winProfit += 2 * worsePosition;
+                        loseProfit += 2 * Math.max(0, NUM_TRACK * (NUM_PLAYER - 1) - sumPositions - 3 - bestSwordOrRavenPosition);
+                        break;
+                    case preemptiveRaid:
+                        winProfit += 2;
+                        loseProfit += 2 * Math.max(0, Math.min(2, NUM_PLAYER - 1 - bestPosition));
+                        break;
+                    case mammothRiders:
+                        winProfit += 2 * Math.max(0, firstPassiveCardStrength - firstActiveCardStrength +
+                                firstPassiveCardStrength / model.getNumActiveCardsOfPlayer(me));
+                        loseProfit += unitPrice * (numDisbandSwipe > 2 ? 1 : 2);
+                        break;
+                    case hordeDescends:
+                        winProfit += biggestFreeSupplyCell > 1 ? unitPrice * 4 : 2;
+                        loseProfit += (model.isVulnerableToHorde(me) ? unitPrice * 4 : unitPrice);
+                        break;
+                    case massingOnTheMilkwater:
+                        winProfit += 2 * (4 - firstActiveCardStrength);
+                        loseProfit += 2;
+                        break;
                 }
             }
-        }*/
-
+        }
+        winProfit /= numPossibleCards;
+        loseProfit /= numPossibleCards;
+        float averageBid = 1f * strength / (preemptiveRaidCheater >= 0 ? NUM_PLAYER - 1 : NUM_PLAYER);
+        float[] vote = new float[money + 1];
+        float sumVotes = 0;
+        for (int bid = 0; bid <= money; bid++) {
+            // Отношение данной ставки к средней ставке, нужной для победы (поправка +1 королю за право выбора)
+            float rate = averageBid > 0 ? ((isKing ? 1 : 0) + bid) / averageBid : 1.001f + (isKing ? 1 : 0) + bid;
+            if (sumMoney > strength) {
+                // Можем и победить
+                vote[bid] = rate <= 1 ?
+                        Math.min(averageBid - bid, 1f / (Math.max(0.001f, loseProfit * 0.5f * (1 - rate)))) :
+                        Math.max(winProfit * rate / (1 + rate) - bid, 0);
+            } else {
+                // Победить невозможно
+                vote[bid] = rate <= 1? Math.max(1f / (0.001f + bid + loseProfit * (1 - rate)), 0) : 0;
+            }
+            sumVotes += vote[bid];
+        }
+        int minBidNotToLose = Math.min(Math.max(0, (int) (Math.ceil(averageBid) - (isKing ? 0.99f : 0))),
+                minOtherMoney + (isKing ? 0 : 1));
+        if (minBidNotToLose <= money) {
+            float adding = loseProfit / 4;
+            vote[minBidNotToLose] += adding;
+            sumVotes += adding;
+        }
+        float trueVote = random.nextFloat() * sumVotes;
+        float curVote = 0;
+        for (int curBid = 0; curBid <= money; curBid++) {
+            curVote += vote[curBid];
+            if (curVote >= trueVote) {
+                return curBid;
+            }
+        }
         return 0;
     }
 
     @Override
     public int kingChoiceWildlings(WildlingCard card, ArrayList<Integer> pretenders, boolean isBidTop){
-        if (pretenders.contains(houseNumber)) {
+        if (pretenders.contains(me)) {
             if (isBidTop) {
-                return houseNumber;
+                return me;
             } else {
                 int bet = random.nextInt(pretenders.size() - 1);
-                int selfIndex = pretenders.indexOf(houseNumber);
+                int selfIndex = pretenders.indexOf(me);
                 if (bet >= selfIndex) {
                     bet += 1;
                 }
@@ -936,19 +1071,14 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public DisbandPlayed disband(DisbandReason reason) {
-        areasWithTroopsOfPlayer = model.getAreasWithTroopsOfPlayer(houseNumber);
-        HashMap<Integer, DummyArmy> armyInArea = playerUtils.makeDummyArmies(houseNumber);
+        areasWithTroopsOfPlayer = model.getAreasWithTroopsOfPlayer(me);
+        HashMap<Integer, DummyArmy> armyInArea = playerUtils.makeDummyArmies(me);
         DisbandPlayed disbandVariant = new DisbandPlayed();
         int numDisbands;
         if (reason == DisbandReason.hordeCastle) {
             // Нужно распустить 2 юнита в одном из своих замков и крепостей
-            Set<Integer> disbandAreas = new HashSet<>();
-            for (int area : areasWithTroopsOfPlayer) {
-                if (map.getNumCastle(area) > 0 || armyInArea.get(area).getSize() >= reason.getNumDisbands()) {
-                    disbandAreas.add(area);
-                }
-            }
-            int area = LittleThings.getRandomElementOfSet(disbandAreas);
+            ArrayList<Integer> disbandAreas = model.getHordeVulnerableCastles(me);
+            int area = disbandAreas.get(random.nextInt(disbandAreas.size()));
             DummyArmy army = armyInArea.get(area);
             for (numDisbands = reason.getNumDisbands(); numDisbands > 0; numDisbands--) {
                 UnitType unit = army.getWeakestUnit();
@@ -961,16 +1091,16 @@ public class PrimitivePlayer implements GotPlayerInterface{
             // Нужно распустить фиксированное число юнитов
             numDisbands = reason.getNumDisbands();
             // Сначала снимаем "халяву": пешек и корабли, в областях с которыми уже есть юниты
-            HashMap<Integer, Integer> numDisbandSwipe = PlayerUtils.getNumDisbandSwipe(armyInArea);
-            while (numDisbands > 0 && numDisbandSwipe.size() > 0) {
-                int area = LittleThings.getRandomElementOfSet(numDisbandSwipe.keySet());
+            HashMap<Integer, Integer> disbandSwipes = PlayerUtils.getDisbandSwipes(armyInArea);
+            while (numDisbands > 0 && disbandSwipes.size() > 0) {
+                int area = LittleThings.getRandomElementOfSet(disbandSwipes.keySet());
                 UnitType disbandedUnit = map.getAreaType(area) == AreaType.land ? UnitType.pawn : UnitType.ship;
                 disbandVariant.addDisbandedUnit(area, disbandedUnit);
                 armyInArea.get(area).removeUnit(disbandedUnit);
-                if (numDisbandSwipe.get(area) > 1) {
-                    numDisbandSwipe.put(area, numDisbandSwipe.get(area) - 1);
+                if (disbandSwipes.get(area) > 1) {
+                    disbandSwipes.put(area, disbandSwipes.get(area) - 1);
                 } else {
-                    numDisbandSwipe.remove(area);
+                    disbandSwipes.remove(area);
                 }
                 numDisbands--;
             }
@@ -992,9 +1122,9 @@ public class PrimitivePlayer implements GotPlayerInterface{
         } else {
             // Нужно распустить войска из-за снабжения
             ArrayList<Integer> areasWithSuchArmies = new ArrayList<>();
-            int supplyLevel = model.getSupply(houseNumber);
+            int supplyLevel = model.getSupply(me);
             Map<Integer, Integer> areasWithTroopsOfPlayerAndSize = new HashMap<>();
-            areasWithTroopsOfPlayerAndSize.putAll(model.getAreasWithTroopsOfPlayerAndSize(houseNumber));
+            areasWithTroopsOfPlayerAndSize.putAll(model.getAreasWithTroopsOfPlayerAndSize(me));
             do {
                 int breakingArmySize = GameUtils.getBreakingArmySize(areasWithTroopsOfPlayerAndSize, supplyLevel);
                 areasWithSuchArmies.clear();
@@ -1016,7 +1146,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public UnitExecutionPlayed crowKillersLoseDecision(int numKnightsToDowngrade) {
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
-        HashMap<Integer, Integer> numKnightInArea = model.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
+        HashMap<Integer, Integer> numKnightInArea = model.getNumUnitsOfTypeInArea(me, UnitType.knight);
         for (int numRestingUpgrades = numKnightsToDowngrade; numRestingUpgrades > 0; numRestingUpgrades--) {
             int area = LittleThings.getRandomElementOfSet(numKnightInArea.keySet());
             targetAreas.addUnit(area);
@@ -1032,7 +1162,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public UnitExecutionPlayed crowKillersKillKnights(int numKnightsToKill) {
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
-        HashMap<Integer, Integer> numKnightInArea = model.getNumUnitsOfTypeInArea(houseNumber, UnitType.knight);
+        HashMap<Integer, Integer> numKnightInArea = model.getNumUnitsOfTypeInArea(me, UnitType.knight);
         for (int numRestingUpgrades = numKnightsToKill; numRestingUpgrades > 0; numRestingUpgrades--) {
             int area = LittleThings.getRandomElementOfSet(numKnightInArea.keySet());
             targetAreas.addUnit(area);
@@ -1048,7 +1178,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public UnitExecutionPlayed crowKillersTopDecision(int numPawnsToUpgrade) {
         UnitExecutionPlayed targetAreas = new UnitExecutionPlayed();
-        HashMap<Integer, Integer> numPawnInArea = model.getNumUnitsOfTypeInArea(houseNumber, UnitType.pawn);
+        HashMap<Integer, Integer> numPawnInArea = model.getNumUnitsOfTypeInArea(me, UnitType.pawn);
         for (int numRestingUpgrades = numPawnsToUpgrade; numRestingUpgrades > 0; numRestingUpgrades--) {
             int area = LittleThings.getRandomElementOfSet(numPawnInArea.keySet());
             targetAreas.addUnit(area);
@@ -1064,7 +1194,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int massingOnTheMilkwaterLoseDecision() {
         for (int curCard = NUM_HOUSE_CARDS - 1; curCard >= 0; curCard--) {
-            if (model.isCardActive(houseNumber, curCard)) {
+            if (model.isCardActive(me, curCard)) {
                 return curCard;
             }
         }
@@ -1074,7 +1204,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     @Override
     public int mammothRidersTopDecision() {
         for (int curCard = 0; curCard < NUM_HOUSE_CARDS; curCard++) {
-            if (!model.isCardActive(houseNumber, curCard)) {
+            if (!model.isCardActive(me, curCard)) {
                 return curCard;
             }
         }
@@ -1087,7 +1217,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int bottomPlace = 0;
         int worseTrack = -1;
         for (int i = 0; i < NUM_TRACK; i++) {
-            myPlaces[i] = model.getTrackPlaceForPlayer(i, houseNumber);
+            myPlaces[i] = model.getTrackPlaceForPlayer(i, me);
             if (myPlaces[i] >= bottomPlace) {
                 worseTrack = i;
                 bottomPlace = myPlaces[i];
@@ -1098,8 +1228,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
 
     @Override
     public TrackType aKingBeyondTheWallLoseDecision() {
-        int swordPlace =  model.getTrackPlaceForPlayer(TrackType.valyrianSword.getCode(), houseNumber);
-        int ravenPlace =  model.getTrackPlaceForPlayer(TrackType.raven.getCode(), houseNumber);
+        int swordPlace =  model.getTrackPlaceForPlayer(TrackType.valyrianSword.getCode(), me);
+        int ravenPlace =  model.getTrackPlaceForPlayer(TrackType.raven.getCode(), me);
         if (swordPlace > 0) {
             return ravenPlace >= 4 ? TrackType.raven : TrackType.valyrianSword;
         } else {
@@ -1113,7 +1243,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         int bestPlace = NUM_PLAYER;
         ArrayList<Integer> bestTracks = new ArrayList<>();
         for (int i = 0; i < NUM_TRACK; i++) {
-            myPlaces[i] = model.getTrackPlaceForPlayer(i, houseNumber);
+            myPlaces[i] = model.getTrackPlaceForPlayer(i, me);
             if (myPlaces[i] < bestPlace) {
                 bestTracks.clear();
                 bestTracks.add(i);
@@ -1137,7 +1267,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
     }
 
     private void say(String text) {
-        model.say(HOUSE[houseNumber] + ": " + text);
+        model.say(HOUSE[me] + ": " + text);
     }
 
     private MusterPlayed musterInArea(int castleArea) {
@@ -1149,22 +1279,22 @@ public class PrimitivePlayer implements GotPlayerInterface{
         }
         HashSet<Integer> normNavalAreas = new HashSet<>();
         HashSet<Integer> mustHaveNavalAreas = new HashSet<>();
-        if (model.getRestingUnits(houseNumber, UnitType.ship) > 0) {
+        if (model.getRestingUnits(me, UnitType.ship) > 0) {
             HashSet<Integer> adjacentAreas = map.getAdjacentAreas(castleArea);
             for (int area: adjacentAreas) {
                 if (map.getAreaType(area) == AreaType.sea && model.getTroopsOwner(area) < 0) {
                     mustHaveNavalAreas.add(area);
-                } else if (map.getAreaType(area) == AreaType.sea && model.getTroopsOwner(area) == houseNumber ||
+                } else if (map.getAreaType(area) == AreaType.sea && model.getTroopsOwner(area) == me ||
                         map.getAreaType(area) == AreaType.port &&
                                 (model.getTroopsOwner(area) < 0 ||
                                         model.getTroopsOwner(map.getSeaNearPort(area)) >= 0 &&
-                                                model.getTroopsOwner(map.getSeaNearPort(area)) != houseNumber)){
+                                                model.getTroopsOwner(map.getSeaNearPort(area)) != me)){
                     normNavalAreas.add(area);
                 }
             }
         }
         MusterPlayed template = new MusterPlayed(castleArea);
-        int curAvailableShips = model.getRestingUnits(houseNumber, UnitType.ship);
+        int curAvailableShips = model.getRestingUnits(me, UnitType.ship);
         for (int mustHaveArea: mustHaveNavalAreas) {
             if (numMusterPoints == 0 || curAvailableShips == 0) {
                 break;
@@ -1182,7 +1312,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
         // Если остались, то пробуем использовать оставшиеся очки сбора и выбираем случайный сбор из допустимых
         HashSet<MusterPlayed> musterVariants = getMusterVariants(castleArea, normNavalAreas,
                 template, numMusterPoints, curAvailableShips);
-        System.out.println("Сбор " + HOUSE_GENITIVE[houseNumber] + ": " + (System.currentTimeMillis() - time) + " мс");
+        System.out.println("Сбор " + HOUSE_GENITIVE[me] + ": " + (System.currentTimeMillis() - time) + " мс");
         return LittleThings.getRandomElementOfSet(musterVariants);
     }
 
@@ -1202,19 +1332,19 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         break;
                     }
                     // Пешка
-                    if (model.getRestingUnits(houseNumber, UnitType.pawn) > 0) {
+                    if (model.getRestingUnits(me, UnitType.pawn) > 0) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.pawn);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Апгрейд
                     if (model.getArmyInArea(castleArea).hasUnitOfType(UnitType.pawn)) {
-                        if (model.getRestingUnits(houseNumber, UnitType.knight) > 0) {
+                        if (model.getRestingUnits(me, UnitType.knight) > 0) {
                             muster = new MusterPlayed(template);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             musterVariants.add(muster);
                         }
-                        if (model.getRestingUnits(houseNumber, UnitType.siegeEngine) > 0) {
+                        if (model.getRestingUnits(me, UnitType.siegeEngine) > 0) {
                             muster = new MusterPlayed(template);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             musterVariants.add(muster);
@@ -1231,19 +1361,19 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     break;
                 case 2:
                     // Вариант "Конь"
-                    if (model.getRestingUnits(houseNumber, UnitType.knight) > 0) {
+                    if (model.getRestingUnits(me, UnitType.knight) > 0) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.knight);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Вариант "Башня"
-                    if (model.getRestingUnits(houseNumber, UnitType.siegeEngine) > 0) {
+                    if (model.getRestingUnits(me, UnitType.siegeEngine) > 0) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.siegeEngine);
                         addNewMusterVariant(musterVariants, muster);
                     }
                     // Вариант "Две пешки"
-                    if (model.getRestingUnits(houseNumber, UnitType.pawn) > 1) {
+                    if (model.getRestingUnits(me, UnitType.pawn) > 1) {
                         muster = new MusterPlayed(template);
                         muster.addNewMusterable(castleArea, UnitType.pawn);
                         muster.addNewMusterable(castleArea, UnitType.pawn);
@@ -1251,20 +1381,20 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     }
                     // Варианты "Два апгрейда"
                     if (model.getArmyInArea(castleArea).getNumUnitOfType(UnitType.pawn) > 1) {
-                        if (model.getRestingUnits(houseNumber, UnitType.siegeEngine) > 1) {
+                        if (model.getRestingUnits(me, UnitType.siegeEngine) > 1) {
                             muster = new MusterPlayed(template);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             musterVariants.add(muster);
                         }
-                        if (model.getRestingUnits(houseNumber, UnitType.knight) > 1) {
+                        if (model.getRestingUnits(me, UnitType.knight) > 1) {
                             muster = new MusterPlayed(template);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
                             musterVariants.add(muster);
                         }
-                        if (model.getRestingUnits(houseNumber, UnitType.siegeEngine) > 0 &&
-                                model.getRestingUnits(houseNumber, UnitType.knight) > 0) {
+                        if (model.getRestingUnits(me, UnitType.siegeEngine) > 0 &&
+                                model.getRestingUnits(me, UnitType.knight) > 0) {
                             muster = new MusterPlayed(template);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
                             muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
@@ -1272,7 +1402,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         }
                     }
                     // Вариант "Пешка + корабль"
-                    if (model.getRestingUnits(houseNumber, UnitType.pawn) > 0 &&
+                    if (model.getRestingUnits(me, UnitType.pawn) > 0 &&
                             curAvailableShips > 0) {
                         for (int area : navalAreas) {
                             muster = new MusterPlayed(template);
@@ -1283,7 +1413,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                     }
                     // Варианты "Апгрейд + корабль"
                     if (model.getArmyInArea(castleArea).hasUnitOfType(UnitType.pawn)) {
-                        if (model.getRestingUnits(houseNumber, UnitType.knight) > 0 && curAvailableShips > 0) {
+                        if (model.getRestingUnits(me, UnitType.knight) > 0 && curAvailableShips > 0) {
                             for (int area : navalAreas) {
                                 muster = new MusterPlayed(template);
                                 muster.addNewMusterable(castleArea, PawnPromotion.pawnToKnight);
@@ -1291,7 +1421,7 @@ public class PrimitivePlayer implements GotPlayerInterface{
                                 addNewMusterVariant(musterVariants, muster);
                             }
                         }
-                        if (model.getRestingUnits(houseNumber, UnitType.siegeEngine) > 0 && curAvailableShips > 0) {
+                        if (model.getRestingUnits(me, UnitType.siegeEngine) > 0 && curAvailableShips > 0) {
                             for (int area : navalAreas) {
                                 muster = new MusterPlayed(template);
                                 muster.addNewMusterable(castleArea, PawnPromotion.pawnToSiege);
@@ -1301,12 +1431,12 @@ public class PrimitivePlayer implements GotPlayerInterface{
                         }
                     }
                     // Варианты "Два корабля"
-                    if (model.getRestingUnits(houseNumber, UnitType.ship) > 1) {
+                    if (model.getRestingUnits(me, UnitType.ship) > 1) {
                         for (int area1 : navalAreas) {
                             for (int area2: navalAreas) {
                                 // Если море рядом с портом наше, то нет смысла строить в порту 2 корабля
                                 if (map.getAreaType(area1) == AreaType.port && area1 == area2 &&
-                                        model.getTroopsOwner(map.getSeaNearPort(area1)) == houseNumber) {
+                                        model.getTroopsOwner(map.getSeaNearPort(area1)) == me) {
                                     continue;
                                 }
                                 muster = new MusterPlayed(template);
