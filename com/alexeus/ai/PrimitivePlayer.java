@@ -83,8 +83,8 @@ public class PrimitivePlayer implements GotPlayerInterface{
      */
     protected int[] indexToAlign = new int[MAX_TROOPS_IN_AREA];
 
-    public PrimitivePlayer(Game newGame, int me) {
-        model = newGame.getModel();
+    public PrimitivePlayer(int me) {
+        model = Game.getInstance().getModel();
         random = new Random();
         map = model.getMap();
         this.me = me;

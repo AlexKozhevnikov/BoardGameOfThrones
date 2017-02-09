@@ -38,6 +38,8 @@ public class Game {
 
     private Random random;
 
+    private InitialPosition initialPosition = InitialPosition.standard;
+
     private GotPlayerInterface[] playerInterface;
 
     private HouseCard[] houseCardOfSide = new HouseCard[2];
@@ -81,11 +83,13 @@ public class Game {
      * если таковой имелся, теряется.
      */
     public void prepareNewGame() {
-        playerInterface = new PrimitivePlayer[NUM_PLAYER];
-        for (int i = 0; i < NUM_PLAYER; i++) {
-            playerInterface[i] = new PrimitivePlayer(this, i);
+        if (playerInterface == null) {
+            playerInterface = new PrimitivePlayer[NUM_PLAYER];
+            for (int i = 0; i < NUM_PLAYER; i++) {
+                playerInterface[i] = new PrimitivePlayer(i);
+            }
         }
-        model.prepareNewGame(InitialPosition.trash);
+        model.prepareNewGame(initialPosition);
         chat.setText("");
         eventTabPanel.repaint();
         fightTabPanel.repaint();
@@ -1851,5 +1855,17 @@ public class Game {
 
     public GameModel getModel() {
         return model;
+    }
+
+    public void setPlayerInterfaces(GotPlayerInterface[] playerInterface) {
+        this.playerInterface = playerInterface;
+    }
+
+    public InitialPosition getInitialPosition() {
+        return initialPosition;
+    }
+
+    public void setInitialPosition(InitialPosition initialPosition) {
+        this.initialPosition = initialPosition;
     }
 }

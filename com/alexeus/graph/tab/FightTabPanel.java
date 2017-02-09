@@ -91,8 +91,8 @@ public class FightTabPanel extends JPanel {
             g2d.setFont(textFont);
             metrics = g2d.getFontMetrics();
             plusWidth = metrics.stringWidth("+");
-            int curLine = 0;
             for (int side = 0; side < 2; side++) {
+                int curLine = 0;
                 int curHeight = FIGHT_SPECIFICS_Y;
                 boolean firstFlag = true;
                 calculateWidth(battleInfo, side, metrics);

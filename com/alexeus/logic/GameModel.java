@@ -329,6 +329,7 @@ public class GameModel {
         armyInArea[30].addUnit(UnitType.knight, 5);
         armyInArea[28].addUnit(UnitType.knight, 5); */
 
+        // TODO обнулить гарнизоны и даомашние клумбы
         // Нейтральные лорды
         garrisonInArea[31] = 6;
         garrisonInArea[54] = 5;
